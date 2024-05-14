@@ -11,13 +11,15 @@
 #ifndef _QCAMX_HAL3_TEST_CONFIG_
 #define _QCAMX_HAL3_TEST_CONFIG_
 
-#include <string>
-#include <hardware/camera_common.h>
-#include <hardware/camera3.h>
 #include <camera/CameraMetadata.h>
 #include <camera/VendorTagDescriptor.h>
-#include "QCamxHAL3TestLog.h"
+#include <hardware/camera3.h>
+#include <hardware/camera_common.h>
+
+#include <string>
+
 #include "QCamxHAL3TestImpl.h"
+#include "QCamxHAL3TestLog.h"
 
 /******************************************************************************************************************************
  * There are 3 Test Modes: preview, snapshot, video
@@ -29,9 +31,9 @@
  *        when video/liveshot
  ******************************************************************************************************************************/
 
-#define TESTMODE_PREVIEW  0
+#define TESTMODE_PREVIEW 0
 #define TESTMODE_SNAPSHOT 1
-#define TESTMODE_VIDEO    2
+#define TESTMODE_VIDEO 2
 #define TESTMODE_VIDEO_ONLY 3
 #define TESTMODE_PREVIEW_VIDEO_ONLY 4
 #define TESTMODE_DEPTH 5
@@ -46,7 +48,7 @@ typedef struct _stream_info {
     int format;
     Implsubformat subformat;
     int requestNumber;
-}stream_info_t;
+} stream_info_t;
 
 // Settings for item selection which is needed to dump/show as user's order.
 typedef struct _meta_dump {
@@ -75,10 +77,10 @@ typedef struct _meta_dump {
     int SATActiveArray[4];
     int SATCropRegion[4];
     int rawsize;
-}meta_dump_t;
+} meta_dump_t;
 
 // Saving the Metadata Value status
-typedef struct _meta_stat{
+typedef struct _meta_stat {
     int expTime;
     int isoValue;
     int aeMode;
@@ -102,20 +104,20 @@ typedef struct _meta_stat{
     int camId;
     int activeArray[4];
     int cropRegion[4];
-}meta_stat_t;
+} meta_stat_t;
 
-typedef struct _video_bitrate_config{
+typedef struct _video_bitrate_config {
     uint32_t bitrate;
     uint32_t targetBitrate;
     bool isBitRateConstant;
-}video_bitrate_config_t;
+} video_bitrate_config_t;
 
 // Calss for Geting and saving Configure from user
 class QCamxHAL3TestConfig {
 public:
-    int           mTestMode;
-    int           mIsH265;
-    int           mCameraId;
+    int mTestMode;
+    int mIsH265;
+    int mCameraId;
     stream_info_t mPreviewStream;
     stream_info_t mSnapshotStream;
     stream_info_t mVideoStream;
@@ -124,41 +126,40 @@ public:
     stream_info_t mDepthIRBGStream;
     video_bitrate_config_t mVideoRateConfig;
     //zsl
-    bool          mZslEnabled;
+    bool mZslEnabled;
     //
-    bool          mDepthIRBGEnabled;
+    bool mDepthIRBGEnabled;
     //dump
     /*
      * Video  Snapshot  Preview
      * bit[2] bit[1]    bit[0]
      */
-    meta_dump_t   mMetaDump;
-    QCamxHAL3TestLog*      mDump;
-    int           mShowFps;
-    int           mFpsRange[2];
-    int           mRangeMode;  // 0/1
-    int           mImageType;  // 0/1/2/3/4
-    bool          mRawStreamEnable;
-    uint32_t      mActiveSensorWidth;
-    uint32_t      mActiveSensorHeight;
-    int           mRawformat;
-    uint32_t      mForceOpmode;
-    int           mAECompRangeMin;
-    int           mAECompRangeMax;
-    bool          mHeicSnapshot;
+    meta_dump_t mMetaDump;
+    QCamxHAL3TestLog *mDump;
+    int mShowFps;
+    int mFpsRange[2];
+    int mRangeMode;  // 0/1
+    int mImageType;  // 0/1/2/3/4
+    bool mRawStreamEnable;
+    uint32_t mActiveSensorWidth;
+    uint32_t mActiveSensorHeight;
+    int mRawformat;
+    uint32_t mForceOpmode;
+    int mAECompRangeMin;
+    int mAECompRangeMax;
+    bool mHeicSnapshot;
 
-    meta_stat_t   mMetaStat;
+    meta_stat_t mMetaStat;
     CameraMetadata mStaticMeta;
     QCamxHAL3TestConfig();
     ~QCamxHAL3TestConfig();
     void setDefaultConfig();
-    void setCameraConfig(int camera,int argc,char* argv[]);
-    int parseCommandline(int argc, char* argv[]);
-    int parseCommandlineAdd(int ordersize,char* order);
-    int parseCommandlineChange(int ordersize,char* order);
-    int parseCommandlineMetaDump(int ordersize,char* order);
-    int parseCommandlineMetaUpdate(char* order,android::CameraMetadata* metaUpdate);
+    void setCameraConfig(int camera, int argc, char *argv[]);
+    int parseCommandline(int argc, char *argv[]);
+    int parseCommandlineAdd(int ordersize, char *order);
+    int parseCommandlineChange(int ordersize, char *order);
+    int parseCommandlineMetaDump(int ordersize, char *order);
+    int parseCommandlineMetaUpdate(char *order, android::CameraMetadata *metaUpdate);
 };
 
 #endif
-

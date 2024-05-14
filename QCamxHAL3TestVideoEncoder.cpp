@@ -25,17 +25,14 @@ using namespace android;
 * function: init default setting
 ************************************************************************/
 QCamxTestVideoEncoder::QCamxTestVideoEncoder(QCamxHAL3TestConfig *config)
-    :mCoder(NULL),
-    mConfig({}),
-    mBufferQueue(NULL)
-{
+    : mCoder(NULL), mConfig({}), mBufferQueue(NULL) {
     OMX_U32 inputColorFormat;
-    if (config->mVideoStream.subformat == UBWCTP10 )
-       inputColorFormat = HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS;//TO CHANGE
+    if (config->mVideoStream.subformat == UBWCTP10)
+        inputColorFormat = HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS;  //TO CHANGE
     else
-       inputColorFormat = HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS;
+        inputColorFormat = HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS;
 
-    mCoder =  QCamxHAL3TestOMXEncoder::getInstance();
+    mCoder = QCamxHAL3TestOMXEncoder::getInstance();
     mConfig = {
         .componentName = (char *)"OMX.qcom.video.encoder.avc",
         .inputcolorfmt = HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS,
@@ -60,7 +57,7 @@ QCamxTestVideoEncoder::QCamxTestVideoEncoder(QCamxHAL3TestConfig *config)
         .nframerate = 30,
 
         /*buf config*/
-        .storemeta = (DISABLE_META_MODE==1)?0:1,
+        .storemeta = (DISABLE_META_MODE == 1) ? 0 : 1,
 
         /*input port param*/
         .input_w = 1920,
@@ -85,14 +82,13 @@ QCamxTestVideoEncoder::QCamxTestVideoEncoder(QCamxHAL3TestConfig *config)
     char path[256] = {0};
     if (config->mIsH265) {
         mConfig.componentName = (char *)"OMX.qcom.video.encoder.hevc",
-        mConfig.codec = OMX_VIDEO_CodingHEVC,
-        mConfig.eprofile = OMX_VIDEO_HEVCProfileMain,
+        mConfig.codec = OMX_VIDEO_CodingHEVC, mConfig.eprofile = OMX_VIDEO_HEVCProfileMain,
         mConfig.elevel = OMX_VIDEO_HEVCHighTierLevel3,
         snprintf(path, sizeof(path), "%s/camera_0.h265", CAMERA_STORAGE_DIR);
     } else {
         snprintf(path, sizeof(path), "%s/camera_0.h264", CAMERA_STORAGE_DIR);
     }
-    mOutFd = fopen(path,"w+");
+    mOutFd = fopen(path, "w+");
 
     mTimeOffset = 0;
     mBufferQueue = new list<buffer_handle_t *>;
@@ -110,11 +106,10 @@ QCamxTestVideoEncoder::QCamxTestVideoEncoder(QCamxHAL3TestConfig *config)
 * name : ~QCamxTestVideoEncoder
 * function: ~QCamxTestVideoEncoder
 ************************************************************************/
-QCamxTestVideoEncoder::~QCamxTestVideoEncoder()
-{
+QCamxTestVideoEncoder::~QCamxTestVideoEncoder() {
     pthread_mutex_destroy(&mLock);
     pthread_cond_destroy(&mCond);
-    if (mOutFd != NULL){
+    if (mOutFd != NULL) {
         fclose(mOutFd);
         mOutFd = NULL;
     }
@@ -124,8 +119,7 @@ QCamxTestVideoEncoder::~QCamxTestVideoEncoder()
 * name : run
 * function: start encoder thread
 ************************************************************************/
-void QCamxTestVideoEncoder::run()
-{
+void QCamxTestVideoEncoder::run() {
     mCoder->start();
 }
 
@@ -133,17 +127,16 @@ void QCamxTestVideoEncoder::run()
 * name : stop
 * function: stop encoder
 ************************************************************************/
-void QCamxTestVideoEncoder::stop()
-{
+void QCamxTestVideoEncoder::stop() {
     //set stop state
     mIsStop = true;
     mCoder->stop();
     delete mCoder;
     mCoder = NULL;
-    buffer_handle_t * buf_handle;
+    buffer_handle_t *buf_handle;
     while (true) {
         pthread_mutex_lock(&mLock);
-        QCAMX_INFO("QCamxTestVideoEncoder::stop: mBufferQueue:%d\n",mBufferQueue->size());
+        QCAMX_INFO("QCamxTestVideoEncoder::stop: mBufferQueue:%d\n", mBufferQueue->size());
         if (mBufferQueue->size() > 0) {
             buf_handle = mBufferQueue->front();
             mBufferQueue->pop_front();
@@ -163,10 +156,9 @@ void QCamxTestVideoEncoder::stop()
 * name : Read
 * function: handler to fill a buffer of handle to omx input port
 ************************************************************************/
-int QCamxTestVideoEncoder::Read(OMX_BUFFERHEADERTYPE *buf)
-{
+int QCamxTestVideoEncoder::Read(OMX_BUFFERHEADERTYPE *buf) {
     encoder_media_buffer_type *meta_buffer;
-    meta_buffer = (encoder_media_buffer_type*)(buf->pBuffer);//8 Byte;
+    meta_buffer = (encoder_media_buffer_type *)(buf->pBuffer);  //8 Byte;
     int ret = 0;
     int readLen = 0;
     if (!meta_buffer) {
@@ -178,9 +170,9 @@ int QCamxTestVideoEncoder::Read(OMX_BUFFERHEADERTYPE *buf)
     pthread_mutex_lock(&mLock);
     if (mBufferQueue != NULL) {
         while (mBufferQueue->size() == 0) {
-            clock_gettime(CLOCK_MONOTONIC,&tv);
-            tv.tv_sec += 1;//1s
-            ret = pthread_cond_timedwait(&mCond, &mLock,&tv);
+            clock_gettime(CLOCK_MONOTONIC, &tv);
+            tv.tv_sec += 1;  //1s
+            ret = pthread_cond_timedwait(&mCond, &mLock, &tv);
             if (ret != 0) {
                 /*CallStack e;
                   e.update();
@@ -202,13 +194,14 @@ int QCamxTestVideoEncoder::Read(OMX_BUFFERHEADERTYPE *buf)
         QCAMX_ERR("buffer handle is NULL");
         return -1;
     } else {
-
 #if DISABLE_META_MODE
-        memcpy(buf->pBuffer,mStream->bufferManager->getBufferInfo(buf_handle)->vaddr,buf->nAllocLen);
+        memcpy(buf->pBuffer, mStream->bufferManager->getBufferInfo(buf_handle)->vaddr,
+               buf->nAllocLen);
         mStream->bufferManager->ReturnBuffer(buf_handle);
         readLen = buf->nAllocLen;
 #else
-        meta_buffer->buffer_type = kMetadataBufferTypeGrallocSource;     //0:camera_source 1:gralloc_source
+        meta_buffer->buffer_type =
+            kMetadataBufferTypeGrallocSource;  //0:camera_source 1:gralloc_source
         meta_buffer->meta_handle = *buf_handle;
         QCAMX_INFO("meta_buffer->meta_handle %p", meta_buffer->meta_handle);
 #endif
@@ -223,8 +216,7 @@ int QCamxTestVideoEncoder::Read(OMX_BUFFERHEADERTYPE *buf)
 * name : Write
 * function: handler to write omx output data
 ************************************************************************/
-OMX_ERRORTYPE QCamxTestVideoEncoder::Write(OMX_BUFFERHEADERTYPE *buf)
-{
+OMX_ERRORTYPE QCamxTestVideoEncoder::Write(OMX_BUFFERHEADERTYPE *buf) {
     fwrite(buf->pBuffer, 1, buf->nFilledLen, mOutFd);
     return OMX_ErrorNone;
 }
@@ -233,19 +225,17 @@ OMX_ERRORTYPE QCamxTestVideoEncoder::Write(OMX_BUFFERHEADERTYPE *buf)
 * name : EmptyDone
 * function: handler to put input buffer
 ************************************************************************/
-OMX_ERRORTYPE QCamxTestVideoEncoder::EmptyDone(OMX_BUFFERHEADERTYPE *buf)
-{
-
+OMX_ERRORTYPE QCamxTestVideoEncoder::EmptyDone(OMX_BUFFERHEADERTYPE *buf) {
 #if (!DISABLE_META_MODE)
     encoder_media_buffer_type *meta_buffer;
-    meta_buffer = (encoder_media_buffer_type*)(buf->pBuffer);//8 Byte;
+    meta_buffer = (encoder_media_buffer_type *)(buf->pBuffer);  //8 Byte;
     if (!meta_buffer) {
         QCAMX_ERR("meta_buffer is empty");
         return OMX_ErrorNone;
     }
     if (meta_buffer->meta_handle != NULL) {
         int fd = meta_buffer->meta_handle->data[0];
-        if (mFrameHandleMap.find(fd)!=mFrameHandleMap.end()) {
+        if (mFrameHandleMap.find(fd) != mFrameHandleMap.end()) {
             mStream->bufferManager->ReturnBuffer(mFrameHandleMap[fd]);
         }
     }
@@ -257,7 +247,7 @@ OMX_ERRORTYPE QCamxTestVideoEncoder::EmptyDone(OMX_BUFFERHEADERTYPE *buf)
 * name : EnqueueFrameBuffer
 * function: enq a buffer to input port queue
 ************************************************************************/
-void QCamxTestVideoEncoder::EnqueueFrameBuffer(CameraStream *stream, buffer_handle_t *buf_handle){
+void QCamxTestVideoEncoder::EnqueueFrameBuffer(CameraStream *stream, buffer_handle_t *buf_handle) {
     mStream = stream;
     mFrameHandleMap[(*buf_handle)->data[0]] = buf_handle;
     pthread_mutex_lock(&mLock);
@@ -265,4 +255,3 @@ void QCamxTestVideoEncoder::EnqueueFrameBuffer(CameraStream *stream, buffer_hand
     pthread_cond_signal(&mCond);
     pthread_mutex_unlock(&mLock);
 }
-

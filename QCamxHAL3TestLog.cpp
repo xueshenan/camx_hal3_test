@@ -20,37 +20,28 @@
 #include <sys/syscall.h>
 #define gettid() syscall(SYS_gettid)
 
-QCamxHAL3TestLog::QCamxHAL3TestLog()
-{
-}
+QCamxHAL3TestLog::QCamxHAL3TestLog() {}
 
-QCamxHAL3TestLog::~QCamxHAL3TestLog()
-{
-    if (mType == LFILE)
-    {
+QCamxHAL3TestLog::~QCamxHAL3TestLog() {
+    if (mType == LFILE) {
         fclose(mFile);
     }
     mIsNewPath = false;
 }
 
-QCamxHAL3TestLog::QCamxHAL3TestLog(string logpath)
-{
+QCamxHAL3TestLog::QCamxHAL3TestLog(string logpath) {
     mFile = stderr;
     mType = LALOGE;
-    if (logpath == "")
-    {
+    if (logpath == "") {
         mIsNewPath = false;
-    }
-    else
-    {
+    } else {
         mIsNewPath = true;
     }
     mPath = logpath;
     mTag = "[META] ";
 }
 
-int QCamxHAL3TestLog::dump(char *fileName)
-{
+int QCamxHAL3TestLog::dump(char *fileName) {
     int j, nptrs;
     int rc = 0;
     void *buffer[MAX_TRACES];
@@ -61,17 +52,14 @@ int QCamxHAL3TestLog::dump(char *fileName)
     QCAMX_PRINT("backtrace() returned %d addresses \n", nptrs);
 
     strings = backtrace_symbols(buffer, nptrs);
-    if (strings == NULL)
-    {
+    if (strings == NULL) {
         perror("backtrace_symbols");
         _exit(EXIT_FAILURE);
     }
 
-    for (j = 0; j < nptrs; j++)
-    {
+    for (j = 0; j < nptrs; j++) {
         QCAMX_PRINT("[%02d] %s \n", j, strings[j]);
-        if (fileName)
-        {
+        if (fileName) {
             char buff[256] = {0x00};
             snprintf(buff, sizeof(buff), "echo \"%s\" >> %s", strings[j], fileName);
             rc = system((const char *)buff);
@@ -83,21 +71,18 @@ int QCamxHAL3TestLog::dump(char *fileName)
     return 0;
 }
 
-void QCamxHAL3TestLog::signal_handler(int signo)
-{
+void QCamxHAL3TestLog::signal_handler(int signo) {
     /// Use static flag to avoid being called repeatedly.
     int rc = 0;
     static volatile bool isHandling[SIGALRM + 1] = {false};
-    if (true == isHandling[signo])
-    {
+    if (true == isHandling[signo]) {
         return;
     }
     QCAMX_PRINT("=========>>>catch signal %d <<< from tid:%d====== \n", signo, (int)gettid());
 
     isHandling[signo] = true;
 
-    if (SIGINT == signo)
-    {
+    if (SIGINT == signo) {
         _exit(0);
     }
 
@@ -107,7 +92,8 @@ void QCamxHAL3TestLog::signal_handler(int signo)
     /// Dump trace and r-xp maps
     snprintf(fileName, sizeof(fileName), "%s/trace_%d[%d].txt", TRACE_DUMP_DIR, getpid(), signo);
 
-    snprintf(buff, sizeof(buff), "cat /proc/%d/maps | grep '/usr' | grep 'r-xp' | tee %s", getpid(), fileName);
+    snprintf(buff, sizeof(buff), "cat /proc/%d/maps | grep '/usr' | grep 'r-xp' | tee %s", getpid(),
+             fileName);
     QCAMX_PRINT("Run cmd: %s \n", buff);
     rc = system((const char *)buff);
 
@@ -148,19 +134,17 @@ void QCamxHAL3TestLog::signal_handler(int signo)
     _exit(0);
 }
 
-void QCamxHAL3TestLog::registerSigMonitor()
-{
-    int sigArray[SIG_MONITOR_SIZE] =
-        {
-            SIGINT,  // 2
-            SIGILL,  // 4
-            SIGABRT, // 6
-            SIGBUS,  // 7
-            SIGFPE,  // 8
-            SIGSEGV, // 11
-            SIGPIPE, // 13
-            SIGALRM, // 14
-        };
+void QCamxHAL3TestLog::registerSigMonitor() {
+    int sigArray[SIG_MONITOR_SIZE] = {
+        SIGINT,   // 2
+        SIGILL,   // 4
+        SIGABRT,  // 6
+        SIGBUS,   // 7
+        SIGFPE,   // 8
+        SIGSEGV,  // 11
+        SIGPIPE,  // 13
+        SIGALRM,  // 14
+    };
 
     /// Sig stack configure
     static stack_t sigseg_stack;
@@ -178,16 +162,13 @@ void QCamxHAL3TestLog::registerSigMonitor()
     /// Add blocking signals
     /// TODO: still can not block signal SIGSEGV ?
     sigemptyset(&sig.sa_mask);
-    for (int i = 0; i < SIG_MONITOR_SIZE; i++)
-    {
+    for (int i = 0; i < SIG_MONITOR_SIZE; i++) {
         sigaddset(&sig.sa_mask, sigArray[i]);
     }
 
     /// Register handler for signals
-    for (int i = 0; i < SIG_MONITOR_SIZE; i++)
-    {
-        if (0 != sigaction(sigArray[i], &sig, NULL))
-        {
+    for (int i = 0; i < SIG_MONITOR_SIZE; i++) {
+        if (0 != sigaction(sigArray[i], &sig, NULL)) {
             QCAMX_PRINT("monitor signal %d failed \n", sigArray[i]);
         }
     }
@@ -197,63 +178,50 @@ void QCamxHAL3TestLog::registerSigMonitor()
     return;
 }
 
-void QCamxHAL3TestLog::setPath(string logfile)
-{
-    if (logfile == "std")
-    {
+void QCamxHAL3TestLog::setPath(string logfile) {
+    if (logfile == "std") {
         mType = LSTDIO;
-    }
-    else if (logfile == "ALOGE")
-    {
+    } else if (logfile == "ALOGE") {
         mType = LALOGE;
-    }
-    else
-    {
+    } else {
         mType = LFILE;
         string logpath = "/data/misc/camera/" + logfile;
-        if (logpath != mPath)
-        {
+        if (logpath != mPath) {
             mIsNewPath = true;
             mPath = logpath;
         }
     }
 }
 
-int QCamxHAL3TestLog::print(const char *format, ...)
-{
+int QCamxHAL3TestLog::print(const char *format, ...) {
     int res = 0;
     char m[LOG_LENGHT];
     va_list ap;
     va_start(ap, format);
     vsnprintf(m, LOG_LENGHT, format, ap);
     va_end(ap);
-    switch (mType)
-    {
-    case LSTDIO:
-    {
-        printf("%s %s \n", mTag.c_str(), m);
-        break;
-    }
-    case LALOGE:
-    {
-        __android_log_write(ANDROID_LOG_INFO, mTag.c_str(), m);
-        break;
-    }
-    case LFILE:
-    {
-        if (mIsNewPath)
-        {
-            FILE *newfile = fopen(mPath.c_str(), "w+");
-            fclose(mFile);
-            mFile = newfile;
-            mIsNewPath = false;
-            printf("DUMP LOG BEGAIN \n");
+    switch (mType) {
+        case LSTDIO: {
+            printf("%s %s \n", mTag.c_str(), m);
+            break;
         }
-        res = fprintf(mFile, "%s %s", mTag.c_str(), m);
-        break;
-    }
-    default:
-        break;
+        case LALOGE: {
+            __android_log_write(ANDROID_LOG_INFO, mTag.c_str(), m);
+            break;
+        }
+        case LFILE: {
+            if (mIsNewPath) {
+                FILE *newfile = fopen(mPath.c_str(), "w+");
+                fclose(mFile);
+                mFile = newfile;
+                mIsNewPath = false;
+                printf("DUMP LOG BEGAIN \n");
+            }
+            res = fprintf(mFile, "%s %s", mTag.c_str(), m);
+            break;
+        }
+        default:
+            break;
     }
     return res;
 }

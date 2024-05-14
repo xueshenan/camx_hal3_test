@@ -12,14 +12,13 @@
 #define _QCAMX_HAL3_TEST_SNAPSHOT_
 #include "QCamxHAL3TestCase.h"
 
-class QCamxHAL3TestSnapshot : public QCamxHAL3TestCase
-{
+class QCamxHAL3TestSnapshot : public QCamxHAL3TestCase {
 public:
-    QCamxHAL3TestSnapshot(camera_module_t* module, QCamxHAL3TestConfig* config);
+    QCamxHAL3TestSnapshot(camera_module_t *module, QCamxHAL3TestConfig *config);
     ~QCamxHAL3TestSnapshot();
     virtual void run() override;
     virtual void stop() override;
-    virtual void CapturePostProcess(DeviceCallback* cb, camera3_capture_result *result) override;
+    virtual void CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) override;
     virtual int PreinitStreams() override;
     virtual void RequestCaptures(StreamCapture requst) override;
 private:

@@ -11,32 +11,37 @@
 #ifndef _QCamxHAL3TestLog_
 #define _QCamxHAL3TestLog_
 
-#include <string>
-#include <cassert>
-#include <stdio.h>
+#include <execinfo.h>
 #include <log/log.h>
 #include <signal.h>
-#include <execinfo.h>
+#include <stdio.h>
+
+#include <cassert>
+#include <string>
 
 using namespace std;
 //using namespace android;
 
-#define QCAMX_ERR(fmt, args...) do { \
-    ALOGE("%s %d:" fmt, __func__, __LINE__, ##args); \
-} while (0)
+#define QCAMX_ERR(fmt, args...)                          \
+    do {                                                 \
+        ALOGE("%s %d:" fmt, __func__, __LINE__, ##args); \
+    } while (0)
 
-#define QCAMX_INFO(fmt, args...) do { \
-    ALOGI("%s %d:" fmt, __func__, __LINE__, ##args); \
-} while (0)
+#define QCAMX_INFO(fmt, args...)                         \
+    do {                                                 \
+        ALOGI("%s %d:" fmt, __func__, __LINE__, ##args); \
+    } while (0)
 
-#define QCAMX_DBG(fmt, args...) do { \
-    ALOGD("%s %d:" fmt, __func__, __LINE__, ##args); \
-} while (0)
+#define QCAMX_DBG(fmt, args...)                          \
+    do {                                                 \
+        ALOGD("%s %d:" fmt, __func__, __LINE__, ##args); \
+    } while (0)
 
-#define QCAMX_PRINT(fmt, args...) do { \
-    ALOGI("%s %d:" fmt, __func__, __LINE__, ##args);  \
-    printf(fmt, ##args); \
-} while (0)
+#define QCAMX_PRINT(fmt, args...)                        \
+    do {                                                 \
+        ALOGI("%s %d:" fmt, __func__, __LINE__, ##args); \
+        printf(fmt, ##args);                             \
+    } while (0)
 
 #define TRACE_DUMP_DIR "/data/misc/camera"
 
@@ -53,18 +58,17 @@ public:
         LSTDIO = 0,
         LALOGE,
         LFILE,
-    }LogType;
-    LogType             mType;
-    FILE*               mFile;
-    string              mPath;
-    string              mTag;
-    bool                mIsNewPath;
-
+    } LogType;
+    LogType mType;
+    FILE *mFile;
+    string mPath;
+    string mTag;
+    bool mIsNewPath;
 private:
     enum {
-        SIG_MONITOR_SIZE  = 8,
-        MAX_TRACES        = 100,
-        STACK_BODY_SIZE   = (64*1024),
+        SIG_MONITOR_SIZE = 8,
+        MAX_TRACES = 100,
+        STACK_BODY_SIZE = (64 * 1024),
     };
     static void signal_handler(int signo);
 };

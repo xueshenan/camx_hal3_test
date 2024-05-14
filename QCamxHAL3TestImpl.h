@@ -24,20 +24,17 @@ typedef enum {
     RawMIPI,
 } Implsubformat;
 
-
-
 typedef enum {
-    PREVIEW_TYPE   = 0,
-    SNAPSHOT_TYPE  = 1,
-    VIDEO_TYPE     = 2,
-    RAW_SNAPSHOT_TYPE =3,
+    PREVIEW_TYPE = 0,
+    SNAPSHOT_TYPE = 1,
+    VIDEO_TYPE = 2,
+    RAW_SNAPSHOT_TYPE = 3,
     DEPTH_TYPE = 4,
-    IRBG_TYPE =  5,
+    IRBG_TYPE = 5,
 } StreamType;
 
-
-struct Stream{
-    camera3_stream_t* pstream;
+struct Stream {
+    camera3_stream_t *pstream;
     StreamType type;
     Implsubformat subformat;
 };

@@ -15,26 +15,25 @@
 #include "QCamxHAL3TestVideoEncoder.h"
 #endif
 
-class QCamxHAL3TestPreviewVideo : public QCamxHAL3TestCase
-{
+class QCamxHAL3TestPreviewVideo : public QCamxHAL3TestCase {
 public:
-    QCamxHAL3TestPreviewVideo(camera_module_t* module, QCamxHAL3TestConfig* config);
+    QCamxHAL3TestPreviewVideo(camera_module_t *module, QCamxHAL3TestConfig *config);
     ~QCamxHAL3TestPreviewVideo();
     virtual void run() override;
     virtual void stop() override;
-    virtual void CapturePostProcess(DeviceCallback* cb,camera3_capture_result *hal_result) override;
-    virtual void HandleMetaData(DeviceCallback* cb,camera3_capture_result *result) override;
+    virtual void CapturePostProcess(DeviceCallback *cb,
+                                    camera3_capture_result *hal_result) override;
+    virtual void HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) override;
     virtual int PreinitStreams() override;
-
 private:
-    #ifdef ENABLE_VIDEO_ENCODER
-    QCamxTestVideoEncoder*   mVideoEncoder;
-    #endif
-    VideoMode                mVideoMode;
-    bool                     mIsStoped;
+#ifdef ENABLE_VIDEO_ENCODER
+    QCamxTestVideoEncoder *mVideoEncoder;
+#endif
+    VideoMode mVideoMode;
+    bool mIsStoped;
     int initVideoStreams();
-    void selectOpMode(uint32_t *operation_mode,int width,int height,int fps);
-    void EnqueueFrameBuffer(CameraStream *stream,buffer_handle_t *buf_handle);
+    void selectOpMode(uint32_t *operation_mode, int width, int height, int fps);
+    void EnqueueFrameBuffer(CameraStream *stream, buffer_handle_t *buf_handle);
 
     camera3_stream_t mPreviewStream;
     camera3_stream_t mVideoStream;
@@ -43,4 +42,3 @@ private:
     //camera3_stream_t mSnapshotStream;
 };
 #endif
-
