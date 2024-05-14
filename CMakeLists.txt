@@ -1,3 +1,7 @@
+cmake_minimum_required(VERSION 3.22)
+
+project(camx_hal3_test)
+
 # User Variables
 set (SUPPORT_FUNCTION_CALL_TRACE 1)
 
