@@ -11,6 +11,7 @@
 #ifndef _QCAMX_HAL3_TEST_PREVIEW_VIDEO_
 #define _QCAMX_HAL3_TEST_PREVIEW_VIDEO_
 #include "QCamxHAL3TestCase.h"
+#include "QCamxHAL3TestVideo.h"
 #ifdef ENABLE_VIDEO_ENCODER
 #include "QCamxHAL3TestVideoEncoder.h"
 #endif

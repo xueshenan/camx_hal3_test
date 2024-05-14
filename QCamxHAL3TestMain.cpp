@@ -126,7 +126,7 @@ camera_module_callbacks_t module_callbacks = {CameraDeviceStatusChange, TorchMod
  * function: load the camera module liberay
  ************************************************************************/
 static int loadCameraModule(const char *id, const char *path, camera_module_t **pCmi) {
-    QCAMX_PRINT("load camera module :%s\n", id);
+    QCAMX_PRINT("load camera module id:%s, path:%s\n", id, path);
     int status = 0;
     void *handle = NULL;
     camera_module_t *cmi = NULL;
