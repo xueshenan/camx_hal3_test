@@ -181,6 +181,7 @@ static int loadCameraModule(const char *id, const char *path, camera_module_t **
  * function: initialize the camera module for camera test
  ************************************************************************/
 int initialize() {
+    // define in sysroots/aarch64-oe-linux/usr/include/hardware/camera_common.h
     struct camera_info info;
     vendor_tag_ops_t vendor_tag_ops_;
 
@@ -237,7 +238,7 @@ int initialize() {
     for (int i = 0; i < numCameras; i++) {
         auto rc = CamModule->get_camera_info(i, &info);
         if (!rc) {
-            QCAMX_PRINT("Camera: %d face:%d\n", i, info.facing);
+            QCAMX_PRINT("Camera: %d face:%d orientation:%d\n", i, info.facing, info.orientation);
         } else {
             QCAMX_PRINT("Error Get Camera:%d Info \n", i);
             return rc;
