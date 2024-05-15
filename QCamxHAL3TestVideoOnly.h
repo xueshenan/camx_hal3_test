@@ -11,6 +11,9 @@
 #ifndef _QCAMX_HAL3_TEST_VIDEO_ONLY_
 #define _QCAMX_HAL3_TEST_VIDEO_ONLY_
 #include "QCamxHAL3TestCase.h"
+#ifdef ENABLE_VIDEO_ENCODER
+#include "QCamxHAL3TestVideoEncoder.h"
+#endif
 
 typedef enum {
     VIDEO_ONLY_MODE_NORMAL = 30,   // for normal 1~30fps

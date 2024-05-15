@@ -15,6 +15,7 @@ add_definitions ( -DUSE_GBM )
 add_definitions ( -DDISABLE_META_MODE=1 )
 add_definitions ( -DCAMERA_STORAGE_DIR="/data/misc/camera/" )
 if (DEFINED ENABLE_VIDEO_ENCODER)
+message(STATUS "enable video encoder")
 add_definitions ( -DENABLE_VIDEO_ENCODER)
 endif ()
 

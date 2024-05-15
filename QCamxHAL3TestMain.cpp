@@ -271,8 +271,8 @@ void print_version() {
  * function: preview callback
  ************************************************************************/
 void preview_cb(BufferInfo *info, int frameNum) {
-    // QCAMX_ERR("%d",frameNum);
-    // QCamxHAL3TestCase::DumpFrame(info, frame_number, PREVIEW_TYPE);
+    // QCAMX_PRINT("preview: %d\n", frameNum);
+    // QCamxHAL3TestCase::DumpFrame(info, frameNum, PREVIEW_TYPE, YUV420NV12);
 }
 
 /************************************************************************
