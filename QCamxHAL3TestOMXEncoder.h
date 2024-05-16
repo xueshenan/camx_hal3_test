@@ -186,6 +186,7 @@ private:
 
     omx_config_t m_Config;
     char m_SupportComponents[64][128];
+    //typedef OMX_PTR OMX_HANDLETYPE
     OMX_HANDLETYPE m_OmxHandle;
     QCamxHAL3TestBufferHolder *m_Holder;
 

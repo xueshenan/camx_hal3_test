@@ -26,6 +26,7 @@ using namespace android;
 ************************************************************************/
 QCamxTestVideoEncoder::QCamxTestVideoEncoder(QCamxHAL3TestConfig *config)
     : mCoder(NULL), mConfig({}), mBufferQueue(NULL) {
+    QCAMX_PRINT("new instance for QCamxTestVideoEncoder\n");
     OMX_U32 inputColorFormat;
     if (config->mVideoStream.subformat == UBWCTP10)
         inputColorFormat = HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS;  //TO CHANGE
@@ -88,6 +89,8 @@ QCamxTestVideoEncoder::QCamxTestVideoEncoder(QCamxHAL3TestConfig *config)
     } else {
         snprintf(path, sizeof(path), "%s/camera_0.h264", CAMERA_STORAGE_DIR);
     }
+
+    QCAMX_PRINT("video encoder output path : %s\n", path);
     mOutFd = fopen(path, "w+");
 
     mTimeOffset = 0;
@@ -120,6 +123,7 @@ QCamxTestVideoEncoder::~QCamxTestVideoEncoder() {
 * function: start encoder thread
 ************************************************************************/
 void QCamxTestVideoEncoder::run() {
+    QCAMX_PRINT("QCamxTestVideoEncoder::run before coder start : %p\n", mCoder);
     mCoder->start();
 }
 

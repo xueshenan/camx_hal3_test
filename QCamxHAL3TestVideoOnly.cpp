@@ -39,12 +39,13 @@ typedef enum {
 ************************************************************************/
 QCamxHAL3TestVideoOnly::QCamxHAL3TestVideoOnly(camera_module_t *module,
                                                QCamxHAL3TestConfig *config) {
+    QCAMX_PRINT("new instance for QCamxHAL3TestVideoOnly\n");
     init(module, config);
 
     mVideoMode = VIDEO_ONLY_MODE_NORMAL;
     mIsStoped = true;
 #ifdef ENABLE_VIDEO_ENCODER
-    mVideoEncoder = NULL;  //new QCamxTestVideoEncoder(mConfig);
+    mVideoEncoder = new QCamxTestVideoEncoder(mConfig);
 #endif
 }
 
@@ -351,6 +352,7 @@ void QCamxHAL3TestVideoOnly::run() {
         mDevice->mLivingRequestExtAppend = HFR_LIVING_REQUEST_APPEND;
     }
 #ifdef ENABLE_VIDEO_ENCODER
+    QCAMX_PRINT("QCamxHAL3TestVideoOnly::run before\n");
     mVideoEncoder->run();
 #endif
     mIsStoped = false;

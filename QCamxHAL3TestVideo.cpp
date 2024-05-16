@@ -29,7 +29,7 @@ QCamxHAL3TestVideo::QCamxHAL3TestVideo(camera_module_t *module, QCamxHAL3TestCon
     mVideoMode = VIDEO_MODE_NORMAL;
     mIsStoped = true;
 #ifdef ENABLE_VIDEO_ENCODER
-    mVideoEncoder = NULL;  //new QCamxTestVideoEncoder(mConfig);
+    mVideoEncoder = new QCamxTestVideoEncoder(mConfig);
 #endif
 }
 

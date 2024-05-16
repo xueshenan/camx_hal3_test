@@ -67,20 +67,27 @@ OMX_CALLBACKTYPE cb = {
 ************************************************************************/
 QCamxHAL3TestOMXEncoder::QCamxHAL3TestOMXEncoder()
     : m_Config({}), m_OmxHandle(NULL), m_Holder(NULL), m_IsInit(0) {
+    QCAMX_PRINT("new instance for QCamxHAL3TestOMXEncoder\n");
     uint32_t idx = 0;
     OMX_ERRORTYPE omxresult = OMX_ErrorNone;
+    QCAMX_PRINT("before OMX init\n");
     omxresult = OMX_Init();
     if (omxresult != OMX_ErrorNone) {
         QCAMX_ERR("OMX INIT failed!!");
         return;
     }
 
+    QCAMX_PRINT("OMX init success\n");
+
     m_IsInit = 1;
     while (omxresult == OMX_ErrorNone) {
         omxresult =
             OMX_ComponentNameEnum(m_SupportComponents[idx], sizeof(m_SupportComponents[idx]), idx);
-        if (omxresult == OMX_ErrorNone)
-            QCAMX_INFO("SupportComponents[%d]: %s", idx, m_SupportComponents[idx]);
+        if (omxresult == OMX_ErrorNone) {
+            QCAMX_PRINT("SupportComponents[%d]: %s\n", idx, m_SupportComponents[idx]);
+        } else {
+            QCAMX_PRINT("Un supportComponents[%d]: %s\n", idx, m_SupportComponents[idx]);
+        }
         idx++;
     }
     pthread_mutex_init(&m_inLock, NULL);
@@ -243,6 +250,7 @@ OMX_ERRORTYPE QCamxHAL3TestOMXEncoder::setConfig(omx_config_t *config,
     OMX_INDEXTYPE index;
     OMX_STRING name;
 
+    QCAMX_PRINT("QCamxHAL3TestOMXEncoder entry set config\n");
     if (!m_IsInit) {
         QCAMX_ERR("OMX init failed");
         return omxresult;
@@ -252,10 +260,10 @@ OMX_ERRORTYPE QCamxHAL3TestOMXEncoder::setConfig(omx_config_t *config,
 
     omxresult = OMX_GetHandle(&m_OmxHandle, m_Config.componentName, this, &cb);
     if (omxresult != OMX_ErrorNone) {
-        QCAMX_ERR("OMX_GetHandle failed");
+        QCAMX_PRINT("QCamxHAL3TestOMXEncoder OMX_GetHandle failed %p\n", m_OmxHandle);
         return omxresult;
     }
-
+    QCAMX_PRINT("QCamxHAL3TestOMXEncoder get handle success\n");
     if (!CheckColorFormatSupported((OMX_COLOR_FORMATTYPE)m_Config.inputcolorfmt, &videoPortFmt)) {
         QCAMX_ERR("CheckColorFormat failed");
         return omxresult;
@@ -347,8 +355,8 @@ OMX_ERRORTYPE QCamxHAL3TestOMXEncoder::setConfig(omx_config_t *config,
         QCAMX_ERR("Unsupported Type\n");
         return omxresult;
     }
-    QCAMX_INFO("bitrate %u, targetBitrate %u, %sBitrateConstant Mode", m_Config.bitrate,
-               m_Config.targetBitrate, (m_Config.isBitRateConstant == true) ? "" : "Non-");
+    QCAMX_PRINT("bitrate %u, targetBitrate %u, %sBitrateConstant Mode\n", m_Config.bitrate,
+                m_Config.targetBitrate, (m_Config.isBitRateConstant == true) ? "" : "Non-");
     //config frame rate
     OMX_CONFIG_FRAMERATETYPE framerate;
     OMX_INIT_STRUCT(&framerate, OMX_CONFIG_FRAMERATETYPE);
@@ -642,12 +650,17 @@ OMX_ERRORTYPE QCamxHAL3TestOMXEncoder::start() {
     pthread_create(&m_outfightthread, &attr, outFilghtLoop, this);
     pthread_attr_destroy(&attr);
 
+    QCAMX_PRINT("QCamxHAL3TestOMXEncoder::start() before send command\n");
+    if (m_OmxHandle == NULL) {
+        return OMX_ErrorNone;
+    }
     omxresult =
         OMX_SendCommand(m_OmxHandle, OMX_CommandStateSet, (OMX_U32)OMX_StateExecuting, NULL);
     if (omxresult != OMX_ErrorNone) {
         QCAMX_ERR("OMX_SendCommand failed");
     }
 
+    QCAMX_PRINT("QCamxHAL3TestOMXEncoder::start() end send command\n");
     /*Enq all buffers*/
     //first enq all empty buffer to output port
     OmxMsgQ *data = NULL;

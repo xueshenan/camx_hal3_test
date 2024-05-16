@@ -413,18 +413,22 @@ int main(int argc, char *argv[]) {
              */
                 QCAMX_PRINT("video request %s\n", param.c_str());
                 if (HAL3Test[CurCameraId]->mConfig->mTestMode == TESTMODE_PREVIEW) {
+                    QCAMX_PRINT("video request in preview test mode\n");
                     QCamxHAL3TestPreviewOnly *testPreview =
                         (QCamxHAL3TestPreviewOnly *)HAL3Test[CurCameraId];
+
                     QCamxHAL3TestConfig *testConf = testPreview->mConfig;
                     res = testConf->parseCommandlineAdd(size, (char *)param.c_str());
 
                     QCamxHAL3TestVideo *testVideo = new QCamxHAL3TestVideo(CamModule, testConf);
-                    testVideo->setCallbacks(&camx_hal3_test_cbs);
-                    testVideo->PreinitStreams();
 
                     testPreview->stop();
                     delete testPreview;
                     HAL3Test[CurCameraId] = NULL;
+
+                    testVideo->setCallbacks(&camx_hal3_test_cbs);
+                    testVideo->PreinitStreams();
+                    testVideo->openCamera();
 
                     testVideo->run();
                     HAL3Test[testConf->mCameraId] = testVideo;
