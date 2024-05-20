@@ -43,15 +43,12 @@ using namespace std;
         printf(fmt, ##args);                             \
     } while (0)
 
-#define TRACE_DUMP_DIR "/data/misc/camera"
-
 class QCamxHAL3TestLog {
 public:
     QCamxHAL3TestLog();
     QCamxHAL3TestLog(string logpath);
     ~QCamxHAL3TestLog();
-    static int dump(char *fileName = NULL);
-    static void registerSigMonitor();
+public:
     int print(const char *format, ...);
     void setPath(string logpath);
     typedef enum {
@@ -64,12 +61,5 @@ public:
     string mPath;
     string mTag;
     bool mIsNewPath;
-private:
-    enum {
-        SIG_MONITOR_SIZE = 8,
-        MAX_TRACES = 100,
-        STACK_BODY_SIZE = (64 * 1024),
-    };
-    static void signal_handler(int signo);
 };
 #endif

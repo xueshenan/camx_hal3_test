@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 
 project(camx_hal3_test)
 
+set(CMAKE_CXX_STANDARD 17)
 # User Variables
 set (SUPPORT_FUNCTION_CALL_TRACE 1)
 
@@ -75,6 +76,7 @@ add_executable( camx-hal3-test
      QCamxHAL3TestDepth.cpp
      QCamxHAL3TestVideoOnly.cpp
      QCamxHAL3TestLog.cpp
+     qcam_signal_monitor.cpp
      QCamxHAL3TestPreviewVideo.cpp
 )
 
