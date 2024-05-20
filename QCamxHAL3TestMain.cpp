@@ -31,73 +31,37 @@
 using namespace std;
 using namespace android;
 
-char usage[] = " \
-usage: hal3_test [-h] [-f command.txt] \n\
- -h      show usage\n\
- -f      using commands in file\n\
-\n\
-command in program: \n\
-<order>:[Params] \n\
- Orders: \n\
-  A: ADD a camera device for test \n\
-     [Preview]\n\
-     >>A:id=0,psize=1920x1080,pformat=yuv420\n\
-     [Snapshot]\n\
-     >>A:id=0,psize=1920x1080,pformat=yuv420,ssize=1920x1080,sformat=jpeg\n\
-     [Video]\n\
-     >>A:id=0,psize=1920x1080,,pformat=yuv420,vsize=1920x1080,ssize=1920x1080,,sformat=jpeg,fpsrange=30-30,codectype=0\n\
-  U: Update meta setting \n\
-     >>U:manualaemode=1 \n\
-  E: Update meta setting and take snapshot\n\
-     >>E:manual_exp_comp=8 \n\
-  D: Delete current camera device \n\
-     >>D \n\
-  S: trigger Snapshot and dump preview/video \n\
-     >>s:2 \n\
-  s: trigger Snapshot \n\
-     >>S:2 \n\
-  v: triger video that switch from preview \n\
-     >>v:id=0,psize=1920x1080,pformat=yuv420,vsize=1920x1080,ssize=1920x1080,sformat=jpeg \n\
-  P: trigger dump preview/video \n\
-     >>P:2 \n\
-  M: set Metadata dump tag \n\
-     >>M:expvalue=1,scenemode=0 \n\
-  W: wait for [N] seconds \n\
-     >>W:10 \n\
-  Q: Quit \n\
-";
-
+static camera_module_t *s_camera_module;
+static int current_camera_id;
 #define MAX_CAMERA 8
-extern char *optarg;
-static bool IsCommandFile = false;
-static ifstream FileStream;
-static camera_module_t *g_camera_module;
-static QCamxHAL3TestCase *HAL3Test[MAX_CAMERA];
-static int CurCameraId;
+static QCamxHAL3TestCase *s_HAL3_test[MAX_CAMERA];
 
-int parseCommandline(int argc, char *argv[]) {
-    int c;
-    while ((c = getopt(argc, argv, "hf:")) != -1) {
-        QCAMX_PRINT("opt:%c\n", c);
-        switch (c) {
-            case 'h':
-                QCAMX_PRINT("%s\n", usage);
-                return 1;
-            case 'f': {
-                std::string str(optarg);
-                FileStream.open(str.c_str());
-                if (FileStream.fail()) {
-                    QCAMX_PRINT("Command File Open Error\n");
-                    return 1;
-                }
-                IsCommandFile = true;
-            }
-            default:
-                break;
-        }
-    }
-    return 0;
+/************************************************************************
+ * name : preview_cb
+ * function: preview callback
+ ************************************************************************/
+void preview_cb(BufferInfo *info, int frameNum) {
+    // QCAMX_PRINT("preview: %d\n", frameNum);
+    // QCamxHAL3TestCase::DumpFrame(info, frameNum, PREVIEW_TYPE, YUV420NV12);
 }
+
+/************************************************************************
+ * name : snapshot_cb
+ * function: snapshot callback
+ ************************************************************************/
+void snapshot_cb(BufferInfo *info, int frameNum) {}
+
+/************************************************************************
+ * name : video_cb
+ * function: video callback
+ ************************************************************************/
+void video_cb(BufferInfo *info, int frameNum) {}
+
+/************************************************************************
+ * name : camx_hal3_test_cbs
+ * struct: callbacks handlers
+ ************************************************************************/
+qcamx_hal3_test_cbs_t camx_hal3_test_cbs = {preview_cb, snapshot_cb, video_cb};
 
 /************************************************************************
  * name : CameraDeviceStatusChange
@@ -185,14 +149,14 @@ int initialize() {
     // Load camera module
     // define in /usr/include/hardware/camera_common.h:37:#define CAMERA_HARDWARE_MODULE_ID "camera"
     int result =
-        load_camera_module(CAMERA_HARDWARE_MODULE_ID, CAMERA_HAL_LIBERAY, &g_camera_module);
-    if (result != 0 || g_camera_module == NULL) {
+        load_camera_module(CAMERA_HARDWARE_MODULE_ID, CAMERA_HAL_LIBERAY, &s_camera_module);
+    if (result != 0 || s_camera_module == NULL) {
         QCAMX_ERR("load camera module failed with error %s (%d).", strerror(-result), result);
         return result;
     }
 
     // init module
-    result = g_camera_module->init();
+    result = s_camera_module->init();
     if (result != 0) {
         QCAMX_ERR("camera module init failed with error %s (%d)", strerror(-result), result);
         return result;
@@ -201,9 +165,9 @@ int initialize() {
     // get Vendor Tag
     // Get methods to query for vendor extension metadata tag information.
     // The HAL should fill in all the vendor tag operation methods, or leave ops unchanged if no vendor tags are defined.
-    if (g_camera_module->get_vendor_tag_ops != NULL) {
+    if (s_camera_module->get_vendor_tag_ops != NULL) {
         vendor_tag_ops_t vendor_tag_ops;
-        g_camera_module->get_vendor_tag_ops(&vendor_tag_ops);
+        s_camera_module->get_vendor_tag_ops(&vendor_tag_ops);
 
         sp<VendorTagDescriptor> vendor_tag_desc;
         result = VendorTagDescriptor::createDescriptorFromOps(&vendor_tag_ops, vendor_tag_desc);
@@ -225,7 +189,7 @@ int initialize() {
     }
 
     // set callback
-    result = g_camera_module->set_callbacks(&g_module_callbacks);
+    result = s_camera_module->set_callbacks(&g_module_callbacks);
     if (result != 0) {
         QCAMX_ERR("set_callbacks failed with error %s (%d)", strerror(-result), result);
         return result;
@@ -234,9 +198,9 @@ int initialize() {
     // Get camera info and show to user
     // define in /usr/include/hardware/camera_common.h
     struct camera_info info;
-    int number_of_cameras = g_camera_module->get_number_of_cameras();
+    int number_of_cameras = s_camera_module->get_number_of_cameras();
     for (int i = 0; i < number_of_cameras; i++) {
-        result = g_camera_module->get_camera_info(i, &info);
+        result = s_camera_module->get_camera_info(i, &info);
         if (result == 0) {
             QCAMX_PRINT("Camera: %d face:%d orientation:%d\n", i, info.facing, info.orientation);
         } else {
@@ -249,9 +213,9 @@ int initialize() {
 }
 
 void print_version() {
-    char *buf = (char *)malloc(sizeof(char) * 1024);
-    if (buf) {
-        snprintf(buf, 1024, "\n\
+    char *buffer = (char *)malloc(sizeof(char) * 1024);
+    if (buffer != NULL) {
+        snprintf(buffer, 1024, "\n\
             ======================= Camera Test Version  =======================\n\
              CAMTEST_SHA1    : %s\n\
              CAMTEST_BUILD_TS: %s\n\
@@ -259,60 +223,93 @@ void print_version() {
              CAMBUILD_IP     : %s\n\
             =====================================================================\n",
                  CAMTEST_SHA1, CAMTEST_BUILD_TS, CAMTESTHOSTNAME, CAMBUILD_IP);
-        QCAMX_PRINT("%s", buf);
-        free(buf);
-        buf = NULL;
+        QCAMX_PRINT("%s", buffer);
+        free(buffer);
+        buffer = NULL;
     } else {
-        QCAMX_ERR("allocate buffer %s failed", buf);
+        QCAMX_ERR("allocate buffer failed");
     }
 }
 
-/************************************************************************
- * name : preview_cb
- * function: preview callback
- ************************************************************************/
-void preview_cb(BufferInfo *info, int frameNum) {
-    // QCAMX_PRINT("preview: %d\n", frameNum);
-    // QCamxHAL3TestCase::DumpFrame(info, frameNum, PREVIEW_TYPE, YUV420NV12);
+char usage[] = " \
+usage: hal3_test [-h] [-f command.txt] \n\
+ -h      show usage\n\
+ -f      using commands in file\n\
+\n\
+command in program: \n\
+<order>:[Params] \n\
+ Orders: \n\
+  A: ADD a camera device for test \n\
+     [Preview]\n\
+     >>A:id=0,psize=1920x1080,pformat=yuv420\n\
+     [Snapshot]\n\
+     >>A:id=0,psize=1920x1080,pformat=yuv420,ssize=1920x1080,sformat=jpeg\n\
+     [Video]\n\
+     >>A:id=0,psize=1920x1080,,pformat=yuv420,vsize=1920x1080,ssize=1920x1080,,sformat=jpeg,fpsrange=30-30,codectype=0\n\
+  U: Update meta setting \n\
+     >>U:manualaemode=1 \n\
+  E: Update meta setting and take snapshot\n\
+     >>E:manual_exp_comp=8 \n\
+  D: Delete current camera device \n\
+     >>D \n\
+  S: trigger Snapshot and dump preview/video \n\
+     >>s:2 \n\
+  s: trigger Snapshot \n\
+     >>S:2 \n\
+  v: triger video that switch from preview \n\
+     >>v:id=0,psize=1920x1080,pformat=yuv420,vsize=1920x1080,ssize=1920x1080,sformat=jpeg \n\
+  P: trigger dump preview/video \n\
+     >>P:2 \n\
+  M: set Metadata dump tag \n\
+     >>M:expvalue=1,scenemode=0 \n\
+  W: wait for [N] seconds \n\
+     >>W:10 \n\
+  Q: Quit \n\
+";
+extern char *optarg;
+static bool parse_command_from_file = false;
+static ifstream s_file_stream;
+int parse_commandline(int argc, char *argv[]) {
+    int c;
+    while ((c = getopt(argc, argv, "hf:")) != -1) {
+        QCAMX_PRINT("opt:%c\n", c);
+        switch (c) {
+            case 'h':
+                QCAMX_PRINT("%s\n", usage);
+                return 1;
+            case 'f': {
+                std::string str(optarg);
+                s_file_stream.open(str.c_str());
+                if (s_file_stream.fail()) {
+                    QCAMX_PRINT("Command File Open Error\n");
+                    return 1;
+                }
+                parse_command_from_file = true;
+            }
+            default:
+                break;
+        }
+    }
+    return 0;
 }
-
-/************************************************************************
- * name : snapshot_cb
- * function: snapshot callback
- ************************************************************************/
-void snapshot_cb(BufferInfo *info, int frameNum) {}
-
-/************************************************************************
- * name : video_cb
- * function: video callback
- ************************************************************************/
-void video_cb(BufferInfo *info, int frameNum) {}
-
-/************************************************************************
- * name : camx_hal3_test_cbs
- * struct: callbacks handlers
- ************************************************************************/
-qcamx_hal3_test_cbs_t camx_hal3_test_cbs = {preview_cb, snapshot_cb, video_cb};
 
 /************************************************************************
  * name : main
  * function: main routine
  ************************************************************************/
 int main(int argc, char *argv[]) {
-    int res = 0;
-
     QCAMX_PRINT("Enter Camera Testing\n");
 
     QCamxHAL3TestLog::registerSigMonitor();
 
     print_version();
-    res = parseCommandline(argc, argv);
-    if (res != 0) {
+    int result = parse_commandline(argc, argv);
+    if (result != 0) {
         return -1;
     }
 
-    res = initialize();
-    if (res != 0) {
+    result = initialize();
+    if (result != 0) {
         return -1;
     }
 
@@ -323,17 +320,17 @@ int main(int argc, char *argv[]) {
         string param;
         string ops;
         ssize_t size = 0;
-        if (IsCommandFile) {
-            std::getline(FileStream, order);
+        if (parse_command_from_file) {
+            std::getline(s_file_stream, order);
         } else {
-            QCAMX_PRINT("CAM%d>>", CurCameraId);
+            QCAMX_PRINT("CAM%d>>", current_camera_id);
             if (!std::getline(std::cin, order)) {
                 QCAMX_PRINT("Failed to getline!\n");
                 stop = true;
                 continue;
             };
         }
-        if (order.empty() || '#' == order[0]) {
+        if (order.empty() || order[0] == '#') {
             continue;
         }
 
@@ -355,38 +352,38 @@ int main(int argc, char *argv[]) {
                 // add
                 QCamxHAL3TestCase *testCase = NULL;
                 QCamxHAL3TestConfig *testConf = new QCamxHAL3TestConfig();
-                res = testConf->parseCommandlineAdd(size, (char *)param.c_str());
-                if (res != 0) {
-                    QCAMX_PRINT("error command order res:%d\n", res);
+                result = testConf->parseCommandlineAdd(size, (char *)param.c_str());
+                if (result != 0) {
+                    QCAMX_PRINT("error command order res:%d\n", result);
                     break;
                 }
-                CurCameraId = testConf->mCameraId;
-                QCAMX_PRINT("add a camera :%d\n", CurCameraId);
+                current_camera_id = testConf->mCameraId;
+                QCAMX_PRINT("add a camera :%d\n", current_camera_id);
 
                 switch (testConf->mTestMode) {
                     case TESTMODE_PREVIEW: {
-                        testCase = new QCamxHAL3TestPreviewOnly(g_camera_module, testConf);
+                        testCase = new QCamxHAL3TestPreviewOnly(s_camera_module, testConf);
                         break;
                     }
                     case TESTMODE_DEPTH: {
-                        testCase = new QCamxHAL3TestDepth(g_camera_module, testConf);
+                        testCase = new QCamxHAL3TestDepth(s_camera_module, testConf);
                         break;
                     }
                     case TESTMODE_VIDEO_ONLY: {
-                        QCAMX_PRINT("camera id %d TESTMODE_VIDEO_ONLY\n", CurCameraId);
-                        testCase = new QCamxHAL3TestVideoOnly(g_camera_module, testConf);
+                        QCAMX_PRINT("camera id %d TESTMODE_VIDEO_ONLY\n", current_camera_id);
+                        testCase = new QCamxHAL3TestVideoOnly(s_camera_module, testConf);
                         break;
                     }
                     case TESTMODE_SNAPSHOT: {
-                        testCase = new QCamxHAL3TestSnapshot(g_camera_module, testConf);
+                        testCase = new QCamxHAL3TestSnapshot(s_camera_module, testConf);
                         break;
                     }
                     case TESTMODE_VIDEO: {
-                        testCase = new QCamxHAL3TestVideo(g_camera_module, testConf);
+                        testCase = new QCamxHAL3TestVideo(s_camera_module, testConf);
                         break;
                     }
                     case TESTMODE_PREVIEW_VIDEO_ONLY: {
-                        testCase = new QCamxHAL3TestPreviewVideo(g_camera_module, testConf);
+                        testCase = new QCamxHAL3TestPreviewVideo(s_camera_module, testConf);
                         break;
                     }
                     default: {
@@ -400,7 +397,7 @@ int main(int argc, char *argv[]) {
                     testCase->PreinitStreams();
                     testCase->openCamera();
                     testCase->run();
-                    HAL3Test[testConf->mCameraId] = testCase;
+                    s_HAL3_test[testConf->mCameraId] = testCase;
                 }
                 break;
             }
@@ -412,34 +409,34 @@ int main(int argc, char *argv[]) {
              * vsize=1920x1080,ssize=1920x1080,sformat=jpeg
              */
                 QCAMX_PRINT("video request %s\n", param.c_str());
-                if (HAL3Test[CurCameraId]->mConfig->mTestMode == TESTMODE_PREVIEW) {
+                if (s_HAL3_test[current_camera_id]->mConfig->mTestMode == TESTMODE_PREVIEW) {
                     QCAMX_PRINT("video request in preview test mode\n");
                     QCamxHAL3TestPreviewOnly *testPreview =
-                        (QCamxHAL3TestPreviewOnly *)HAL3Test[CurCameraId];
+                        (QCamxHAL3TestPreviewOnly *)s_HAL3_test[current_camera_id];
 
                     QCamxHAL3TestConfig *testConf = testPreview->mConfig;
-                    res = testConf->parseCommandlineAdd(size, (char *)param.c_str());
+                    result = testConf->parseCommandlineAdd(size, (char *)param.c_str());
 
                     QCamxHAL3TestVideo *testVideo =
-                        new QCamxHAL3TestVideo(g_camera_module, testConf);
+                        new QCamxHAL3TestVideo(s_camera_module, testConf);
 
                     testPreview->stop();
                     delete testPreview;
-                    HAL3Test[CurCameraId] = NULL;
+                    s_HAL3_test[current_camera_id] = NULL;
 
                     testVideo->setCallbacks(&camx_hal3_test_cbs);
                     testVideo->PreinitStreams();
                     testVideo->openCamera();
 
                     testVideo->run();
-                    HAL3Test[testConf->mCameraId] = testVideo;
+                    s_HAL3_test[testConf->mCameraId] = testVideo;
                     break;
                 }
             }
             case 's':
             case 'S': {
                 int num = 0;
-                int RequestCameraId = CurCameraId;
+                int RequestCameraId = current_camera_id;
 
                 if (ops.size() > 1) {
                     RequestCameraId = atoi(&ops[1]);
@@ -448,7 +445,7 @@ int main(int argc, char *argv[]) {
                 sscanf(param.c_str(), "%d", &num);
 
                 QCAMX_PRINT("snapshot request:%d for cameraid %d\n", num, RequestCameraId);
-                QCamxHAL3TestCase *testCase = HAL3Test[RequestCameraId];
+                QCamxHAL3TestCase *testCase = s_HAL3_test[RequestCameraId];
                 StreamCapture request = {SNAPSHOT_TYPE, num};
                 testCase->RequestCaptures(request);
 
@@ -461,7 +458,7 @@ int main(int argc, char *argv[]) {
             case 'P': {
                 int num = 0;
                 int interval = 0;
-                int RequestCameraId = CurCameraId;
+                int RequestCameraId = current_camera_id;
 
                 if (ops.size() > 1) {
                     RequestCameraId = atoi(&ops[1]);
@@ -479,34 +476,34 @@ int main(int argc, char *argv[]) {
 
                 QCAMX_PRINT("preview dump:%d/%d for cameraid:%d.\n", num, interval,
                             RequestCameraId);
-                QCamxHAL3TestCase *testCase = HAL3Test[RequestCameraId];
+                QCamxHAL3TestCase *testCase = s_HAL3_test[RequestCameraId];
                 testCase->triggerDump(num, interval);
 
                 break;
             }
             case 'D': {
-                int RequestCameraId = CurCameraId;
+                int RequestCameraId = current_camera_id;
                 if (ops.size() > 1) {
                     RequestCameraId = atoi(&ops[1]);
                 }
                 QCAMX_PRINT("Delete cameraid:%d.\n", RequestCameraId);
-                if (!HAL3Test[RequestCameraId]) {
+                if (!s_HAL3_test[RequestCameraId]) {
                     QCAMX_PRINT("please Add camera before Delete it\n");
                     break;
                 }
 
-                QCamxHAL3TestCase *testCase = HAL3Test[RequestCameraId];
+                QCamxHAL3TestCase *testCase = s_HAL3_test[RequestCameraId];
                 testCase->stop();
                 testCase->closeCamera();
                 delete testCase->mConfig;
                 testCase->mConfig = NULL;
                 delete testCase;
-                HAL3Test[RequestCameraId] = NULL;
+                s_HAL3_test[RequestCameraId] = NULL;
 
                 break;
             }
             case 'U': {
-                QCamxHAL3TestCase *testCase = HAL3Test[CurCameraId];
+                QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
                 android::CameraMetadata *meta = testCase->getCurrentMeta();
                 testCase->mConfig->parseCommandlineMetaUpdate((char *)param.c_str(), meta);
                 testCase->updataMetaDatas(meta);
@@ -514,13 +511,13 @@ int main(int argc, char *argv[]) {
                 break;
             }
             case 'E': {
-                QCamxHAL3TestCase *testCase = HAL3Test[CurCameraId];
+                QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
                 android::CameraMetadata *meta = testCase->getCurrentMeta();
                 testCase->mConfig->parseCommandlineMetaUpdate((char *)param.c_str(), meta);
                 testCase->updataMetaDatas(meta);
 
                 int num = 1;
-                int RequestCameraId = CurCameraId;
+                int RequestCameraId = current_camera_id;
 
                 if (ops.size() > 1) {
                     RequestCameraId = atoi(&ops[1]);
@@ -535,7 +532,7 @@ int main(int argc, char *argv[]) {
             }
             case 'M': {
                 QCAMX_PRINT("meta dump:\n");
-                int res = HAL3Test[CurCameraId]->mConfig->parseCommandlineMetaDump(
+                int res = s_HAL3_test[current_camera_id]->mConfig->parseCommandlineMetaDump(
                     1, (char *)param.c_str());
                 if (res) {
                     QCAMX_ERR("parseCommandlineMetaDump failed!");
@@ -562,21 +559,21 @@ int main(int argc, char *argv[]) {
     }
 
     for (int i = 0; i < MAX_CAMERA; i++) {
-        if (HAL3Test[i]) {
-            HAL3Test[i]->stop();
-            HAL3Test[i]->closeCamera();
-            if (HAL3Test[i]->mConfig) {
-                delete HAL3Test[i]->mConfig;
-                HAL3Test[i]->mConfig = NULL;
+        if (s_HAL3_test[i] != NULL) {
+            s_HAL3_test[i]->stop();
+            s_HAL3_test[i]->closeCamera();
+            if (s_HAL3_test[i]->mConfig != NULL) {
+                delete s_HAL3_test[i]->mConfig;
+                s_HAL3_test[i]->mConfig = NULL;
             }
-            delete HAL3Test[i];
-            HAL3Test[i] = NULL;
+            delete s_HAL3_test[i];
+            s_HAL3_test[i] = NULL;
         }
     }
 
-    if (g_camera_module && g_camera_module->common.dso) {
-        dlclose(g_camera_module->common.dso);
-        g_camera_module = NULL;
+    if (s_camera_module != NULL && s_camera_module->common.dso != NULL) {
+        dlclose(s_camera_module->common.dso);
+        s_camera_module = NULL;
     }
 
     QCAMX_PRINT("Exiting application!\n");
