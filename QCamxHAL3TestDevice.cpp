@@ -268,15 +268,15 @@ void QCamxHAL3TestDevice::configureStreams(std::vector<Stream *> streams, int op
     }
 
     // update the operation_mode with mConfig->mRangeMode(0/1), mImageType(0/1/2/3/4)
-    if (mConfig && mConfig->mRangeMode != -1 && mConfig->mImageType != -1) {
+    if (mConfig && mConfig->_range_mode != -1 && mConfig->_image_type != -1) {
         // use StreamConfigModeSensorMode in camx
         opMode =
-            (opMode) | ((mConfig->mRangeMode * 5 + mConfig->mImageType + 1) << 16) | (0x1 << 24);
+            (opMode) | ((mConfig->_range_mode * 5 + mConfig->_image_type + 1) << 16) | (0x1 << 24);
     }
 
     mStreamConfig.operation_mode = opMode;
-    if (mConfig->mForceOpmode != 0) {
-        mStreamConfig.operation_mode = mConfig->mForceOpmode;
+    if (mConfig->_force_opmode != 0) {
+        mStreamConfig.operation_mode = mConfig->_force_opmode;
     }
     mStreamConfig.streams = mStreams.data();
 
@@ -364,11 +364,11 @@ void QCamxHAL3TestDevice::constructDefaultRequestSettings(int index,
                 ae_comp_range_min = entry.data.i32[0];
                 ae_comp_range_max = entry.data.i32[1];
 
-                mConfig->mAECompRangeMin = ae_comp_range_min;
-                mConfig->mAECompRangeMax = ae_comp_range_max;
+                mConfig->_AE_comp_range_min = ae_comp_range_min;
+                mConfig->_AE_comp_range_max = ae_comp_range_max;
 
-                QCAMX_PRINT("AECOMP ae_comp_range min = %d, max = %d\n", mConfig->mAECompRangeMin,
-                            mConfig->mAECompRangeMax);
+                QCAMX_PRINT("AECOMP ae_comp_range min = %d, max = %d\n",
+                            mConfig->_AE_comp_range_min, mConfig->_AE_comp_range_max);
             } else {
                 QCAMX_ERR("Error getting ANDROID_CONTROL_AE_COMPENSATION_RANGE");
             }

@@ -133,7 +133,7 @@ void QCamxHAL3TestVideo::HandleMetaData(DeviceCallback *cb, camera3_capture_resu
                 camid = entry.data.i32[0];
                 QCAMX_INFO("3 Streams: frame_number: %d, SAT CameraId: %d\n", result->frame_number,
                            camid);
-                _config->mMetaStat.camId = camid;
+                _config->_meta_stat.camId = camid;
             }
         }
 
@@ -156,7 +156,7 @@ void QCamxHAL3TestVideo::HandleMetaData(DeviceCallback *cb, camera3_capture_resu
                            result->frame_number, activearray[0], activearray[1], activearray[2],
                            activearray[3]);
                 for (str = 0; str < 4; str++) {
-                    _config->mMetaStat.activeArray[str1] = activearray[str1];
+                    _config->_meta_stat.activeArray[str1] = activearray[str1];
                 }
             }
         }
@@ -180,7 +180,7 @@ void QCamxHAL3TestVideo::HandleMetaData(DeviceCallback *cb, camera3_capture_resu
                            result->frame_number, cropregion[0], cropregion[1], cropregion[2],
                            cropregion[3]);
                 for (str = 0; str < 4; str++) {
-                    _config->mMetaStat.cropRegion[str1] = cropregion[str1];
+                    _config->_meta_stat.cropRegion[str1] = cropregion[str1];
                 }
             }
         }
@@ -505,7 +505,7 @@ int QCamxHAL3TestVideo::PreinitStreams() {
     mSnapshotStream.height = _config->_snapshot_stream.height;
     mSnapshotStream.format = _config->_snapshot_stream.format;
 
-    if (true == _config->mHeicSnapshot) {
+    if (true == _config->_heic_snapshot) {
         mSnapshotStream.data_space = static_cast<android_dataspace_t>(HAL_DATASPACE_HEIF);
         mSnapshotStream.usage = GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_HW_CAMERA_WRITE;
         mSnapshotStreaminfo.subformat = _config->_snapshot_stream.subformat;
@@ -545,18 +545,18 @@ int QCamxHAL3TestVideo::PreinitStreams() {
         mStreams[PREVIEW_IDX] = &mPreviewStreaminfo;
         mStreams[VIDEO_IDX] = &mVideoStreaminfo;
         mStreams[SNAPSHOT_IDX] = &mSnapshotStreaminfo;
-        if (_config->mRawStreamEnable == TRUE) {
+        if (_config->_raw_stream_enable == TRUE) {
             stream_num = 4;
             // add snapshot stream
             mStreams.resize(stream_num);
             mRawSnapshotStream.stream_type = CAMERA3_STREAM_OUTPUT;  //OUTPUT
-            mRawSnapshotStream.width = _config->mActiveSensorWidth;
-            mRawSnapshotStream.height = _config->mActiveSensorHeight;
+            mRawSnapshotStream.width = _config->_active_sensor_width;
+            mRawSnapshotStream.height = _config->_active_sensor_height;
             if ((0 != _config->_raw_stream.width) && (0 != _config->_raw_stream.height)) {
                 mRawSnapshotStream.width = _config->_raw_stream.width;
                 mRawSnapshotStream.height = _config->_raw_stream.height;
             }
-            mRawSnapshotStream.format = _config->mRawformat;
+            mRawSnapshotStream.format = _config->_rawformat;
             mRawSnapshotStream.data_space = HAL_DATASPACE_UNKNOWN;
             mRawSnapshotStream.usage = GRALLOC_USAGE_SW_READ_OFTEN;
             mRawSnapshotStream.rotation = 0;
@@ -621,7 +621,7 @@ void QCamxHAL3TestVideo::RequestCaptures(StreamCapture request) {
     memset(msg, 0, sizeof(CameraRequestMsg));
     msg->requestNumber[SNAPSHOT_IDX] = request.count;
     msg->mask |= 1 << SNAPSHOT_IDX;
-    if (_config->mRawStreamEnable == TRUE) {
+    if (_config->_raw_stream_enable == TRUE) {
         msg->requestNumber[RAW_SNAPSHOT_IDX] = request.count;
         msg->mask |= 1 << RAW_SNAPSHOT_IDX;
     }

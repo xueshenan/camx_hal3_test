@@ -141,22 +141,23 @@ public:
      * bit[2] bit[1]    bit[0]
      */
     meta_dump_t _meta_dump;
-    QCamxLog *mDump;
+    QCamxLog *_dump_log;
 
     int _fps_range[2];
-    int mRangeMode;  // 0/1
-    int mImageType;  // 0/1/2/3/4
-    bool mRawStreamEnable;
-    uint32_t mActiveSensorWidth;
-    uint32_t mActiveSensorHeight;
-    int mRawformat;
-    uint32_t mForceOpmode;
-    int mAECompRangeMin;
-    int mAECompRangeMax;
-    bool mHeicSnapshot;
+    int _range_mode;  // 0/1
+    int _image_type;  // 0/1/2/3/4
+    bool _raw_stream_enable;
+    uint32_t _active_sensor_width;
+    uint32_t _active_sensor_height;
+    int _rawformat;
+    uint32_t _force_opmode;
+    int _AE_comp_range_min;
+    int _AE_comp_range_max;
+    // snap heic format
+    bool _heic_snapshot;
 
-    meta_stat_t mMetaStat;
-    CameraMetadata mStaticMeta;
+    meta_stat_t _meta_stat;
+    CameraMetadata _static_meta;
 public:
     void setDefaultConfig();
     void setCameraConfig(int camera, int argc, char *argv[]);

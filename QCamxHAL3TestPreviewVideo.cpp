@@ -121,7 +121,7 @@ void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_captu
                 camid = entry.data.i32[0];
                 QCAMX_INFO("2 Streams: frame_number: %d, SAT CameraId: %d\n", result->frame_number,
                            camid);
-                _config->mMetaStat.camId = camid;
+                _config->_meta_stat.camId = camid;
             }
         }
 
@@ -144,7 +144,7 @@ void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_captu
                            result->frame_number, activearray[0], activearray[1], activearray[2],
                            activearray[3]);
                 for (str = 0; str < 4; str++) {
-                    _config->mMetaStat.activeArray[str1] = activearray[str1];
+                    _config->_meta_stat.activeArray[str1] = activearray[str1];
                 }
             }
         }
@@ -168,7 +168,7 @@ void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_captu
                            result->frame_number, cropregion[0], cropregion[1], cropregion[2],
                            cropregion[3]);
                 for (str = 0; str < 4; str++) {
-                    _config->mMetaStat.cropRegion[str1] = cropregion[str1];
+                    _config->_meta_stat.cropRegion[str1] = cropregion[str1];
                 }
             }
         }

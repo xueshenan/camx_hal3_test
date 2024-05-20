@@ -49,20 +49,20 @@ QCamxHAL3TestConfig::QCamxHAL3TestConfig() {
     _show_fps = 1;
 
     memset(&_meta_dump, 0, sizeof(meta_dump_t));
-    mDump = new QCamxLog("/data/misc/camera/test1.log");
+    _dump_log = new QCamxLog("/data/misc/camera/test1.log");
 
     // default fps range is 1-30
     _fps_range[0] = 1;
     _fps_range[1] = 30;
-    mRangeMode = -1;
-    mImageType = -1;
+    _range_mode = -1;
+    _image_type = -1;
 
     _meta_dump.temperature = 1;
-    mRawStreamEnable = 0;
-    mForceOpmode = 0;
-    mHeicSnapshot = false;
+    _raw_stream_enable = 0;
+    _force_opmode = 0;
+    _heic_snapshot = false;
 
-    memset(&mMetaStat, 0, sizeof(meta_stat_t));
+    memset(&_meta_stat, 0, sizeof(meta_stat_t));
 }
 
 /************************************************************************
@@ -70,8 +70,8 @@ QCamxHAL3TestConfig::QCamxHAL3TestConfig() {
 * function: destory object.
 ************************************************************************/
 QCamxHAL3TestConfig::~QCamxHAL3TestConfig() {
-    delete mDump;
-    mDump = NULL;
+    delete _dump_log;
+    _dump_log = NULL;
 }
 
 /************************************************************************
@@ -140,7 +140,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
             case MANUAL_EXPOSURE_COMP: {
                 int32_t aecomp = 0;
                 sscanf(value, "%d", &aecomp);
-                if (mAECompRangeMin <= aecomp && aecomp <= mAECompRangeMax) {
+                if (_AE_comp_range_min <= aecomp && aecomp <= _AE_comp_range_max) {
                     (*metaUpdate).update(ANDROID_CONTROL_AE_EXPOSURE_COMPENSATION, &(aecomp), 1);
                     QCAMX_PRINT(
                         "AECOMP setting ANDROID_CONTROL_AE_EXPOSURE_COMPENSATION value to :%d\n",
@@ -148,7 +148,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 } else {
                     QCAMX_PRINT("AECOMP ANDROID_CONTROL_AE_EXPOSURE_COMPENSATION value %d out of "
                                 "range | expected range %d - %d",
-                                aecomp, mAECompRangeMin, mAECompRangeMax);
+                                aecomp, _AE_comp_range_min, _AE_comp_range_max);
                 }
                 break;
             }
@@ -288,7 +288,8 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 sscanf(value, "%d", &zoom);
 
                 camera_metadata_ro_entry activeArraySize =
-                    ((const CameraMetadata)mStaticMeta).find(ANDROID_SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+                    ((const CameraMetadata)_static_meta)
+                        .find(ANDROID_SENSOR_INFO_ACTIVE_ARRAY_SIZE);
                 int32_t activeWidth;
                 int32_t activeHeight;
                 if (activeArraySize.count == 2) {
@@ -371,7 +372,8 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 sscanf(value, "%dx%dx%dx%d", &x, &y, &width, &height);
 
                 camera_metadata_ro_entry activeArraySize =
-                    ((const CameraMetadata)mStaticMeta).find(ANDROID_SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+                    ((const CameraMetadata)_static_meta)
+                        .find(ANDROID_SENSOR_INFO_ACTIVE_ARRAY_SIZE);
                 int32_t activeWidth;
                 int32_t activeHeight;
                 if (activeArraySize.count == 2) {
@@ -593,7 +595,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaDump(int ordersize, char *order) {
             case RESULT_FILE_PATH: {
                 char file_path[200] = {0};
                 sscanf(value, "%s", file_path);
-                mDump->set_path(file_path);
+                _dump_log->set_path(file_path);
                 break;
             }
             case SHOW_FPS: {
@@ -790,7 +792,7 @@ int QCamxHAL3TestConfig::parseCommandlineAdd(int ordersize, char *order) {
                 } else if (!strcmp("heic", value)) {
                     _snapshot_stream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
                     _snapshot_stream.subformat = YUV420NV12;
-                    mHeicSnapshot = true;
+                    _heic_snapshot = true;
                 } else if (!strcmp("jpeg", value)) {
                     _snapshot_stream.format = HAL_PIXEL_FORMAT_BLOB;
                 } else if (!strcmp("raw10", value)) {
@@ -875,10 +877,12 @@ int QCamxHAL3TestConfig::parseCommandlineAdd(int ordersize, char *order) {
                 _is_H265 = atoi(value);
                 break;
             case ZSL_MODE: {
-                int isZSL = atoi(value);
-                QCAMX_PRINT("in %sZSL mode", isZSL ? "" : "Non-");
-                if (isZSL == 0) {
+                int is_ZSL = atoi(value);
+                QCAMX_PRINT("in %sZSL mode\n", is_ZSL ? "" : "Non-");
+                if (is_ZSL == 0) {
                     _zsl_enabled = false;
+                } else {
+                    _zsl_enabled = true;
                 }
                 break;
             }
@@ -913,7 +917,7 @@ int QCamxHAL3TestConfig::parseCommandlineAdd(int ordersize, char *order) {
                 int rangeMode = atoi(value);
                 QCAMX_PRINT("rangeMode:%d\n", rangeMode);
                 if (rangeMode >= 0 && rangeMode <= 1) {
-                    mRangeMode = rangeMode;
+                    _range_mode = rangeMode;
                 } else {
                     QCAMX_PRINT("Invalid range mode:%d, valid value:0/1\n", rangeMode);
                     errfnd = 1;
@@ -931,7 +935,7 @@ int QCamxHAL3TestConfig::parseCommandlineAdd(int ordersize, char *order) {
                 int imageType = atoi(value);
                 QCAMX_PRINT("imageType:%d\n", imageType);
                 if (imageType >= 0 && imageType <= 4) {
-                    mImageType = imageType;
+                    _image_type = imageType;
                 } else {
                     QCAMX_PRINT("Invalid range mode:%d, valid value:0/1/2/3/4\n", imageType);
                     errfnd = 1;
@@ -946,8 +950,8 @@ int QCamxHAL3TestConfig::parseCommandlineAdd(int ordersize, char *order) {
                 if (enableRawFormat == HAL_PIXEL_FORMAT_RAW16 ||
                     enableRawFormat == HAL_PIXEL_FORMAT_RAW12 ||
                     enableRawFormat == HAL_PIXEL_FORMAT_RAW10) {
-                    mRawStreamEnable = 1;
-                    mRawformat = enableRawFormat;
+                    _raw_stream_enable = 1;
+                    _rawformat = enableRawFormat;
                 } else {
                     QCAMX_PRINT("Invalid Rawformat mode:%d, valid value:32/37/38\n",
                                 enableRawFormat);
@@ -956,8 +960,8 @@ int QCamxHAL3TestConfig::parseCommandlineAdd(int ordersize, char *order) {
                 break;
             }
             case FORCE_OPMODE: {
-                sscanf(value, "%u", &mForceOpmode);
-                QCAMX_PRINT("mForceOpmode: %xn", mForceOpmode);
+                sscanf(value, "%u", &_force_opmode);
+                QCAMX_PRINT("mForceOpmode: %xn", _force_opmode);
                 break;
             }
             default:
