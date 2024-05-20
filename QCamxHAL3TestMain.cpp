@@ -31,12 +31,6 @@
 using namespace std;
 using namespace android;
 
-#ifdef LINUX_ENABLED
-#define CAMERA_HAL_LIBERAY "/usr/lib/hw/camera.qcom.so"
-#else
-#define CAMERA_HAL_LIBERAY "/vendor/lib64/hw/camera.qcom.so"
-#endif
-
 char usage[] = " \
 usage: hal3_test [-h] [-f command.txt] \n\
  -h      show usage\n\
@@ -77,7 +71,7 @@ command in program: \n\
 extern char *optarg;
 static bool IsCommandFile = false;
 static ifstream FileStream;
-static camera_module_t *CamModule;
+static camera_module_t *g_camera_module;
 static QCamxHAL3TestCase *HAL3Test[MAX_CAMERA];
 static int CurCameraId;
 
@@ -119,133 +113,139 @@ void CameraDeviceStatusChange(const struct camera_module_callbacks *callbacks, i
 void TorchModeStatusChange(const struct camera_module_callbacks *callbacks, const char *camera_id,
                            int new_status) {}
 
-camera_module_callbacks_t module_callbacks = {CameraDeviceStatusChange, TorchModeStatusChange};
+camera_module_callbacks_t g_module_callbacks = {CameraDeviceStatusChange, TorchModeStatusChange};
 
-/************************************************************************
- * name : loadCameraModule
- * function: load the camera module liberay
- ************************************************************************/
-static int loadCameraModule(const char *id, const char *path, camera_module_t **pCmi) {
+/**
+ * @brief load the camera module library
+ * @param id identifier of module should match the camera_module_t
+ * @param path the camera load library path /usr/lib/hw/camera.qcom.so
+ * @param pp_camera_module return camera module pointer
+ * @return result negative value mean failed
+*/
+static int load_camera_module(const char *id, const char *path,
+                              camera_module_t **pp_camera_module) {
     QCAMX_PRINT("load camera module id:%s, path:%s\n", id, path);
     int status = 0;
-    void *handle = NULL;
-    camera_module_t *cmi = NULL;
 
-    handle = dlopen(path, RTLD_NOW);
+    void *handle = dlopen(path, RTLD_NOW);
     if (handle == NULL) {
         char const *err_str = dlerror();
-        QCAMX_ERR("load: module=%s\n%s", path, err_str ? err_str : "unknown");
+        QCAMX_ERR("load module %s failed %s", path, err_str != NULL ? err_str : "unknown");
         status = -EINVAL;
-        cmi = NULL;
-        *pCmi = cmi;
+        *pp_camera_module = NULL;
         return status;
     }
 
-    /* Get the address of the struct hal_module_info. */
-    const char *sym = HAL_MODULE_INFO_SYM_AS_STR;
-    cmi = (camera_module_t *)dlsym(handle, sym);
-    if (cmi == NULL) {
-        QCAMX_ERR("load: couldn't find symbol %s", sym);
+    // Get the address of the struct hal_module_info.
+    // define in /usr/include/hardware/hardware.h:218:#define HAL_MODULE_INFO_SYM_AS_STR  "HMI"
+    camera_module_t *camera_module = (camera_module_t *)dlsym(handle, HAL_MODULE_INFO_SYM_AS_STR);
+    if (camera_module == NULL) {
+        QCAMX_ERR("couldn't find symbol %s", HAL_MODULE_INFO_SYM_AS_STR);
         status = -EINVAL;
         if (handle != NULL) {
             dlclose(handle);
             handle = NULL;
         }
-        *pCmi = cmi;
+        *pp_camera_module = NULL;
         return status;
     }
 
     /* Check that the id matches */
-    if (strcmp(id, cmi->common.id) != 0) {
-        QCAMX_ERR("load: id=%s != cmi->id=%s", id, cmi->common.id);
+    if (strcmp(id, camera_module->common.id) != 0) {
+        QCAMX_ERR("load id=%s does not match camera module id=%s", id, camera_module->common.id);
         status = -EINVAL;
         if (handle != NULL) {
             dlclose(handle);
             handle = NULL;
         }
-        *pCmi = cmi;
+        *pp_camera_module = NULL;
         return status;
     }
 
-    cmi->common.dso = handle;
-    *pCmi = cmi;
+    // module's dso
+    camera_module->common.dso = handle;
+    *pp_camera_module = camera_module;
 
-    /* success */
-    QCAMX_INFO("loaded HAL id=%s path=%s cmi=%p handle=%p", id, path, *pCmi, handle);
+    // success load camera module
+    QCAMX_PRINT("Success loaded camera module id=%s path=%s cmi=%p handle=%p\n", id, path,
+                *pp_camera_module, handle);
 
     return status;
 }
 
-/************************************************************************
- * name : initialize
- * function: initialize the camera module for camera test
- ************************************************************************/
+/**
+ * @brief : initialize the camera module
+*/
+#ifdef LINUX_ENABLED
+#define CAMERA_HAL_LIBERAY "/usr/lib/hw/camera.qcom.so"
+#else
+#define CAMERA_HAL_LIBERAY "/vendor/lib64/hw/camera.qcom.so"
+#endif
 int initialize() {
-    // define in sysroots/aarch64-oe-linux/usr/include/hardware/camera_common.h
-    struct camera_info info;
-    vendor_tag_ops_t vendor_tag_ops_;
-
     // Load camera module
-    int err = loadCameraModule(CAMERA_HARDWARE_MODULE_ID, CAMERA_HAL_LIBERAY, &CamModule);
-    if (0 != err || CamModule == NULL) {
-        QCAMX_ERR("%s: loadCameraModule failed: error %s (%d). \n", __func__, strerror(-err), err);
-        return err;
+    // define in /usr/include/hardware/camera_common.h:37:#define CAMERA_HARDWARE_MODULE_ID "camera"
+    int result =
+        load_camera_module(CAMERA_HARDWARE_MODULE_ID, CAMERA_HAL_LIBERAY, &g_camera_module);
+    if (result != 0 || g_camera_module == NULL) {
+        QCAMX_ERR("load camera module failed with error %s (%d).", strerror(-result), result);
+        return result;
     }
 
     // init module
-    err = CamModule->init();
-    if (0 != err) {
-        QCAMX_ERR("%s: init failed: error %s (%d)", __func__, strerror(-err), err);
-        return err;
+    result = g_camera_module->init();
+    if (result != 0) {
+        QCAMX_ERR("camera module init failed with error %s (%d)", strerror(-result), result);
+        return result;
     }
 
     // get Vendor Tag
-    if (CamModule->get_vendor_tag_ops) {
-        vendor_tag_ops_ = vendor_tag_ops_t();
-        CamModule->get_vendor_tag_ops(&vendor_tag_ops_);
+    // Get methods to query for vendor extension metadata tag information.
+    // The HAL should fill in all the vendor tag operation methods, or leave ops unchanged if no vendor tags are defined.
+    if (g_camera_module->get_vendor_tag_ops != NULL) {
+        vendor_tag_ops_t vendor_tag_ops;
+        g_camera_module->get_vendor_tag_ops(&vendor_tag_ops);
 
         sp<VendorTagDescriptor> vendor_tag_desc;
-        err = VendorTagDescriptor::createDescriptorFromOps(&vendor_tag_ops_, vendor_tag_desc);
-
-        if (0 != err) {
-            QCAMX_ERR("%s: Could not generate descriptor from vendor tag operations,"
-                      "received error %s (%d). Camera clients will not be able to use"
-                      "vendor tags",
-                      __FUNCTION__, strerror(err), err);
-            return err;
+        result = VendorTagDescriptor::createDescriptorFromOps(&vendor_tag_ops, vendor_tag_desc);
+        if (result != 0) {
+            QCAMX_ERR("Could not generate descriptor from vendor tag operations, received error %s "
+                      "(%d). Camera clients will not be able to use vendor tags",
+                      strerror(result), result);
+            return result;
         }
 
         // Set the global descriptor to use with camera metadata
-        err = VendorTagDescriptor::setAsGlobalVendorTagDescriptor(vendor_tag_desc);
+        result = VendorTagDescriptor::setAsGlobalVendorTagDescriptor(vendor_tag_desc);
 
-        if (0 != err) {
-            QCAMX_ERR("%s: Could not set vendor tag descriptor, "
-                      "received error %s (%d). \n",
-                      __func__, strerror(-err), err);
-            return err;
+        if (result != 0) {
+            QCAMX_ERR("Could not set vendor tag descriptor, received error %s (%d).",
+                      strerror(-result), result);
+            return result;
         }
     }
 
     // set callback
-    err = CamModule->set_callbacks(&module_callbacks);
-    if (0 != err) {
-        QCAMX_ERR("%s: set_callbacks failed: error %s (%d)", __func__, strerror(-err), err);
-        return err;
+    result = g_camera_module->set_callbacks(&g_module_callbacks);
+    if (result != 0) {
+        QCAMX_ERR("set_callbacks failed with error %s (%d)", strerror(-result), result);
+        return result;
     }
 
     // Get camera info and show to user
-    int numCameras = CamModule->get_number_of_cameras();
-    for (int i = 0; i < numCameras; i++) {
-        auto rc = CamModule->get_camera_info(i, &info);
-        if (!rc) {
+    // define in /usr/include/hardware/camera_common.h
+    struct camera_info info;
+    int number_of_cameras = g_camera_module->get_number_of_cameras();
+    for (int i = 0; i < number_of_cameras; i++) {
+        result = g_camera_module->get_camera_info(i, &info);
+        if (result == 0) {
             QCAMX_PRINT("Camera: %d face:%d orientation:%d\n", i, info.facing, info.orientation);
         } else {
-            QCAMX_PRINT("Error Get Camera:%d Info \n", i);
-            return rc;
+            QCAMX_PRINT("Cannot Get Camera:%d Info\n", i);
+            return result;
         }
     }
 
-    return err;
+    return result;
 }
 
 void print_version() {
@@ -365,28 +365,28 @@ int main(int argc, char *argv[]) {
 
                 switch (testConf->mTestMode) {
                     case TESTMODE_PREVIEW: {
-                        testCase = new QCamxHAL3TestPreviewOnly(CamModule, testConf);
+                        testCase = new QCamxHAL3TestPreviewOnly(g_camera_module, testConf);
                         break;
                     }
                     case TESTMODE_DEPTH: {
-                        testCase = new QCamxHAL3TestDepth(CamModule, testConf);
+                        testCase = new QCamxHAL3TestDepth(g_camera_module, testConf);
                         break;
                     }
                     case TESTMODE_VIDEO_ONLY: {
                         QCAMX_PRINT("camera id %d TESTMODE_VIDEO_ONLY\n", CurCameraId);
-                        testCase = new QCamxHAL3TestVideoOnly(CamModule, testConf);
+                        testCase = new QCamxHAL3TestVideoOnly(g_camera_module, testConf);
                         break;
                     }
                     case TESTMODE_SNAPSHOT: {
-                        testCase = new QCamxHAL3TestSnapshot(CamModule, testConf);
+                        testCase = new QCamxHAL3TestSnapshot(g_camera_module, testConf);
                         break;
                     }
                     case TESTMODE_VIDEO: {
-                        testCase = new QCamxHAL3TestVideo(CamModule, testConf);
+                        testCase = new QCamxHAL3TestVideo(g_camera_module, testConf);
                         break;
                     }
                     case TESTMODE_PREVIEW_VIDEO_ONLY: {
-                        testCase = new QCamxHAL3TestPreviewVideo(CamModule, testConf);
+                        testCase = new QCamxHAL3TestPreviewVideo(g_camera_module, testConf);
                         break;
                     }
                     default: {
@@ -420,7 +420,8 @@ int main(int argc, char *argv[]) {
                     QCamxHAL3TestConfig *testConf = testPreview->mConfig;
                     res = testConf->parseCommandlineAdd(size, (char *)param.c_str());
 
-                    QCamxHAL3TestVideo *testVideo = new QCamxHAL3TestVideo(CamModule, testConf);
+                    QCamxHAL3TestVideo *testVideo =
+                        new QCamxHAL3TestVideo(g_camera_module, testConf);
 
                     testPreview->stop();
                     delete testPreview;
@@ -573,9 +574,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (CamModule && CamModule->common.dso) {
-        dlclose(CamModule->common.dso);
-        CamModule = NULL;
+    if (g_camera_module && g_camera_module->common.dso) {
+        dlclose(g_camera_module->common.dso);
+        g_camera_module = NULL;
     }
 
     QCAMX_PRINT("Exiting application!\n");
