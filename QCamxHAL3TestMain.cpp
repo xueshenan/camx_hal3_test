@@ -15,13 +15,14 @@
 #include "QCamxHAL3TestCase.h"
 #include "QCamxHAL3TestConfig.h"
 #include "QCamxHAL3TestDepth.h"
-#include "QCamxHAL3TestLog.h"
 #include "QCamxHAL3TestPreviewOnly.h"
 #include "QCamxHAL3TestPreviewVideo.h"
 #include "QCamxHAL3TestSnapshot.h"
 #include "QCamxHAL3TestVideo.h"
 #include "QCamxHAL3TestVideoOnly.h"
 #include "g_version.h"
+#include "qcamx_log.h"
+#include "qcamx_signal_monitor.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -300,7 +301,7 @@ int parse_commandline(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
     QCAMX_PRINT("Enter Camera Testing\n");
 
-    QCamxHAL3TestLog::registerSigMonitor();
+    qcamx::register_signal_monitor();
 
     print_version();
     int result = parse_commandline(argc, argv);
@@ -357,10 +358,10 @@ int main(int argc, char *argv[]) {
                     QCAMX_PRINT("error command order res:%d\n", result);
                     break;
                 }
-                current_camera_id = testConf->mCameraId;
+                current_camera_id = testConf->_camera_id;
                 QCAMX_PRINT("add a camera :%d\n", current_camera_id);
 
-                switch (testConf->mTestMode) {
+                switch (testConf->_test_mode) {
                     case TESTMODE_PREVIEW: {
                         testCase = new QCamxHAL3TestPreviewOnly(s_camera_module, testConf);
                         break;
@@ -397,7 +398,7 @@ int main(int argc, char *argv[]) {
                     testCase->PreinitStreams();
                     testCase->openCamera();
                     testCase->run();
-                    s_HAL3_test[testConf->mCameraId] = testCase;
+                    s_HAL3_test[testConf->_camera_id] = testCase;
                 }
                 break;
             }
@@ -409,12 +410,12 @@ int main(int argc, char *argv[]) {
              * vsize=1920x1080,ssize=1920x1080,sformat=jpeg
              */
                 QCAMX_PRINT("video request %s\n", param.c_str());
-                if (s_HAL3_test[current_camera_id]->mConfig->mTestMode == TESTMODE_PREVIEW) {
+                if (s_HAL3_test[current_camera_id]->_config->_test_mode == TESTMODE_PREVIEW) {
                     QCAMX_PRINT("video request in preview test mode\n");
                     QCamxHAL3TestPreviewOnly *testPreview =
                         (QCamxHAL3TestPreviewOnly *)s_HAL3_test[current_camera_id];
 
-                    QCamxHAL3TestConfig *testConf = testPreview->mConfig;
+                    QCamxHAL3TestConfig *testConf = testPreview->_config;
                     result = testConf->parseCommandlineAdd(size, (char *)param.c_str());
 
                     QCamxHAL3TestVideo *testVideo =
@@ -429,7 +430,7 @@ int main(int argc, char *argv[]) {
                     testVideo->openCamera();
 
                     testVideo->run();
-                    s_HAL3_test[testConf->mCameraId] = testVideo;
+                    s_HAL3_test[testConf->_camera_id] = testVideo;
                     break;
                 }
             }
@@ -495,8 +496,8 @@ int main(int argc, char *argv[]) {
                 QCamxHAL3TestCase *testCase = s_HAL3_test[RequestCameraId];
                 testCase->stop();
                 testCase->closeCamera();
-                delete testCase->mConfig;
-                testCase->mConfig = NULL;
+                delete testCase->_config;
+                testCase->_config = NULL;
                 delete testCase;
                 s_HAL3_test[RequestCameraId] = NULL;
 
@@ -505,7 +506,7 @@ int main(int argc, char *argv[]) {
             case 'U': {
                 QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
                 android::CameraMetadata *meta = testCase->getCurrentMeta();
-                testCase->mConfig->parseCommandlineMetaUpdate((char *)param.c_str(), meta);
+                testCase->_config->parseCommandlineMetaUpdate((char *)param.c_str(), meta);
                 testCase->updataMetaDatas(meta);
 
                 break;
@@ -513,7 +514,7 @@ int main(int argc, char *argv[]) {
             case 'E': {
                 QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
                 android::CameraMetadata *meta = testCase->getCurrentMeta();
-                testCase->mConfig->parseCommandlineMetaUpdate((char *)param.c_str(), meta);
+                testCase->_config->parseCommandlineMetaUpdate((char *)param.c_str(), meta);
                 testCase->updataMetaDatas(meta);
 
                 int num = 1;
@@ -532,7 +533,7 @@ int main(int argc, char *argv[]) {
             }
             case 'M': {
                 QCAMX_PRINT("meta dump:\n");
-                int res = s_HAL3_test[current_camera_id]->mConfig->parseCommandlineMetaDump(
+                int res = s_HAL3_test[current_camera_id]->_config->parseCommandlineMetaDump(
                     1, (char *)param.c_str());
                 if (res) {
                     QCAMX_ERR("parseCommandlineMetaDump failed!");
@@ -562,9 +563,9 @@ int main(int argc, char *argv[]) {
         if (s_HAL3_test[i] != NULL) {
             s_HAL3_test[i]->stop();
             s_HAL3_test[i]->closeCamera();
-            if (s_HAL3_test[i]->mConfig != NULL) {
-                delete s_HAL3_test[i]->mConfig;
-                s_HAL3_test[i]->mConfig = NULL;
+            if (s_HAL3_test[i]->_config != NULL) {
+                delete s_HAL3_test[i]->_config;
+                s_HAL3_test[i]->_config = NULL;
             }
             delete s_HAL3_test[i];
             s_HAL3_test[i] = NULL;

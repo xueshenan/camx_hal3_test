@@ -19,7 +19,10 @@
 #include <string>
 
 #include "QCamxHAL3TestImpl.h"
-#include "QCamxHAL3TestLog.h"
+#include "qcamx_log.h"
+
+using namespace qcamx;
+using namespace android;
 
 /******************************************************************************************************************************
  * There are 3 Test Modes: preview, snapshot, video
@@ -38,16 +41,14 @@
 #define TESTMODE_PREVIEW_VIDEO_ONLY 4
 #define TESTMODE_DEPTH 5
 
-using namespace android;
-
 // stream info struct for a stream
 typedef struct _stream_info {
-    camera3_request_template_t type;  // preview , snapshot or video
+    camera3_request_template_t type;  // preview, snapshot or video
     int width;
     int height;
     int format;
     Implsubformat subformat;
-    int requestNumber;
+    int request_number;
 } stream_info_t;
 
 // Settings for item selection which is needed to dump/show as user's order.
@@ -108,36 +109,41 @@ typedef struct _meta_stat {
 
 typedef struct _video_bitrate_config {
     uint32_t bitrate;
-    uint32_t targetBitrate;
-    bool isBitRateConstant;
+    uint32_t target_bitrate;
+    bool is_bitrate_constant;
 } video_bitrate_config_t;
 
-// Calss for Geting and saving Configure from user
+// Class for Geting and saving Configure from user
 class QCamxHAL3TestConfig {
 public:
-    int mTestMode;
-    int mIsH265;
-    int mCameraId;
-    stream_info_t mPreviewStream;
-    stream_info_t mSnapshotStream;
-    stream_info_t mVideoStream;
-    stream_info_t mRawStream;
-    stream_info_t mDepthStream;
-    stream_info_t mDepthIRBGStream;
-    video_bitrate_config_t mVideoRateConfig;
+    // current test mode
+    int _test_mode;
+    // current camera identify
+    int _camera_id;
+    int _is_H265;
+    stream_info_t _preview_stream;
+    stream_info_t _snapshot_stream;
+    stream_info_t _video_stream;
+    stream_info_t _raw_stream;
+    stream_info_t _depth_stream;
+    stream_info_t _depth_IRBG_stream;
+    video_bitrate_config_t _video_rate_config;
     //zsl
-    bool mZslEnabled;
+    bool _zsl_enabled;
     //
-    bool mDepthIRBGEnabled;
+    bool _depth_IRBG_enabled;
+    // show fps statics
+    int _show_fps;
+
     //dump
     /*
      * Video  Snapshot  Preview
      * bit[2] bit[1]    bit[0]
      */
-    meta_dump_t mMetaDump;
-    QCamxHAL3TestLog *mDump;
-    int mShowFps;
-    int mFpsRange[2];
+    meta_dump_t _meta_dump;
+    QCamxLog *mDump;
+
+    int _fps_range[2];
     int mRangeMode;  // 0/1
     int mImageType;  // 0/1/2/3/4
     bool mRawStreamEnable;
@@ -151,15 +157,16 @@ public:
 
     meta_stat_t mMetaStat;
     CameraMetadata mStaticMeta;
-    QCamxHAL3TestConfig();
-    ~QCamxHAL3TestConfig();
+public:
     void setDefaultConfig();
     void setCameraConfig(int camera, int argc, char *argv[]);
-    int parseCommandline(int argc, char *argv[]);
     int parseCommandlineAdd(int ordersize, char *order);
     int parseCommandlineChange(int ordersize, char *order);
     int parseCommandlineMetaDump(int ordersize, char *order);
     int parseCommandlineMetaUpdate(char *order, android::CameraMetadata *metaUpdate);
+public:
+    QCamxHAL3TestConfig();
+    ~QCamxHAL3TestConfig();
 };
 
 #endif

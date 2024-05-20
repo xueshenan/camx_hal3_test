@@ -30,7 +30,7 @@ QCamxHAL3TestPreviewVideo::QCamxHAL3TestPreviewVideo(camera_module_t *module,
     mVideoMode = VIDEO_MODE_NORMAL;
     mIsStoped = true;
 #ifdef ENABLE_VIDEO_ENCODER
-    mVideoEncoder = new QCamxTestVideoEncoder(mConfig);
+    mVideoEncoder = new QCamxTestVideoEncoder(_config);
 #endif
 }
 
@@ -63,7 +63,7 @@ void QCamxHAL3TestPreviewVideo::CapturePostProcess(DeviceCallback *cb,
                 (mDumpInterval == 0 ||
                  (mDumpInterval > 0 && result->frame_number % mDumpInterval == 0))) {
                 QCamxHAL3TestCase::DumpFrame(info, result->frame_number, VIDEO_TYPE,
-                                             mConfig->mVideoStream.subformat);
+                                             _config->_video_stream.subformat);
                 if (mDumpInterval == 0) {
                     mDumpVideoNum--;
                 }
@@ -73,7 +73,7 @@ void QCamxHAL3TestPreviewVideo::CapturePostProcess(DeviceCallback *cb,
             } else {
                 EnqueueFrameBuffer(stream, buffers[i].buffer);
             }
-            if (mConfig->mShowFps) {
+            if (_config->_show_fps) {
                 showFPS(VIDEO_TYPE);
             }
         } else if (stream->streamId == PREVIEW_IDX) {
@@ -84,14 +84,14 @@ void QCamxHAL3TestPreviewVideo::CapturePostProcess(DeviceCallback *cb,
                 (mDumpInterval == 0 ||
                  (mDumpInterval > 0 && result->frame_number % mDumpInterval == 0))) {
                 QCamxHAL3TestCase::DumpFrame(info, result->frame_number, PREVIEW_TYPE,
-                                             mConfig->mPreviewStream.subformat);
+                                             _config->_preview_stream.subformat);
                 if (mDumpInterval == 0) {
                     mDumpPreviewNum--;
                 }
             }
             stream->bufferManager->ReturnBuffer(buffers[i].buffer);
 
-            if (mConfig->mShowFps) {
+            if (_config->_show_fps) {
                 showFPS(PREVIEW_TYPE);
             }
         }
@@ -109,7 +109,7 @@ void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_captu
     sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
     if (result->partial_result >= 1) {
-        if ((mConfig->mMetaDump.SatCamId) >= 0) {
+        if ((_config->_meta_dump.SatCamId) >= 0) {
             camera_metadata_ro_entry entry;
             int camid = 0;
             int res = 0;
@@ -121,11 +121,11 @@ void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_captu
                 camid = entry.data.i32[0];
                 QCAMX_INFO("2 Streams: frame_number: %d, SAT CameraId: %d\n", result->frame_number,
                            camid);
-                mConfig->mMetaStat.camId = camid;
+                _config->mMetaStat.camId = camid;
             }
         }
 
-        if (mConfig->mMetaDump.SATActiveArray) {
+        if (_config->_meta_dump.SATActiveArray) {
             camera_metadata_ro_entry entry;
             int activearray[4] = {0};
             int res = 0;
@@ -144,12 +144,12 @@ void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_captu
                            result->frame_number, activearray[0], activearray[1], activearray[2],
                            activearray[3]);
                 for (str = 0; str < 4; str++) {
-                    mConfig->mMetaStat.activeArray[str1] = activearray[str1];
+                    _config->mMetaStat.activeArray[str1] = activearray[str1];
                 }
             }
         }
 
-        if (mConfig->mMetaDump.SATCropRegion) {
+        if (_config->_meta_dump.SATCropRegion) {
             camera_metadata_ro_entry entry;
             int cropregion[4] = {0};
             int res = 0;
@@ -168,7 +168,7 @@ void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_captu
                            result->frame_number, cropregion[0], cropregion[1], cropregion[2],
                            cropregion[3]);
                 for (str = 0; str < 4; str++) {
-                    mConfig->mMetaStat.cropRegion[str1] = cropregion[str1];
+                    _config->mMetaStat.cropRegion[str1] = cropregion[str1];
                 }
             }
         }
@@ -236,12 +236,12 @@ int QCamxHAL3TestPreviewVideo::initVideoStreams() {
     bool supportsPartialResults;
     uint32_t partialResultCount;
     std::vector<AvailableStream> outputPreviewStreams;
-    QCAMX_PRINT("preview:%dx%d %d\n", mConfig->mPreviewStream.width, mConfig->mPreviewStream.height,
-                mConfig->mPreviewStream.format);
+    QCAMX_PRINT("preview:%dx%d %d\n", _config->_preview_stream.width,
+                _config->_preview_stream.height, _config->_preview_stream.format);
 
-    AvailableStream previewThreshold = {mConfig->mPreviewStream.width,
-                                        mConfig->mPreviewStream.height,
-                                        mConfig->mPreviewStream.format};
+    AvailableStream previewThreshold = {_config->_preview_stream.width,
+                                        _config->_preview_stream.height,
+                                        _config->_preview_stream.format};
     if (res == 0) {
         camera_metadata_ro_entry entry;
         res = find_camera_metadata_ro_entry(mDevice->mCharacteristics,
@@ -254,22 +254,22 @@ int QCamxHAL3TestPreviewVideo::initVideoStreams() {
     }
     if (res < 0 || outputPreviewStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for preview: w: %d, h: %d, fmt: %d",
-                  mConfig->mPreviewStream.width, mConfig->mPreviewStream.height,
-                  mConfig->mPreviewStream.format);
+                  _config->_preview_stream.width, _config->_preview_stream.height,
+                  _config->_preview_stream.format);
         return -1;
     }
 
     mStreams[VIDEO_IDX]->pstream = &mVideoStream;
     mStreams[VIDEO_IDX]->type = VIDEO_TYPE;
-    mStreams[VIDEO_IDX]->subformat = mConfig->mVideoStream.subformat;
+    mStreams[VIDEO_IDX]->subformat = _config->_video_stream.subformat;
 
     //check video stream
     std::vector<AvailableStream> outputVideoStreams;
-    QCAMX_PRINT("video:%dx%d %d\n", mConfig->mVideoStream.width, mConfig->mVideoStream.height,
-                mConfig->mVideoStream.format);
+    QCAMX_PRINT("video:%dx%d %d\n", _config->_video_stream.width, _config->_video_stream.height,
+                _config->_video_stream.format);
 
-    AvailableStream videoThreshold = {mConfig->mVideoStream.width, mConfig->mVideoStream.height,
-                                      mConfig->mVideoStream.format};
+    AvailableStream videoThreshold = {_config->_video_stream.width, _config->_video_stream.height,
+                                      _config->_video_stream.format};
 
     if (res == 0) {
         camera_metadata_ro_entry entry;
@@ -283,14 +283,14 @@ int QCamxHAL3TestPreviewVideo::initVideoStreams() {
     }
     if (res < 0 || outputVideoStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for video: w: %d, h: %d, fmt: %d",
-                  mConfig->mVideoStream.width, mConfig->mVideoStream.height,
-                  mConfig->mVideoStream.format);
+                  _config->_video_stream.width, _config->_video_stream.height,
+                  _config->_video_stream.format);
         return -1;
     }
 
     //check snapshot stream
     mDevice->setSyncBufferMode(SYNC_BUFFER_EXTERNAL);
-    mDevice->setFpsRange(mConfig->mFpsRange[0], mConfig->mFpsRange[1]);
+    mDevice->setFpsRange(_config->_fps_range[0], _config->_fps_range[1]);
 
     uint32_t operation_mode = CAMERA3_STREAM_CONFIGURATION_NORMAL_MODE;
     if (mVideoMode >= VIDEO_MODE_HFR60) {
@@ -305,12 +305,12 @@ int QCamxHAL3TestPreviewVideo::initVideoStreams() {
         }
         operation_mode = CAMERA3_STREAM_CONFIGURATION_CONSTRAINED_HIGH_SPEED_MODE;
         selectOpMode(&operation_mode, mStreams[stream_index]->pstream->width,
-                     mStreams[stream_index]->pstream->height, mConfig->mFpsRange[1]);
+                     mStreams[stream_index]->pstream->height, _config->_fps_range[1]);
     }
 
     mDevice->configureStreams(mStreams, operation_mode);
 
-    mDevice->constructDefaultRequestSettings(PREVIEW_IDX, mConfig->mPreviewStream.type);
+    mDevice->constructDefaultRequestSettings(PREVIEW_IDX, _config->_preview_stream.type);
 
     if (mMetadataExt) {
         mDevice->setCurrentMeta(mMetadataExt);
@@ -367,10 +367,10 @@ int QCamxHAL3TestPreviewVideo::PreinitStreams() {
     QCAMX_INFO("Preinit Preview and Video Streams \n");
 
     mPreviewStream.stream_type = CAMERA3_STREAM_OUTPUT;
-    mPreviewStream.width = mConfig->mPreviewStream.width;
-    mPreviewStream.height = mConfig->mPreviewStream.height;
-    mPreviewStream.format = mConfig->mPreviewStream.format;
-    if (mConfig->mPreviewStream.type == CAMERA3_TEMPLATE_VIDEO_RECORD) {
+    mPreviewStream.width = _config->_preview_stream.width;
+    mPreviewStream.height = _config->_preview_stream.height;
+    mPreviewStream.format = _config->_preview_stream.format;
+    if (_config->_preview_stream.type == CAMERA3_TEMPLATE_VIDEO_RECORD) {
         mPreviewStream.usage = GRALLOC_USAGE_PRIVATE_0 | GRALLOC_USAGE_HW_VIDEO_ENCODER |
                                GRALLOC_USAGE_HW_CAMERA_WRITE;
         mPreviewStream.data_space = HAL_DATASPACE_BT709;
@@ -380,7 +380,7 @@ int QCamxHAL3TestPreviewVideo::PreinitStreams() {
         mPreviewStream.data_space = HAL_DATASPACE_UNKNOWN;
     }
     mPreviewStream.rotation = 0;
-    if (mConfig->mFpsRange[1] > 60) {
+    if (_config->_fps_range[1] > 60) {
         mPreviewStream.max_buffers = HFR_PREVIEW_STREAM_BUFFER_MAX;
     } else {
         mPreviewStream.max_buffers = PREVIEW_STREAM_BUFFER_MAX;
@@ -389,31 +389,32 @@ int QCamxHAL3TestPreviewVideo::PreinitStreams() {
     QCAMX_PRINT("preview stream max buffers: %d\n", mPreviewStream.max_buffers);
 
     mPreviewStreaminfo.pstream = &mPreviewStream;
-    mPreviewStreaminfo.subformat = mConfig->mPreviewStream.subformat;
+    mPreviewStreaminfo.subformat = _config->_preview_stream.subformat;
     mPreviewStreaminfo.type = PREVIEW_TYPE;
 
     // add video stream
     mVideoStream.stream_type = CAMERA3_STREAM_OUTPUT;  //OUTPUT
-    mVideoStream.width = mConfig->mVideoStream.width;
-    mVideoStream.height = mConfig->mVideoStream.height;
-    mVideoStream.format = mConfig->mVideoStream.format;
+    mVideoStream.width = _config->_video_stream.width;
+    mVideoStream.height = _config->_video_stream.height;
+    mVideoStream.format = _config->_video_stream.format;
     mVideoStream.data_space = HAL_DATASPACE_BT709;
     mVideoStream.usage =
         GRALLOC_USAGE_PRIVATE_0 | GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_HW_CAMERA_WRITE;
 
     if (mVideoStream.format == HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED &&
-        (mConfig->mVideoStream.subformat == UBWCTP10 || mConfig->mVideoStream.subformat == P010)) {
-        QCAMX_INFO("configuring video stream for format %d", mConfig->mVideoStream.subformat);
+        (_config->_video_stream.subformat == UBWCTP10 ||
+         _config->_video_stream.subformat == P010)) {
+        QCAMX_INFO("configuring video stream for format %d", _config->_video_stream.subformat);
         mVideoStream.data_space = HAL_DATASPACE_TRANSFER_GAMMA2_8;
         mVideoStream.usage =
             GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_PRIVATE_0 | GRALLOC_USAGE_PRIVATE_2;
-        if (mConfig->mVideoStream.subformat == P010) {
+        if (_config->_video_stream.subformat == P010) {
             mVideoStream.usage = GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_PRIVATE_2;
         }
     }
 
     mVideoStream.rotation = 0;
-    if (mConfig->mFpsRange[1] > 60) {
+    if (_config->_fps_range[1] > 60) {
         mVideoStream.max_buffers = HFR_VIDEO_STREAM_BUFFER_MAX;
     } else {
         mVideoStream.max_buffers = VIDEO_STREAM_BUFFER_MAX;
@@ -422,7 +423,7 @@ int QCamxHAL3TestPreviewVideo::PreinitStreams() {
     QCAMX_PRINT("video stream max buffers: %d\n", mVideoStream.max_buffers);
 
     mVideoStreaminfo.pstream = &mVideoStream;
-    mVideoStreaminfo.subformat = mConfig->mVideoStream.subformat;
+    mVideoStreaminfo.subformat = _config->_video_stream.subformat;
     mVideoStreaminfo.type = VIDEO_TYPE;
 
     stream_num = 2;

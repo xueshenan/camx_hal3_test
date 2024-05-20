@@ -26,30 +26,43 @@
 * function: construct object.
 ************************************************************************/
 QCamxHAL3TestConfig::QCamxHAL3TestConfig() {
-    mDump = new QCamxHAL3TestLog("/data/misc/camera/test1.log");
-    memset(&mMetaDump, 0, sizeof(meta_dump_t));
-    memset(&mMetaStat, 0, sizeof(meta_stat_t));
-    memset(&mPreviewStream, 0, sizeof(stream_info_t));
-    memset(&mSnapshotStream, 0, sizeof(stream_info_t));
-    memset(&mVideoStream, 0, sizeof(stream_info_t));
-    memset(&mRawStream, 0, sizeof(stream_info_t));
-    memset(&mVideoRateConfig, 0, sizeof(video_bitrate_config_t));
-    mVideoRateConfig.isBitRateConstant = false;
-    mTestMode = -1;
-    mIsH265 = 0;
-    mCameraId = -1;
-    // show FPS by default
-    mShowFps = 1;
-    // In ZSL by default
-    mZslEnabled = true;
-    mFpsRange[0] = 1;
-    mFpsRange[1] = 30;
+    _test_mode = -1;
+    _camera_id = -1;
+    _is_H265 = 0;
+
+    memset(&_preview_stream, 0, sizeof(stream_info_t));
+    memset(&_snapshot_stream, 0, sizeof(stream_info_t));
+    memset(&_video_stream, 0, sizeof(stream_info_t));
+    memset(&_raw_stream, 0, sizeof(stream_info_t));
+    memset(&_depth_stream, 0, sizeof(stream_info_t));
+    memset(&_depth_IRBG_stream, 0, sizeof(stream_info_t));
+    memset(&_video_rate_config, 0, sizeof(video_bitrate_config_t));
+    _video_rate_config.is_bitrate_constant = false;
+
+    // Enable ZSL by default
+    _zsl_enabled = true;
+
+    //disable IRBG
+    _depth_IRBG_enabled = false;
+
+    // show FPS statics by default
+    _show_fps = 1;
+
+    memset(&_meta_dump, 0, sizeof(meta_dump_t));
+    mDump = new QCamxLog("/data/misc/camera/test1.log");
+
+    // default fps range is 1-30
+    _fps_range[0] = 1;
+    _fps_range[1] = 30;
     mRangeMode = -1;
     mImageType = -1;
-    mMetaDump.temperature = 1;
+
+    _meta_dump.temperature = 1;
     mRawStreamEnable = 0;
     mForceOpmode = 0;
     mHeicSnapshot = false;
+
+    memset(&mMetaStat, 0, sizeof(meta_stat_t));
 }
 
 /************************************************************************
@@ -434,8 +447,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaDump(int ordersize, char *order) {
         EXP_PRIORITY,
         SHOW_FPS,
         JPEG_QUALITY,
-        RESULT_FILE,
-        RESULT_LOG_TAG,
+        RESULT_FILE_PATH,
         SHOW_CROP_REGION,
         RAW_SIZE,
     };
@@ -459,8 +471,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaDump(int ordersize, char *order) {
                            [EXP_PRIORITY] = (char *const)"expPriority",
                            [SHOW_FPS] = (char *const)"showfps",
                            [JPEG_QUALITY] = (char *const)"jpegquality",
-                           [RESULT_FILE] = (char *const)"file",
-                           [RESULT_LOG_TAG] = (char *const)"tag",
+                           [RESULT_FILE_PATH] = (char *const)"filepath",
                            [SHOW_CROP_REGION] = (char *const)"showcropregion",
                            [RAW_SIZE] = (char *const)"rawsize",
                            NULL};
@@ -473,147 +484,141 @@ int QCamxHAL3TestConfig::parseCommandlineMetaDump(int ordersize, char *order) {
         switch (opt) {
             case EXPOSURE_VALUE: {
                 int exp = atoi(value);
-                mMetaDump.exposureValue = exp;
-                QCAMX_PRINT("exposure time:%d\n", mMetaDump.exposureValue);
+                _meta_dump.exposureValue = exp;
+                QCAMX_PRINT("exposure time:%d\n", _meta_dump.exposureValue);
                 break;
             }
             case ISO_VALUE: {
                 int iso = atoi(value);
-                mMetaDump.isoValue = iso;
-                QCAMX_PRINT("iso value:%d\n", mMetaDump.isoValue);
+                _meta_dump.isoValue = iso;
+                QCAMX_PRINT("iso value:%d\n", _meta_dump.isoValue);
                 break;
             }
             case AE_MODE: {
                 int ae_mode = atoi(value);
-                mMetaDump.aeMode = ae_mode;
-                QCAMX_PRINT("AE mode:%d\n", mMetaDump.aeMode);
+                _meta_dump.aeMode = ae_mode;
+                QCAMX_PRINT("AE mode:%d\n", _meta_dump.aeMode);
                 break;
             }
             case AWB_MODE: {
                 int awb_mode = atoi(value);
-                mMetaDump.awbMode = awb_mode;
-                QCAMX_PRINT("AWB mode:%d\n", mMetaDump.awbMode);
+                _meta_dump.awbMode = awb_mode;
+                QCAMX_PRINT("AWB mode:%d\n", _meta_dump.awbMode);
                 break;
             }
             case AF_MODE: {
                 int af_mode = atoi(value);
-                mMetaDump.afMode = af_mode;
-                QCAMX_PRINT("AF mode:%d\n", mMetaDump.afMode);
+                _meta_dump.afMode = af_mode;
+                QCAMX_PRINT("AF mode:%d\n", _meta_dump.afMode);
                 break;
             }
             case AF_VALUE: {
                 int af_value = atoi(value);
-                mMetaDump.afValue = af_value;
-                QCAMX_PRINT("AF value:%d\n", mMetaDump.afValue);
+                _meta_dump.afValue = af_value;
+                QCAMX_PRINT("AF value:%d\n", _meta_dump.afValue);
                 break;
             }
             case AE_ANTIBANDING_MODE: {
                 int anti = atoi(value);
-                mMetaDump.aeAntiMode = anti;
-                QCAMX_PRINT("aeAnti Mode:%d\n", mMetaDump.aeAntiMode);
+                _meta_dump.aeAntiMode = anti;
+                QCAMX_PRINT("aeAnti Mode:%d\n", _meta_dump.aeAntiMode);
                 break;
             }
             case COLOR_CORRECTION_MODE: {
                 int cc_mode = atoi(value);
-                mMetaDump.colorCorrectMode = cc_mode;
-                QCAMX_PRINT("colorCorrect Mode:%d\n", mMetaDump.colorCorrectMode);
+                _meta_dump.colorCorrectMode = cc_mode;
+                QCAMX_PRINT("colorCorrect Mode:%d\n", _meta_dump.colorCorrectMode);
                 break;
             }
             case COLOR_CORRECTION_VALUE: {
                 int cc_value = atoi(value);
-                mMetaDump.colorCorrectValue = cc_value;
-                QCAMX_PRINT("colorCorrect Value:%d\n", mMetaDump.colorCorrectValue);
+                _meta_dump.colorCorrectValue = cc_value;
+                QCAMX_PRINT("colorCorrect Value:%d\n", _meta_dump.colorCorrectValue);
                 break;
             }
             case CONTROL_MODE: {
                 int control = atoi(value);
-                mMetaDump.controlMode = control;
-                QCAMX_PRINT("control mode:%d\n", mMetaDump.controlMode);
+                _meta_dump.controlMode = control;
+                QCAMX_PRINT("control mode:%d\n", _meta_dump.controlMode);
                 break;
             }
             case SCENE_MODE: {
                 int scene = atoi(value);
-                mMetaDump.sceneMode = scene;
-                QCAMX_PRINT("scene mode:%d\n", mMetaDump.sceneMode);
+                _meta_dump.sceneMode = scene;
+                QCAMX_PRINT("scene mode:%d\n", _meta_dump.sceneMode);
                 break;
             }
             case HDR_MODE: {
                 int hdr = atoi(value);
-                mMetaDump.hdrMode = hdr;
-                QCAMX_PRINT("hdr mode:%d\n", mMetaDump.hdrMode);
+                _meta_dump.hdrMode = hdr;
+                QCAMX_PRINT("hdr mode:%d\n", _meta_dump.hdrMode);
                 break;
             }
             case ZOOM_VALUE: {
                 int zoom = atoi(value);
-                mMetaDump.zoomValue = zoom;
-                QCAMX_PRINT("zoom mode:%d\n", mMetaDump.zoomValue);
+                _meta_dump.zoomValue = zoom;
+                QCAMX_PRINT("zoom mode:%d\n", _meta_dump.zoomValue);
                 break;
             }
             case ZSL_MODE: {
                 int zsl = atoi(value);
-                mMetaDump.zslMode = zsl;
-                QCAMX_PRINT("zsl mode:%d\n", mMetaDump.zslMode);
+                _meta_dump.zslMode = zsl;
+                QCAMX_PRINT("zsl mode:%d\n", _meta_dump.zslMode);
                 break;
             }
             case TOTAL_NUM_FRAMES: {
                 int frame_num = atoi(value);
-                mMetaDump.numFrames = frame_num;
-                QCAMX_PRINT("exp metering:%d\n", mMetaDump.numFrames);
+                _meta_dump.numFrames = frame_num;
+                QCAMX_PRINT("exp metering:%d\n", _meta_dump.numFrames);
                 break;
             }
             case EXPOSURE_METERING: {
                 int exp_metering = atoi(value);
-                mMetaDump.expMetering = exp_metering;
-                QCAMX_PRINT("exp metering:%d\n", mMetaDump.expMetering);
+                _meta_dump.expMetering = exp_metering;
+                QCAMX_PRINT("exp metering:%d\n", _meta_dump.expMetering);
                 break;
             }
             case SELECT_PRIORITY: {
                 int priority = atoi(value);
-                mMetaDump.selPriority = priority;
-                QCAMX_PRINT("exp metering:%d\n", mMetaDump.selPriority);
+                _meta_dump.selPriority = priority;
+                QCAMX_PRINT("exp metering:%d\n", _meta_dump.selPriority);
                 break;
             }
             case EXP_PRIORITY: {
                 int exp_priority = atoi(value);
-                mMetaDump.expPriority = exp_priority;
-                QCAMX_PRINT("exp metering:%d\n", mMetaDump.expPriority);
+                _meta_dump.expPriority = exp_priority;
+                QCAMX_PRINT("exp metering:%d\n", _meta_dump.expPriority);
                 break;
             }
-            case RESULT_FILE: {
-                char file[200] = {0};
-                sscanf(value, "%s", file);
-                mDump->setPath(file);
-                break;
-            }
-            case RESULT_LOG_TAG: {
-                if (mDump) {
-                    mDump->mTag = "[" + string(value) + "] ";
-                }
+            case RESULT_FILE_PATH: {
+                char file_path[200] = {0};
+                sscanf(value, "%s", file_path);
+                mDump->set_path(file_path);
                 break;
             }
             case SHOW_FPS: {
-                int showfps = 0;
-                sscanf(value, "%d", &showfps);
-                QCAMX_PRINT("show fps:%d\n", showfps);
-                mShowFps = showfps;
+                int show_fps = 0;
+                sscanf(value, "%d", &show_fps);
+                QCAMX_PRINT("show fps:%d\n", show_fps);
+                _show_fps = show_fps;
                 break;
             }
             case JPEG_QUALITY: {
                 int jpeg_quality = atoi(value);
-                mMetaDump.jpegquality = jpeg_quality;
-                QCAMX_PRINT("jpegquality value:%d\n", mMetaDump.jpegquality);
+                _meta_dump.jpegquality = jpeg_quality;
+                QCAMX_PRINT("jpegquality value:%d\n", _meta_dump.jpegquality);
                 break;
             }
             case SHOW_CROP_REGION: {
                 int showcropregion = atoi(value);
-                mMetaDump.showCropRegion = showcropregion;
-                QCAMX_PRINT("show crop region:%d\n", mMetaDump.showCropRegion);
+                _meta_dump.showCropRegion = showcropregion;
+                QCAMX_PRINT("show crop region:%d\n", _meta_dump.showCropRegion);
                 break;
             }
             case RAW_SIZE: {
                 int showrawsize = atoi(value);
-                mMetaDump.rawsize = showrawsize;
-                QCAMX_PRINT("show rawsize:%d\n", mMetaDump.rawsize);
+                _meta_dump.rawsize = showrawsize;
+                QCAMX_PRINT("show rawsize:%d\n", _meta_dump.rawsize);
                 break;
             }
             default: {
@@ -692,57 +697,57 @@ int QCamxHAL3TestConfig::parseCommandlineAdd(int ordersize, char *order) {
     int height;
     int res = 0;
     int modeConfig = 0;
-    QCAMX_INFO("Command Add:%s\n", order);
+    QCAMX_INFO("Command add:%s\n", order);
     while (*order != '\0' && !errfnd) {
         switch (getsubopt(&order, token, &value)) {
             case ID_OPT: {
-                QCAMX_PRINT("camera:%s\n", value);
+                QCAMX_PRINT("camera id:%s\n", value);
                 int id = atoi(value);
-                mCameraId = id;
+                _camera_id = id;
             } break;
             case PREVIEW_SIZE_OPT: {
                 QCAMX_PRINT("preview size:%s\n", value);
                 sscanf(value, "%dx%d", &width, &height);
-                mPreviewStream.width = width;
-                mPreviewStream.height = height;
+                _preview_stream.width = width;
+                _preview_stream.height = height;
                 modeConfig |= (1 << TESTMODE_PREVIEW);
             } break;
             case TOF_DEPTH_SIZE_OPT: {
                 QCAMX_PRINT("depth size:%s\n", value);
                 sscanf(value, "%dx%d", &width, &height);
-                mDepthStream.width = width;
-                mDepthStream.height = height;
+                _depth_stream.width = width;
+                _depth_stream.height = height;
                 modeConfig |= (1 << TESTMODE_DEPTH);
             } break;
             case TOF_IR_SIZE_OPT: {
                 QCAMX_PRINT("IR bg size:%s\n", value);
                 sscanf(value, "%dx%d", &width, &height);
-                mDepthIRBGStream.width = width;
-                mDepthIRBGStream.height = height;
-                mDepthIRBGEnabled = true;
+                _depth_IRBG_stream.width = width;
+                _depth_IRBG_stream.height = height;
+                _depth_IRBG_enabled = true;
                 modeConfig |= (1 << TESTMODE_DEPTH);
             } break;
             case SNAPSHOT_SIZE_OPT: {
                 QCAMX_PRINT("snapshot size:%s\n", value);
                 sscanf(value, "%dx%d", &width, &height);
-                mSnapshotStream.width = width;
-                mSnapshotStream.height = height;
+                _snapshot_stream.width = width;
+                _snapshot_stream.height = height;
                 modeConfig |= (1 << TESTMODE_SNAPSHOT);
             } break;
             case VIDEO_SIZE_OPT: {
                 QCAMX_PRINT("video size:%s\n video format:%s\n", value, "yuv420");
                 sscanf(value, "%dx%d", &width, &height);
-                mVideoStream.width = width;
-                mVideoStream.height = height;
-                mVideoStream.format = HAL_PIXEL_FORMAT_YCBCR_420_888;
+                _video_stream.width = width;
+                _video_stream.height = height;
+                _video_stream.format = HAL_PIXEL_FORMAT_YCBCR_420_888;
                 modeConfig |= (1 << TESTMODE_VIDEO);
             } break;
             case RAW_SIZE_OPT: {
                 QCAMX_PRINT("raw size:%s\n", value);
                 sscanf(value, "%dx%d", &width, &height);
-                mRawStream.width = width;
-                mRawStream.height = height;
-                mRawStream.format = HAL_PIXEL_FORMAT_RAW10;
+                _raw_stream.width = width;
+                _raw_stream.height = height;
+                _raw_stream.format = HAL_PIXEL_FORMAT_RAW10;
             } break;
             case PREVIEW_FORMAT_OPT: {
                 QCAMX_PRINT("preview format:%s\n", value);
@@ -758,90 +763,90 @@ int QCamxHAL3TestConfig::parseCommandlineAdd(int ordersize, char *order) {
               raw10         HAL_PIXEL_FORMAT_RAW10                  37
               raw12         HAL_PIXEL_FORMAT_RAW12                  38
              *****/
-                mPreviewStream.type = CAMERA3_TEMPLATE_PREVIEW;
+                _preview_stream.type = CAMERA3_TEMPLATE_PREVIEW;
                 if (!strcmp("yuv420", value)) {
-                    mPreviewStream.format = HAL_PIXEL_FORMAT_YCBCR_420_888;
+                    _preview_stream.format = HAL_PIXEL_FORMAT_YCBCR_420_888;
                 } else if (!strcmp("yuv_ubwc", value)) {
-                    mPreviewStream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
-                    mPreviewStream.subformat = UBWCNV12;
+                    _preview_stream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
+                    _preview_stream.subformat = UBWCNV12;
                 } else if (!strcmp("yuv_ubwc_enc", value)) {
-                    mPreviewStream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
-                    mPreviewStream.type = CAMERA3_TEMPLATE_VIDEO_RECORD;
-                    mPreviewStream.subformat = UBWCNV12;
+                    _preview_stream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
+                    _preview_stream.type = CAMERA3_TEMPLATE_VIDEO_RECORD;
+                    _preview_stream.subformat = UBWCNV12;
                 } else if (!strcmp("raw10", value)) {
-                    mPreviewStream.format = HAL_PIXEL_FORMAT_RAW10;
+                    _preview_stream.format = HAL_PIXEL_FORMAT_RAW10;
                 } else if (!strcmp("raw12", value)) {
-                    mPreviewStream.format = HAL_PIXEL_FORMAT_RAW12;
+                    _preview_stream.format = HAL_PIXEL_FORMAT_RAW12;
                 } else if (!strcmp("raw16", value)) {
-                    mPreviewStream.format = HAL_PIXEL_FORMAT_RAW16;
+                    _preview_stream.format = HAL_PIXEL_FORMAT_RAW16;
                 } else if (!strcmp("y16", value)) {
-                    mPreviewStream.format = HAL_PIXEL_FORMAT_Y16;
+                    _preview_stream.format = HAL_PIXEL_FORMAT_Y16;
                 }
             } break;
             case SNAPSHOT_FORMAT_OPT: {
                 QCAMX_PRINT("snapshot format:%s\n", value);
                 if (!strcmp("yuv420", value)) {
-                    mSnapshotStream.format = HAL_PIXEL_FORMAT_YCBCR_420_888;
+                    _snapshot_stream.format = HAL_PIXEL_FORMAT_YCBCR_420_888;
                 } else if (!strcmp("heic", value)) {
-                    mSnapshotStream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
-                    mSnapshotStream.subformat = YUV420NV12;
+                    _snapshot_stream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
+                    _snapshot_stream.subformat = YUV420NV12;
                     mHeicSnapshot = true;
                 } else if (!strcmp("jpeg", value)) {
-                    mSnapshotStream.format = HAL_PIXEL_FORMAT_BLOB;
+                    _snapshot_stream.format = HAL_PIXEL_FORMAT_BLOB;
                 } else if (!strcmp("raw10", value)) {
-                    mSnapshotStream.format = HAL_PIXEL_FORMAT_RAW10;
+                    _snapshot_stream.format = HAL_PIXEL_FORMAT_RAW10;
                 } else if (!strcmp("raw12", value)) {
-                    mSnapshotStream.format = HAL_PIXEL_FORMAT_RAW12;
+                    _snapshot_stream.format = HAL_PIXEL_FORMAT_RAW12;
                 } else if (!strcmp("raw16", value)) {
-                    mSnapshotStream.format = HAL_PIXEL_FORMAT_RAW16;
+                    _snapshot_stream.format = HAL_PIXEL_FORMAT_RAW16;
                 }
             } break;
             case VIDEO_FORMAT_OPT: {
                 QCAMX_PRINT("video format:%s\n", value);
-                mVideoStream.type = CAMERA3_TEMPLATE_VIDEO_RECORD;
+                _video_stream.type = CAMERA3_TEMPLATE_VIDEO_RECORD;
                 if (!strcmp("yuv420", value)) {
-                    mVideoStream.format = HAL_PIXEL_FORMAT_YCBCR_420_888;
+                    _video_stream.format = HAL_PIXEL_FORMAT_YCBCR_420_888;
                 } else if (!strcmp("yuv_ubwc", value)) {
-                    mVideoStream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
-                    mVideoStream.subformat = UBWCNV12;
+                    _video_stream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
+                    _video_stream.subformat = UBWCNV12;
                 } else if (!strcmp("ubwctp10", value)) {
-                    mVideoStream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
-                    mVideoStream.subformat = UBWCTP10;
+                    _video_stream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
+                    _video_stream.subformat = UBWCTP10;
                 } else if (!strcmp("p010", value)) {
-                    mVideoStream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
-                    mVideoStream.subformat = P010;
+                    _video_stream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
+                    _video_stream.subformat = P010;
                 } else if (!strcmp("yuv_ubwc_enc", value)) {
-                    mVideoStream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
-                    mVideoStream.type = CAMERA3_TEMPLATE_VIDEO_RECORD;
-                    mVideoStream.subformat = UBWCNV12;
+                    _video_stream.format = HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
+                    _video_stream.type = CAMERA3_TEMPLATE_VIDEO_RECORD;
+                    _video_stream.subformat = UBWCNV12;
                 } else if (!strcmp("raw10", value)) {
-                    mVideoStream.format = HAL_PIXEL_FORMAT_RAW10;
+                    _video_stream.format = HAL_PIXEL_FORMAT_RAW10;
                 } else if (!strcmp("raw12", value)) {
-                    mVideoStream.format = HAL_PIXEL_FORMAT_RAW12;
+                    _video_stream.format = HAL_PIXEL_FORMAT_RAW12;
                 } else if (!strcmp("raw16", value)) {
-                    mVideoStream.format = HAL_PIXEL_FORMAT_RAW16;
+                    _video_stream.format = HAL_PIXEL_FORMAT_RAW16;
                 } else if (!strcmp("y16", value)) {
-                    mVideoStream.format = HAL_PIXEL_FORMAT_Y16;
+                    _video_stream.format = HAL_PIXEL_FORMAT_Y16;
                 }
             } break;
             case TOF_DEPTH_FORMAT_OPT: {
                 QCAMX_PRINT("depth format:%s\n", value);
                 if (!strcmp("raw10", value)) {
-                    mDepthStream.format = HAL_PIXEL_FORMAT_RAW10;
-                    mDepthIRBGStream.format = HAL_PIXEL_FORMAT_RAW10;
+                    _depth_stream.format = HAL_PIXEL_FORMAT_RAW10;
+                    _depth_IRBG_stream.format = HAL_PIXEL_FORMAT_RAW10;
                 } else if (!strcmp("raw12", value)) {
-                    mDepthStream.format = HAL_PIXEL_FORMAT_RAW12;
-                    mDepthIRBGStream.format = HAL_PIXEL_FORMAT_RAW12;
+                    _depth_stream.format = HAL_PIXEL_FORMAT_RAW12;
+                    _depth_IRBG_stream.format = HAL_PIXEL_FORMAT_RAW12;
                 } else if (!strcmp("raw16", value)) {
-                    mDepthStream.format = HAL_PIXEL_FORMAT_RAW16;
-                    mDepthIRBGStream.format = HAL_PIXEL_FORMAT_RAW16;
+                    _depth_stream.format = HAL_PIXEL_FORMAT_RAW16;
+                    _depth_IRBG_stream.format = HAL_PIXEL_FORMAT_RAW16;
                 }
             } break;
             case SHOT_NUMBER: {
                 QCAMX_PRINT("shot number:%s\n", value);
                 int num;
                 sscanf(value, "%d", &num);
-                mSnapshotStream.requestNumber = num;
+                _snapshot_stream.request_number = num;
             } break;
             case RESULT_FILE:
                 QCAMX_PRINT("result file:%s\n", value);
@@ -855,25 +860,25 @@ int QCamxHAL3TestConfig::parseCommandlineAdd(int ordersize, char *order) {
                 if (fps_range[0] > fps_range[1]) {
                     QCAMX_PRINT("FPS_RANGE Wrong: min:%d is bigger than max:%d exchange them\n",
                                 fps_range[0], fps_range[1]);
-                    mFpsRange[0] = fps_range[1];
-                    mFpsRange[1] = fps_range[0];
+                    _fps_range[0] = fps_range[1];
+                    _fps_range[1] = fps_range[0];
                 } else {
                     QCAMX_PRINT("FPS_RANGE: min:%d max:%d\n", fps_range[0], fps_range[1]);
-                    mFpsRange[0] = fps_range[0];
-                    mFpsRange[1] = fps_range[1];
+                    _fps_range[0] = fps_range[0];
+                    _fps_range[1] = fps_range[1];
                 }
                 break;
             }
 
             case CODEC_TYPE:
                 QCAMX_PRINT("codec type: %s\n", value);
-                mIsH265 = atoi(value);
+                _is_H265 = atoi(value);
                 break;
             case ZSL_MODE: {
                 int isZSL = atoi(value);
                 QCAMX_PRINT("in %sZSL mode", isZSL ? "" : "Non-");
                 if (isZSL == 0) {
-                    mZslEnabled = false;
+                    _zsl_enabled = false;
                 }
                 break;
             }
@@ -881,21 +886,21 @@ int QCamxHAL3TestConfig::parseCommandlineAdd(int ordersize, char *order) {
                 uint32_t bitrate = 0;
                 sscanf(value, "%u", &bitrate);
                 QCAMX_PRINT("bitrate: %u\n", bitrate);
-                mVideoRateConfig.bitrate = bitrate * 1024 * 1024;
+                _video_rate_config.bitrate = bitrate * 1024 * 1024;
                 break;
             }
             case TARGET_BITRATE: {
                 uint32_t targetBitrate = 0;
                 sscanf(value, "%u", &targetBitrate);
                 QCAMX_PRINT("targetBitrate: %u\n", targetBitrate);
-                mVideoRateConfig.targetBitrate = targetBitrate * 1024 * 1024;
+                _video_rate_config.target_bitrate = targetBitrate * 1024 * 1024;
                 break;
             }
             case IS_BITRATE_CONST: {
                 int isBitRateConstant = atoi(value);
                 QCAMX_PRINT("%sbitRateConstant mode\n", isBitRateConstant ? "" : "Non-");
                 if (isBitRateConstant == (int)CONTROL_RATE_CONSTANT) {
-                    mVideoRateConfig.isBitRateConstant = true;
+                    _video_rate_config.is_bitrate_constant = true;
                 }
                 break;
             }
@@ -962,22 +967,22 @@ int QCamxHAL3TestConfig::parseCommandlineAdd(int ordersize, char *order) {
     }
     switch (modeConfig) {
         case (1 << TESTMODE_PREVIEW):
-            mTestMode = TESTMODE_PREVIEW;
+            _test_mode = TESTMODE_PREVIEW;
             break;
         case ((1 << TESTMODE_PREVIEW) | (1 << TESTMODE_SNAPSHOT)):
-            mTestMode = TESTMODE_SNAPSHOT;
+            _test_mode = TESTMODE_SNAPSHOT;
             break;
         case ((1 << TESTMODE_PREVIEW) | (1 << TESTMODE_VIDEO)):
-            mTestMode = TESTMODE_PREVIEW_VIDEO_ONLY;
+            _test_mode = TESTMODE_PREVIEW_VIDEO_ONLY;
             break;
         case ((1 << TESTMODE_PREVIEW) | (1 << TESTMODE_SNAPSHOT) | (1 << TESTMODE_VIDEO)):
-            mTestMode = TESTMODE_VIDEO;
+            _test_mode = TESTMODE_VIDEO;
             break;
         case (1 << TESTMODE_VIDEO):
-            mTestMode = TESTMODE_VIDEO_ONLY;
+            _test_mode = TESTMODE_VIDEO_ONLY;
             break;
         case (1 << TESTMODE_DEPTH):
-            mTestMode = TESTMODE_DEPTH;
+            _test_mode = TESTMODE_DEPTH;
             break;
         default:
             res = -1;

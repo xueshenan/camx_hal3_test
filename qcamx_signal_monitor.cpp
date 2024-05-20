@@ -1,12 +1,16 @@
 
-#include "qcam_signal_monitor.h"
+#include "qcamx_signal_monitor.h"
 
+#include <assert.h>
+#include <execinfo.h>  //backtrace
 #include <signal.h>
+#include <sys/syscall.h>
 
-#include "QCamxHAL3TestLog.h"
+#include "qcamx_log.h"
 
-namespace qcam {
+namespace qcamx {
 
+#define gettid() syscall(SYS_gettid)
 #define TRACE_DUMP_DIR "/data/misc/camera"
 
 static int SIG_MONITOR_SIZE = 8;
@@ -153,4 +157,4 @@ int dump_stack(char *file_name) {
     return 0;
 }
 
-}  // namespace qcam
+}  // namespace qcamx

@@ -60,12 +60,12 @@ void QCamxHAL3TestPreviewOnly::CapturePostProcess(DeviceCallback *cb,
                 (mDumpInterval == 0 ||
                  (mDumpInterval > 0 && result->frame_number % mDumpInterval == 0))) {
                 QCamxHAL3TestCase::DumpFrame(info, result->frame_number, PREVIEW_TYPE,
-                                             mConfig->mPreviewStream.subformat);
+                                             _config->_preview_stream.subformat);
                 if (mDumpInterval == 0) {
                     testpre->mDumpPreviewNum--;
                 }
             }
-            if (mConfig->mShowFps) {
+            if (_config->_show_fps) {
                 showFPS(PREVIEW_TYPE);
             }
         }
@@ -85,11 +85,11 @@ int QCamxHAL3TestPreviewOnly::initPreviewStream() {
     bool supportsPartialResults;
     uint32_t partialResultCount;
     std::vector<AvailableStream> outputPreviewStreams;
-    QCAMX_PRINT("preview:%dx%d %d\n", mConfig->mPreviewStream.width, mConfig->mPreviewStream.height,
-                mConfig->mPreviewStream.format);
-    AvailableStream previewThreshold = {mConfig->mPreviewStream.width,
-                                        mConfig->mPreviewStream.height,
-                                        mConfig->mPreviewStream.format};
+    QCAMX_PRINT("preview:%dx%d %d\n", _config->_preview_stream.width,
+                _config->_preview_stream.height, _config->_preview_stream.format);
+    AvailableStream previewThreshold = {_config->_preview_stream.width,
+                                        _config->_preview_stream.height,
+                                        _config->_preview_stream.format};
     if (res == 0) {
         camera_metadata_ro_entry entry;
         res = find_camera_metadata_ro_entry(mDevice->mCharacteristics,
@@ -102,13 +102,13 @@ int QCamxHAL3TestPreviewOnly::initPreviewStream() {
     }
     if (res < 0 || outputPreviewStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for preview: w: %d, h: %d, fmt: %d",
-                  mConfig->mPreviewStream.width, mConfig->mPreviewStream.height,
-                  mConfig->mPreviewStream.format);
+                  _config->_preview_stream.width, _config->_preview_stream.height,
+                  _config->_preview_stream.format);
         return -1;
     }
 
     mDevice->setSyncBufferMode(SYNC_BUFFER_INTERNAL);
-    mDevice->setFpsRange(mConfig->mFpsRange[0], mConfig->mFpsRange[1]);
+    mDevice->setFpsRange(_config->_fps_range[0], _config->_fps_range[1]);
     mDevice->configureStreams(mStreams);
     if (mMetadataExt) {
         mDevice->setCurrentMeta(mMetadataExt);
@@ -125,13 +125,13 @@ int QCamxHAL3TestPreviewOnly::PreinitStreams() {
     int res = 0;
     int stream_num = 1;
 
-    QCAMX_INFO("preview:%dx%d %d\n", mConfig->mPreviewStream.width, mConfig->mPreviewStream.height,
-               mConfig->mPreviewStream.format);
+    QCAMX_INFO("preview:%dx%d %d\n", _config->_preview_stream.width,
+               _config->_preview_stream.height, _config->_preview_stream.format);
 
     mPreviewStream.stream_type = CAMERA3_STREAM_OUTPUT;
-    mPreviewStream.width = mConfig->mPreviewStream.width;
-    mPreviewStream.height = mConfig->mPreviewStream.height;
-    mPreviewStream.format = mConfig->mPreviewStream.format;
+    mPreviewStream.width = _config->_preview_stream.width;
+    mPreviewStream.height = _config->_preview_stream.height;
+    mPreviewStream.format = _config->_preview_stream.format;
     if (mPreviewStream.format == HAL_PIXEL_FORMAT_Y16)
         mPreviewStream.data_space = HAL_DATASPACE_DEPTH;
     else
@@ -145,7 +145,7 @@ int QCamxHAL3TestPreviewOnly::PreinitStreams() {
     mStreams.resize(stream_num);
 
     mPreviewStreaminfo.pstream = &mPreviewStream;
-    mPreviewStreaminfo.subformat = mConfig->mPreviewStream.subformat;
+    mPreviewStreaminfo.subformat = _config->_preview_stream.subformat;
     mPreviewStreaminfo.type = PREVIEW_TYPE;
     mStreams[PREVIEW_IDX] = &mPreviewStreaminfo;
 

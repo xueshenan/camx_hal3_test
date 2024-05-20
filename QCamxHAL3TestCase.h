@@ -72,11 +72,11 @@ struct YUVFormat {
     uint32_t height;  ///< Height of the YUV plane in pixels.
     uint32_t
         planeStride;  ///< The number of bytes between the first byte of two sequential lines on plane 1. It may be
-        ///  greater than nWidth * nDepth / 8 if the line includes padding.
-        ///  Macro-tile width aligned for UBWC
+    ///  greater than nWidth * nDepth / 8 if the line includes padding.
+    ///  Macro-tile width aligned for UBWC
     uint32_t
         sliceHeight;  ///< The number of lines in the plane which can be equal to or larger than actual frame height.
-        ///  Tile height aligned for UBWC
+    ///  Tile height aligned for UBWC
 
     uint32_t metadataStride;  ///< Aligned meta data plane stride in bytes, used for UBWC formats
     uint32_t metadataHeight;  ///< Aligned meta data plane height in bytes, used for UBWC formats
@@ -89,11 +89,11 @@ struct YUVFormat {
 
 class QCamxHAL3TestCase : public DeviceCallback {
 public:
-    camera_module_t *mModule;
-    QCamxHAL3TestConfig *mConfig;
+    camera_module_t *_module;
+    QCamxHAL3TestConfig *_config;
 protected:
     QCamxHAL3TestDevice *mDevice;
-    int mCameraId;
+    int _camera_id;
 
     CameraMetadata *mMetadataExt;
 
@@ -115,9 +115,9 @@ public:
     virtual int PreinitStreams() = 0;
     virtual void run() = 0;
     virtual void stop() = 0;
-    virtual void RequestCaptures(StreamCapture requst){};
+    virtual void RequestCaptures(StreamCapture requst) {};
     // DeviceCallback functions
-    virtual void CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) override{};
+    virtual void CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) override {};
     virtual void HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) override;
 public:
     int openCamera();

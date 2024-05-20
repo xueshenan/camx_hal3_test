@@ -29,7 +29,7 @@
 #include <queue>
 #include <vector>
 
-#include "QCamxHAL3TestLog.h"
+#include "qcamx_log.h"
 
 using namespace android;
 using namespace std;

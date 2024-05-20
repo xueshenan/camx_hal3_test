@@ -46,7 +46,7 @@ typedef struct gbm_device GBM_DEVICE;
 #include <unordered_map>
 
 #include "QCamxHAL3TestImpl.h"
-#include "QCamxHAL3TestLog.h"
+#include "qcamx_log.h"
 
 #define BUFFER_QUEUE_DEPTH 256
 typedef const native_handle_t *buffer_handle_t;

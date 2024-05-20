@@ -28,7 +28,7 @@ QCamxTestVideoEncoder::QCamxTestVideoEncoder(QCamxHAL3TestConfig *config)
     : mCoder(NULL), mConfig({}), mBufferQueue(NULL) {
     QCAMX_PRINT("new instance for QCamxTestVideoEncoder\n");
     OMX_U32 inputColorFormat;
-    if (config->mVideoStream.subformat == UBWCTP10)
+    if (config->_video_stream.subformat == UBWCTP10)
         inputColorFormat = HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS;  //TO CHANGE
     else
         inputColorFormat = HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS;
@@ -70,18 +70,18 @@ QCamxTestVideoEncoder::QCamxTestVideoEncoder(QCamxHAL3TestConfig *config)
         .output_h = 1080,
         .output_buf_cnt = 20,
     };
-    mConfig.input_w = mConfig.output_w = config->mVideoStream.width;
-    mConfig.input_h = mConfig.output_h = config->mVideoStream.height;
-    mConfig.bitrate = config->mVideoRateConfig.bitrate;
-    mConfig.targetBitrate = config->mVideoRateConfig.targetBitrate;
-    mConfig.isBitRateConstant = config->mVideoRateConfig.isBitRateConstant;
+    mConfig.input_w = mConfig.output_w = config->_video_stream.width;
+    mConfig.input_h = mConfig.output_h = config->_video_stream.height;
+    mConfig.bitrate = config->_video_rate_config.bitrate;
+    mConfig.targetBitrate = config->_video_rate_config.target_bitrate;
+    mConfig.isBitRateConstant = config->_video_rate_config.is_bitrate_constant;
     mTimeOffsetInc = 30000;
-    mConfig.nframerate = config->mFpsRange[1];
+    mConfig.nframerate = config->_fps_range[1];
     if (mConfig.nframerate > 60) {
         mTimeOffsetInc = 15000;
     }
     char path[256] = {0};
-    if (config->mIsH265) {
+    if (config->_is_H265) {
         mConfig.componentName = (char *)"OMX.qcom.video.encoder.hevc",
         mConfig.codec = OMX_VIDEO_CodingHEVC, mConfig.eprofile = OMX_VIDEO_HEVCProfileMain,
         mConfig.elevel = OMX_VIDEO_HEVCHighTierLevel3,

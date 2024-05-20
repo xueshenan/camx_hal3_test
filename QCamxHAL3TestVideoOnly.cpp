@@ -45,7 +45,7 @@ QCamxHAL3TestVideoOnly::QCamxHAL3TestVideoOnly(camera_module_t *module,
     mVideoMode = VIDEO_ONLY_MODE_NORMAL;
     mIsStoped = true;
 #ifdef ENABLE_VIDEO_ENCODER
-    mVideoEncoder = new QCamxTestVideoEncoder(mConfig);
+    mVideoEncoder = new QCamxTestVideoEncoder(_config);
 #endif
 }
 
@@ -80,7 +80,7 @@ void QCamxHAL3TestVideoOnly::CapturePostProcess(DeviceCallback *cb,
                 (mDumpInterval == 0 ||
                  (mDumpInterval > 0 && result->frame_number % mDumpInterval == 0))) {
                 QCamxHAL3TestCase::DumpFrame(info, result->frame_number, VIDEO_TYPE,
-                                             mConfig->mVideoStream.subformat);
+                                             _config->_video_stream.subformat);
                 if (mDumpInterval == 0) {
                     testpre->mDumpPreviewNum--;
                 }
@@ -90,7 +90,7 @@ void QCamxHAL3TestVideoOnly::CapturePostProcess(DeviceCallback *cb,
             } else {
                 EnqueueFrameBuffer(stream, buffers[i].buffer);
             }
-            if (mConfig->mShowFps) {
+            if (_config->_show_fps) {
                 showFPS(VIDEO_TYPE);
             }
         }
@@ -159,22 +159,22 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     int stream_num = 1;
 
     uint32_t operation_mode = CAMERA3_STREAM_CONFIGURATION_NORMAL_MODE;
-    if (mConfig->mFpsRange[1] > 30 && mConfig->mFpsRange[1] <= 60) {
+    if (_config->_fps_range[1] > 30 && _config->_fps_range[1] <= 60) {
         // for HFR case such as 4K@60 and 1080p@60
         mVideoMode = VIDEO_ONLY_MODE_HFR60;
-    } else if (mConfig->mFpsRange[1] > 60 && mConfig->mFpsRange[1] <= 90) {
+    } else if (_config->_fps_range[1] > 60 && _config->_fps_range[1] <= 90) {
         // for HFR case such as 1080p@90
         operation_mode = CAMERA3_STREAM_CONFIGURATION_CONSTRAINED_HIGH_SPEED_MODE;
         mVideoMode = VIDEO_ONLY_MODE_HFR90;
-    } else if (mConfig->mFpsRange[1] > 90 && mConfig->mFpsRange[1] <= 120) {
+    } else if (_config->_fps_range[1] > 90 && _config->_fps_range[1] <= 120) {
         // for HFR case such as 1080p@120
         operation_mode = CAMERA3_STREAM_CONFIGURATION_CONSTRAINED_HIGH_SPEED_MODE;
         mVideoMode = VIDEO_ONLY_MODE_HFR120;
-    } else if (mConfig->mFpsRange[1] > 120 && mConfig->mFpsRange[1] <= 240) {
+    } else if (_config->_fps_range[1] > 120 && _config->_fps_range[1] <= 240) {
         // for HFR case such as 1080p@240
         operation_mode = CAMERA3_STREAM_CONFIGURATION_CONSTRAINED_HIGH_SPEED_MODE;
         mVideoMode = VIDEO_ONLY_MODE_HFR240;
-    } else if (mConfig->mFpsRange[1] > 240 && mConfig->mFpsRange[1] <= 480) {
+    } else if (_config->_fps_range[1] > 240 && _config->_fps_range[1] <= 480) {
         // for HFR case such as 720p@480
         operation_mode = CAMERA3_STREAM_CONFIGURATION_CONSTRAINED_HIGH_SPEED_MODE;
         mVideoMode = VIDEO_ONLY_MODE_HFR480;
@@ -186,8 +186,8 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
 
     /*add video stream*/
     std::vector<AvailableStream> outputVideoStreams;
-    AvailableStream videoThreshold = {mConfig->mVideoStream.width, mConfig->mVideoStream.height,
-                                      mConfig->mVideoStream.format};
+    AvailableStream videoThreshold = {_config->_video_stream.width, _config->_video_stream.height,
+                                      _config->_video_stream.format};
     //AvailableStream videoThreshold = {1920, 1080, HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED};
     if (res == 0) {
         camera_metadata_ro_entry entry;
@@ -201,8 +201,8 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     }
     if (res < 0 || outputVideoStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for video: w: %d, h: %d, fmt: %d",
-                  mConfig->mVideoStream.width, mConfig->mVideoStream.height,
-                  mConfig->mVideoStream.format);
+                  _config->_video_stream.width, _config->_video_stream.height,
+                  _config->_video_stream.format);
         return -1;
     }
 
@@ -214,12 +214,13 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     videoStream.usage = GRALLOC_USAGE_PRIVATE_0 | GRALLOC_USAGE_HW_VIDEO_ENCODER;
 
     if (videoStream.format == HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED &&
-        (mConfig->mVideoStream.subformat == UBWCTP10 || mConfig->mVideoStream.subformat == P010)) {
-        QCAMX_INFO("configuring video stream for format %d", mConfig->mVideoStream.subformat);
+        (_config->_video_stream.subformat == UBWCTP10 ||
+         _config->_video_stream.subformat == P010)) {
+        QCAMX_INFO("configuring video stream for format %d", _config->_video_stream.subformat);
         videoStream.data_space = HAL_DATASPACE_TRANSFER_GAMMA2_8;
         videoStream.usage =
             GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_PRIVATE_0 | GRALLOC_USAGE_PRIVATE_2;
-        if (mConfig->mVideoStream.subformat == P010) {
+        if (_config->_video_stream.subformat == P010) {
             videoStream.usage = GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_PRIVATE_2;
         }
     }
@@ -229,12 +230,12 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     videoStream.priv = 0;
 
     vStream.pstream = &videoStream;
-    vStream.subformat = mConfig->mVideoStream.subformat;
+    vStream.subformat = _config->_video_stream.subformat;
     vStream.type = VIDEO_TYPE;
     streams.push_back(&vStream);
 
     mDevice->setSyncBufferMode(SYNC_BUFFER_EXTERNAL);
-    mDevice->setFpsRange(mConfig->mFpsRange[0], mConfig->mFpsRange[1]);
+    mDevice->setFpsRange(_config->_fps_range[0], _config->_fps_range[1]);
     if (mVideoMode >= VIDEO_ONLY_MODE_HFR60) {
         // for HFR case
         int stream_size = 0;
@@ -246,7 +247,7 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
             }
         }
         selectOpMode(&operation_mode, streams[stream_index]->pstream->width,
-                     streams[stream_index]->pstream->height, mConfig->mFpsRange[1]);
+                     streams[stream_index]->pstream->height, _config->_fps_range[1]);
     }
 
     mDevice->configureStreams(streams, operation_mode);
@@ -309,13 +310,13 @@ int QCamxHAL3TestVideoOnly::PreinitStreams() {
     int res = 0;
     int stream_num = 1;
 
-    QCAMX_INFO("single video stream %dx%d %d\n", mConfig->mVideoStream.width,
-               mConfig->mVideoStream.height, mConfig->mVideoStream.format);
+    QCAMX_INFO("single video stream %dx%d %d\n", _config->_video_stream.width,
+               _config->_video_stream.height, _config->_video_stream.format);
 
     mVideoStream.stream_type = CAMERA3_STREAM_OUTPUT;
-    mVideoStream.width = mConfig->mVideoStream.width;
-    mVideoStream.height = mConfig->mVideoStream.height;
-    mVideoStream.format = mConfig->mVideoStream.format;
+    mVideoStream.width = _config->_video_stream.width;
+    mVideoStream.height = _config->_video_stream.height;
+    mVideoStream.format = _config->_video_stream.format;
     mVideoStream.data_space = HAL_DATASPACE_BT709;
     mVideoStream.usage = GRALLOC_USAGE_PRIVATE_0 | GRALLOC_USAGE_HW_VIDEO_ENCODER;
 
@@ -326,7 +327,7 @@ int QCamxHAL3TestVideoOnly::PreinitStreams() {
     mStreams.resize(stream_num);
 
     mVideoStreaminfo.pstream = &mVideoStream;
-    mVideoStreaminfo.subformat = mConfig->mVideoStream.subformat;
+    mVideoStreaminfo.subformat = _config->_video_stream.subformat;
     ;
     mVideoStreaminfo.type = VIDEO_TYPE;
     mStreams[0] = &mVideoStreaminfo;

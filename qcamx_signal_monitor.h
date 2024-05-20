@@ -3,8 +3,8 @@
 */
 #pragma once
 
-namespace qcam {
+namespace qcamx {
 
 void register_signal_monitor();
 
-}  // namespace qcam
+}  // namespace qcamx

@@ -11,7 +11,7 @@
 
 #include "QCamxHAL3TestCase.h"
 
-#include "QCamxHAL3TestLog.h"
+#include "qcamx_log.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -242,7 +242,7 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
     sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
     if (result->partial_result >= 1) {
-        if (mConfig->mMetaDump.exposureValue) {
+        if (_config->_meta_dump.exposureValue) {
             camera_metadata_ro_entry entry;
             uint64_t exptime = 0;
             res =
@@ -250,25 +250,25 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             if ((0 == res) && (entry.count > 0)) {
                 exptime = entry.data.i64[0];
             }
-            if (exptime != mConfig->mMetaStat.expTime) {
-                mConfig->mMetaStat.expTime = exptime;
-                mConfig->mDump->print("frame:%d exposure value = %llu\n", result->frame_number,
+            if (exptime != _config->mMetaStat.expTime) {
+                _config->mMetaStat.expTime = exptime;
+                _config->mDump->print("frame:%d exposure value = %llu\n", result->frame_number,
                                       exptime);
             }
         }
-        if (mConfig->mMetaDump.isoValue) {
+        if (_config->_meta_dump.isoValue) {
             camera_metadata_ro_entry entry;
             int iso = 0;
             res = find_camera_metadata_ro_entry(result->result, ANDROID_SENSOR_SENSITIVITY, &entry);
             if ((0 == res) && (entry.count > 0)) {
                 iso = entry.data.i32[0];
             }
-            if (iso != mConfig->mMetaStat.isoValue) {
-                mConfig->mDump->print("frame:%d iso value = %d\n", result->frame_number, iso);
-                mConfig->mMetaStat.isoValue = iso;
+            if (iso != _config->mMetaStat.isoValue) {
+                _config->mDump->print("frame:%d iso value = %d\n", result->frame_number, iso);
+                _config->mMetaStat.isoValue = iso;
             }
         }
-        if (mConfig->mMetaDump.aeMode) {
+        if (_config->_meta_dump.aeMode) {
             camera_metadata_ro_entry entry;
             int aemode = 0;
             res = find_camera_metadata_ro_entry(result->result, ANDROID_CONTROL_AE_MODE, &entry);
@@ -276,80 +276,80 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
                 aemode = entry.data.u8[0];
             }
 
-            if (aemode != mConfig->mMetaStat.aeMode) {
+            if (aemode != _config->mMetaStat.aeMode) {
                 switch (aemode) {
                     case ANDROID_CONTROL_AE_MODE_OFF:
-                        mConfig->mDump->print("frame:%d ae mode:AE MODE OFF\n",
+                        _config->mDump->print("frame:%d ae mode:AE MODE OFF\n",
                                               result->frame_number);
                         break;
                     case ANDROID_CONTROL_AE_MODE_ON:
-                        mConfig->mDump->print("frame:%d ae mode:AE MODE ON\n",
+                        _config->mDump->print("frame:%d ae mode:AE MODE ON\n",
                                               result->frame_number);
                         break;
                     default:
                         break;
                 }
-                mConfig->mMetaStat.aeMode = aemode;
+                _config->mMetaStat.aeMode = aemode;
             }
         }
-        if (mConfig->mMetaDump.awbMode) {
+        if (_config->_meta_dump.awbMode) {
             camera_metadata_ro_entry entry;
             int awbmode = 0;
             res = find_camera_metadata_ro_entry(result->result, ANDROID_CONTROL_AWB_MODE, &entry);
             if ((0 == res) && (entry.count > 0)) {
                 awbmode = entry.data.u8[0];
             }
-            if (awbmode != mConfig->mMetaStat.awbMode) {
+            if (awbmode != _config->mMetaStat.awbMode) {
                 switch (awbmode) {
                     case ANDROID_CONTROL_AWB_MODE_OFF:
-                        mConfig->mDump->print("frame:%d awb mode:AWB MODE OFF\n",
+                        _config->mDump->print("frame:%d awb mode:AWB MODE OFF\n",
                                               result->frame_number);
                         break;
                     case ANDROID_CONTROL_AWB_MODE_AUTO:
-                        mConfig->mDump->print("frame:%d awb mode:AWB MODE AUTO\n",
+                        _config->mDump->print("frame:%d awb mode:AWB MODE AUTO\n",
                                               result->frame_number);
                         break;
                     default:
                         break;
                 }
-                mConfig->mMetaStat.awbMode = awbmode;
+                _config->mMetaStat.awbMode = awbmode;
             }
         }
-        if (mConfig->mMetaDump.afMode) {
+        if (_config->_meta_dump.afMode) {
             camera_metadata_ro_entry entry;
             int afmode = 0;
             res = find_camera_metadata_ro_entry(result->result, ANDROID_CONTROL_AF_MODE, &entry);
             if ((0 == res) && (entry.count > 0)) {
                 afmode = entry.data.u8[0];
             }
-            if (afmode != mConfig->mMetaStat.afMode) {
+            if (afmode != _config->mMetaStat.afMode) {
                 switch (afmode) {
                     case ANDROID_CONTROL_AF_MODE_OFF:
-                        mConfig->mDump->print("frame:%d af mode:AF MODE OFF\n",
+                        _config->mDump->print("frame:%d af mode:AF MODE OFF\n",
                                               result->frame_number);
                         break;
                     case ANDROID_CONTROL_AF_MODE_AUTO:
-                        mConfig->mDump->print("frame:%d af mode:AF MODE AUTO\n",
+                        _config->mDump->print("frame:%d af mode:AF MODE AUTO\n",
                                               result->frame_number);
                         break;
                     case ANDROID_CONTROL_AF_MODE_MACRO:
-                        mConfig->mDump->print("frame:%d af mode:AF MODE MACRO\n",
+                        _config->mDump->print("frame:%d af mode:AF MODE MACRO\n",
                                               result->frame_number);
                         break;
                     case ANDROID_CONTROL_AF_MODE_CONTINUOUS_VIDEO:
-                        mConfig->mDump->print("frame:%d af mode:AF MODE CONTINUOUS VIDEO\n",
+                        _config->mDump->print("frame:%d af mode:AF MODE CONTINUOUS VIDEO\n",
                                               result->frame_number);
                     case ANDROID_CONTROL_AF_MODE_CONTINUOUS_PICTURE:
-                        mConfig->mDump->print("frame:%d af mode:AF MODE CONTINUOUS PICTURE\n",
+                        _config->mDump->print("frame:%d af mode:AF MODE CONTINUOUS PICTURE\n",
                                               result->frame_number);
                         break;
                     default:
                         break;
                 }
-                mConfig->mMetaStat.afMode = afmode;
+                _config->mMetaStat.afMode = afmode;
             }
         }
-        if (mConfig->mMetaDump.afValue) {
+        if (_config->_meta_dump.afValue) {
             camera_metadata_ro_entry entry;
             float afvalue = 0;
             res =
@@ -357,13 +357,13 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             if ((0 == res) && (entry.count > 0)) {
                 afvalue = entry.data.f[0];
             }
-            if (afvalue != mConfig->mMetaStat.afValue) {
-                mConfig->mDump->print("frame:%d af focus distance = %f\n", result->frame_number,
+            if (afvalue != _config->mMetaStat.afValue) {
+                _config->mDump->print("frame:%d af focus distance = %f\n", result->frame_number,
                                       afvalue);
-                mConfig->mMetaStat.afValue = afvalue;
+                _config->mMetaStat.afValue = afvalue;
             }
         }
-        if (mConfig->mMetaDump.aeAntiMode) {
+        if (_config->_meta_dump.aeAntiMode) {
             camera_metadata_ro_entry entry;
             int antimode = 0;
             res = find_camera_metadata_ro_entry(result->result, ANDROID_CONTROL_AE_ANTIBANDING_MODE,
@@ -371,31 +371,31 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             if ((0 == res) && (entry.count > 0)) {
                 antimode = entry.data.u8[0];
             }
-            if (antimode != mConfig->mMetaStat.aeAntiMode) {
+            if (antimode != _config->mMetaStat.aeAntiMode) {
                 switch (antimode) {
                     case ANDROID_CONTROL_AE_ANTIBANDING_MODE_OFF:
-                        mConfig->mDump->print("frame:%d aeAnti mode:AE ANTI MODE OFF\n",
+                        _config->mDump->print("frame:%d aeAnti mode:AE ANTI MODE OFF\n",
                                               result->frame_number);
                         break;
                     case ANDROID_CONTROL_AE_ANTIBANDING_MODE_50HZ:
-                        mConfig->mDump->print("frame:%d aeAnti mode:AE ANTI MODE 50HZ\n",
+                        _config->mDump->print("frame:%d aeAnti mode:AE ANTI MODE 50HZ\n",
                                               result->frame_number);
                         break;
                     case ANDROID_CONTROL_AE_ANTIBANDING_MODE_60HZ:
-                        mConfig->mDump->print("frame:%d aeAnti mode:AE ANTI MODE 60HZ\n",
+                        _config->mDump->print("frame:%d aeAnti mode:AE ANTI MODE 60HZ\n",
                                               result->frame_number);
                         break;
                     case ANDROID_CONTROL_AE_ANTIBANDING_MODE_AUTO:
-                        mConfig->mDump->print("frame:%d aeAnti mode:AE ANTI MODE AUTO\n",
+                        _config->mDump->print("frame:%d aeAnti mode:AE ANTI MODE AUTO\n",
                                               result->frame_number);
                         break;
                     default:
                         break;
                 }
-                mConfig->mMetaStat.aeAntiMode = antimode;
+                _config->mMetaStat.aeAntiMode = antimode;
             }
         }
-        if (mConfig->mMetaDump.colorCorrectMode) {
+        if (_config->_meta_dump.colorCorrectMode) {
             camera_metadata_ro_entry entry;
             int colormode = 0;
             res = find_camera_metadata_ro_entry(result->result, ANDROID_COLOR_CORRECTION_MODE,
@@ -403,27 +403,27 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             if ((0 == res) && (entry.count > 0)) {
                 colormode = entry.data.u8[0];
             }
-            if (colormode != mConfig->mMetaStat.colorCorrectMode) {
+            if (colormode != _config->mMetaStat.colorCorrectMode) {
                 switch (colormode) {
                     case ANDROID_COLOR_CORRECTION_MODE_TRANSFORM_MATRIX:
-                        mConfig->mDump->print("frame:%d color correction mode:TRANSFORM_MATRIX\n",
+                        _config->mDump->print("frame:%d color correction mode:TRANSFORM_MATRIX\n",
                                               result->frame_number);
                         break;
                     case ANDROID_COLOR_CORRECTION_MODE_FAST:
-                        mConfig->mDump->print("frame:%d color correction mode:FAST\n",
+                        _config->mDump->print("frame:%d color correction mode:FAST\n",
                                               result->frame_number);
                         break;
                     case ANDROID_COLOR_CORRECTION_MODE_HIGH_QUALITY:
-                        mConfig->mDump->print("frame:%d color correction mode:HIGH QUALLITY\n",
+                        _config->mDump->print("frame:%d color correction mode:HIGH QUALLITY\n",
                                               result->frame_number);
                         break;
                     default:
                         break;
                 }
-                mConfig->mMetaStat.colorCorrectMode = colormode;
+                _config->mMetaStat.colorCorrectMode = colormode;
             }
         }
-        if (mConfig->mMetaDump.colorCorrectValue) {
+        if (_config->_meta_dump.colorCorrectValue) {
             camera_metadata_ro_entry entry;
             float colorvalue = 0;
             res = find_camera_metadata_ro_entry(result->result, ANDROID_COLOR_CORRECTION_GAINS,
@@ -431,37 +431,37 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             if ((0 == res) && (entry.count > 0)) {
                 colorvalue = entry.data.f[0];
             }
-            if (colorvalue != mConfig->mMetaStat.colorCorrectValue) {
-                mConfig->mDump->print("frame:%d color correction gain = %f\n", result->frame_number,
+            if (colorvalue != _config->mMetaStat.colorCorrectValue) {
+                _config->mDump->print("frame:%d color correction gain = %f\n", result->frame_number,
                                       colorvalue);
-                mConfig->mMetaStat.colorCorrectValue = colorvalue;
+                _config->mMetaStat.colorCorrectValue = colorvalue;
             }
         }
-        if (mConfig->mMetaDump.controlMode) {
+        if (_config->_meta_dump.controlMode) {
             camera_metadata_ro_entry entry;
             int ctrlvalue = 0;
             res = find_camera_metadata_ro_entry(result->result, ANDROID_CONTROL_MODE, &entry);
             if ((0 == res) && (entry.count > 0)) {
                 ctrlvalue = entry.data.u8[0];
             }
-            if (ctrlvalue != mConfig->mMetaStat.controlMode) {
+            if (ctrlvalue != _config->mMetaStat.controlMode) {
                 switch (ctrlvalue) {
                     case ANDROID_CONTROL_MODE_OFF:
-                        mConfig->mDump->print("frame:%d control mode:OFF\n", result->frame_number);
+                        _config->mDump->print("frame:%d control mode:OFF\n", result->frame_number);
                         break;
                     case ANDROID_CONTROL_MODE_AUTO:
-                        mConfig->mDump->print("frame:%d control mode:AUTO\n", result->frame_number);
+                        _config->mDump->print("frame:%d control mode:AUTO\n", result->frame_number);
                         break;
                     case ANDROID_CONTROL_MODE_USE_SCENE_MODE:
-                        mConfig->mDump->print("frame:%d control mode:ON\n", result->frame_number);
+                        _config->mDump->print("frame:%d control mode:ON\n", result->frame_number);
                         break;
                     default:
                         break;
                 }
-                mConfig->mMetaStat.controlMode = ctrlvalue;
+                _config->mMetaStat.controlMode = ctrlvalue;
             }
         }
-        if (mConfig->mMetaDump.sceneMode) {
+        if (_config->_meta_dump.sceneMode) {
             camera_metadata_ro_entry entry;
             int32_t asdresults[10] = {0};
             uint32_t tag = 0;
@@ -472,20 +472,20 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             if ((0 == res) && (entry.count > 0)) {
                 memcpy(asdresults, &(entry.data.i32[0]), sizeof(asdresults));
                 for (i = 6; i < 10; i++) {
-                    if (asdresults[i] != mConfig->mMetaStat.asdresults[i]) {
+                    if (asdresults[i] != _config->mMetaStat.asdresults[i]) {
                         break;
                     }
                 }
             }
             if (i < 10) {
-                mConfig->mDump->print(
+                _config->mDump->print(
                     "frame:%d asdresults   Backlight %d, Landscape %d, Snow %d, Hdr %d\n",
                     result->frame_number, asdresults[6], asdresults[7], asdresults[8],
                     asdresults[9]);
-                memcpy(mConfig->mMetaStat.asdresults, asdresults, sizeof(asdresults));
+                memcpy(_config->mMetaStat.asdresults, asdresults, sizeof(asdresults));
             }
         }
-        if (mConfig->mMetaDump.hdrMode) {
+        if (_config->_meta_dump.hdrMode) {
             camera_metadata_ro_entry entry;
             int hdrmode = 0;
             uint32_t tag = 0;
@@ -495,13 +495,13 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             if ((0 == res) && (entry.count > 0)) {
                 hdrmode = entry.data.u8[0];
             }
-            if (hdrmode != mConfig->mMetaStat.hdrMode) {
-                mConfig->mDump->print("frame:%d is hdr scene = %d\n", result->frame_number,
+            if (hdrmode != _config->mMetaStat.hdrMode) {
+                _config->mDump->print("frame:%d is hdr scene = %d\n", result->frame_number,
                                       hdrmode);
-                mConfig->mMetaStat.hdrMode = hdrmode;
+                _config->mMetaStat.hdrMode = hdrmode;
             }
         }
-        if (mConfig->mMetaDump.zoomValue) {
+        if (_config->_meta_dump.zoomValue) {
             camera_metadata_ro_entry entry;
             int32_t cropregion[4] = {0};
             int i = 0;
@@ -510,32 +510,32 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
                 memcpy(cropregion, &(entry.data.i32[0]), sizeof(cropregion));
             }
             for (i = 0; i < 4; i++) {
-                if (cropregion[i] != mConfig->mMetaStat.cropregion[i]) {
+                if (cropregion[i] != _config->mMetaStat.cropregion[i]) {
                     break;
                 }
             }
             if (i < 4) {
-                mConfig->mDump->print("frame:%d ZOOM:crop region[%d,%d,%d,%d]\n",
+                _config->mDump->print("frame:%d ZOOM:crop region[%d,%d,%d,%d]\n",
                                       result->frame_number, cropregion[0], cropregion[1],
                                       cropregion[2], cropregion[3]);
-                memcpy(mConfig->mMetaStat.cropregion, cropregion, sizeof(cropregion));
+                memcpy(_config->mMetaStat.cropregion, cropregion, sizeof(cropregion));
             }
         }
 
-        if (mConfig->mMetaDump.zslMode) {
+        if (_config->_meta_dump.zslMode) {
             camera_metadata_ro_entry entry;
             uint8_t zsl = 0;
             res = find_camera_metadata_ro_entry(result->result, ANDROID_CONTROL_ENABLE_ZSL, &entry);
             if ((0 == res) && (entry.count > 0)) {
                 zsl = entry.data.u8[0];
-                if (zsl != mConfig->mMetaStat.zslMode) {
-                    mConfig->mDump->print("frame:%d ZSL mode:%d\n", result->frame_number, zsl);
-                    mConfig->mMetaStat.zslMode = zsl;
+                if (zsl != _config->mMetaStat.zslMode) {
+                    _config->mDump->print("frame:%d ZSL mode:%d\n", result->frame_number, zsl);
+                    _config->mMetaStat.zslMode = zsl;
                 }
             }
         }
 
-        if (mConfig->mMetaDump.numFrames) {
+        if (_config->_meta_dump.numFrames) {
             camera_metadata_ro_entry entry;
             uint32_t tag = 0;
             int32_t numFrames = -1;
@@ -544,15 +544,15 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             res = find_camera_metadata_ro_entry(result->result, tag, &entry);
             if ((0 == res) && (entry.count > 0)) {
                 numFrames = entry.data.i32[0];
-                if (numFrames != mConfig->mMetaStat.numFrames) {
-                    mConfig->mDump->print("frame:%d num Frames:%d\n", result->frame_number,
+                if (numFrames != _config->mMetaStat.numFrames) {
+                    _config->mDump->print("frame:%d num Frames:%d\n", result->frame_number,
                                           numFrames);
-                    mConfig->mMetaStat.numFrames = numFrames;
+                    _config->mMetaStat.numFrames = numFrames;
                 }
             }
         }
 
-        if (mConfig->mMetaDump.expMetering) {
+        if (_config->_meta_dump.expMetering) {
             camera_metadata_ro_entry entry;
             uint32_t tag = 0;
             int32_t metering = -1;
@@ -562,15 +562,15 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             res = find_camera_metadata_ro_entry(result->result, tag, &entry);
             if ((0 == res) && (entry.count > 0)) {
                 metering = entry.data.i32[0];
-                if (metering != mConfig->mMetaStat.expMetering) {
-                    mConfig->mDump->print("frame:%d expMetering:%d\n", result->frame_number,
+                if (metering != _config->mMetaStat.expMetering) {
+                    _config->mDump->print("frame:%d expMetering:%d\n", result->frame_number,
                                           metering);
-                    mConfig->mMetaStat.expMetering = metering;
+                    _config->mMetaStat.expMetering = metering;
                 }
             }
         }
 
-        if (mConfig->mMetaDump.selPriority) {
+        if (_config->_meta_dump.selPriority) {
             camera_metadata_ro_entry entry;
             uint32_t tag = 0;
             int32_t priority = -1;
@@ -579,15 +579,15 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             res = find_camera_metadata_ro_entry(result->result, tag, &entry);
             if ((0 == res) && (entry.count > 0)) {
                 priority = entry.data.i32[0];
-                if (priority != mConfig->mMetaStat.selPriority) {
-                    mConfig->mDump->print("frame:%d select priority:%d\n", result->frame_number,
+                if (priority != _config->mMetaStat.selPriority) {
+                    _config->mDump->print("frame:%d select priority:%d\n", result->frame_number,
                                           priority);
-                    mConfig->mMetaStat.selPriority = priority;
+                    _config->mMetaStat.selPriority = priority;
                 }
             }
         }
 
-        if (mConfig->mMetaDump.expPriority) {
+        if (_config->_meta_dump.expPriority) {
             camera_metadata_ro_entry entry;
             uint32_t tag = 0;
             int64_t priority = -1;
@@ -596,28 +596,28 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             res = find_camera_metadata_ro_entry(result->result, tag, &entry);
             if ((0 == res) && (entry.count > 0)) {
                 priority = entry.data.i64[0];
-                if (priority != mConfig->mMetaStat.expPriority) {
-                    mConfig->mDump->print("frame:%d ios exp priority:%lld\n", result->frame_number,
+                if (priority != _config->mMetaStat.expPriority) {
+                    _config->mDump->print("frame:%d ios exp priority:%lld\n", result->frame_number,
                                           priority);
-                    mConfig->mMetaStat.expPriority = priority;
+                    _config->mMetaStat.expPriority = priority;
                 }
             }
         }
-        if (mConfig->mMetaDump.jpegquality) {
+        if (_config->_meta_dump.jpegquality) {
             camera_metadata_ro_entry entry;
             int jpeg_quality = 0;
             res = find_camera_metadata_ro_entry(result->result, ANDROID_JPEG_QUALITY, &entry);
             if ((0 == res) && (entry.count > 0)) {
                 jpeg_quality = entry.data.u8[0];
             }
-            if (jpeg_quality != mConfig->mMetaStat.jpegquality) {
-                mConfig->mDump->print("frame:%d jpegquality value = %d mMetaStat %d\n",
+            if (jpeg_quality != _config->mMetaStat.jpegquality) {
+                _config->mDump->print("frame:%d jpegquality value = %d mMetaStat %d\n",
                                       result->frame_number, jpeg_quality,
-                                      mConfig->mMetaStat.jpegquality);
-                mConfig->mMetaStat.jpegquality = jpeg_quality;
+                                      _config->mMetaStat.jpegquality);
+                _config->mMetaStat.jpegquality = jpeg_quality;
             }
         }
-        if (mConfig->mMetaDump.showCropRegion) {
+        if (_config->_meta_dump.showCropRegion) {
             camera_metadata_ro_entry entry;
             int32_t cropregion[4] = {0};
             int i = 0;
@@ -626,18 +626,18 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
                 memcpy(cropregion, &(entry.data.i32[0]), sizeof(cropregion));
             }
             for (i = 0; i < 4; i++) {
-                if (cropregion[i] != mConfig->mMetaStat.cropregion[i]) {
+                if (cropregion[i] != _config->mMetaStat.cropregion[i]) {
                     break;
                 }
             }
             if (i < 4) {
-                mConfig->mDump->print("frame:%d ZOOM:crop region[%d,%d,%d,%d]\n",
+                _config->mDump->print("frame:%d ZOOM:crop region[%d,%d,%d,%d]\n",
                                       result->frame_number, cropregion[0], cropregion[1],
                                       cropregion[2], cropregion[3]);
-                memcpy(mConfig->mMetaStat.cropregion, cropregion, sizeof(cropregion));
+                memcpy(_config->mMetaStat.cropregion, cropregion, sizeof(cropregion));
             }
         }
-        if (mConfig->mMetaDump.temperature) {
+        if (_config->_meta_dump.temperature) {
             camera_metadata_ro_entry entry;
             int temperature = 0;
 
@@ -647,9 +647,9 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
                 if ((0 == res) && (entry.count > 0)) {
                     temperature = entry.data.i64[0];
 
-                    if (temperature != mConfig->mMetaStat.temperature) {
-                        mConfig->mDump->print("Temperature:%.2f\n", ((float)temperature) / 100);
-                        mConfig->mMetaStat.temperature = temperature;
+                    if (temperature != _config->mMetaStat.temperature) {
+                        _config->mDump->print("Temperature:%.2f\n", ((float)temperature) / 100);
+                        _config->mMetaStat.temperature = temperature;
                     }
                 }
             }
@@ -661,7 +661,7 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
 * name : showFPS
 * function: show preview / video frame FPS.
 ************************************************************************/
-void QCamxHAL3TestCase::showFPS(StreamType streamType) {
+void QCamxHAL3TestCase::showFPS(StreamType stream_type) {
     double fps = 0;
     nsecs_t now = systemTime();
 
@@ -670,12 +670,12 @@ void QCamxHAL3TestCase::showFPS(StreamType streamType) {
     volatile nsecs_t *lastFpsTime = NULL;
     const char *tag;
 
-    if (PREVIEW_TYPE == streamType) {
+    if (stream_type == PREVIEW_TYPE) {
         frameCount = &mPreviewFrameCount;
         lastFpsTime = &mPreviewLastFpsTime;
         lastFrameCount = &mPreviewLastFrameCount;
         tag = "PROFILE_PREVIEW_FRAMES_PER_SECOND";
-    } else if (VIDEO_TYPE == streamType) {
+    } else if (stream_type == VIDEO_TYPE) {
         frameCount = &mVideoFrameCount;
         lastFpsTime = &mVideoLastFpsTime;
         lastFrameCount = &mVideoLastFrameCount;
@@ -689,7 +689,7 @@ void QCamxHAL3TestCase::showFPS(StreamType streamType) {
 
     if (diff > s2ns(1)) {
         fps = (((double)((*frameCount) - (*lastFrameCount))) * (double)(s2ns(1))) / (double)diff;
-        QCAMX_INFO("CAMERA %d, %s: %.4f, frameCount %d", mConfig->mCameraId, tag, fps,
+        QCAMX_INFO("CAMERA %d, %s: %.4f, frameCount %d\n", _config->_camera_id, tag, fps,
                    (*frameCount));
         (*lastFpsTime) = now;
         (*lastFrameCount) = (*frameCount);
@@ -715,12 +715,12 @@ void QCamxHAL3TestCase::init(camera_module_t *module, QCamxHAL3TestConfig *confi
     mMetadataExt = NULL;
     mCbs = NULL;
 
-    if (module && config) {
-        mModule = module;
-        mConfig = config;
-        mCameraId = mConfig->mCameraId;
-        mDevice = new QCamxHAL3TestDevice(mModule, mCameraId, config);
-        mConfig->mStaticMeta = mDevice->mCharacteristics;
+    if (module != NULL && config != NULL) {
+        _module = module;
+        _config = config;
+        _camera_id = _config->_camera_id;
+        mDevice = new QCamxHAL3TestDevice(_module, _camera_id, config);
+        _config->mStaticMeta = mDevice->mCharacteristics;
     } else {
         QCAMX_ERR("invalid parameters!");
     }
@@ -730,13 +730,13 @@ void QCamxHAL3TestCase::init(camera_module_t *module, QCamxHAL3TestConfig *confi
     CameraMetadata::getTagFromName("com.qti.chi.temperature.temperature", vTags.get(),
                                    &mTagIdTemperature);
     camera_metadata_ro_entry activeArraySize =
-        ((const CameraMetadata)mConfig->mStaticMeta).find(ANDROID_SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+        ((const CameraMetadata)_config->mStaticMeta).find(ANDROID_SENSOR_INFO_ACTIVE_ARRAY_SIZE);
     if (activeArraySize.count == 2) {
-        mConfig->mActiveSensorWidth = activeArraySize.data.i32[0];
-        mConfig->mActiveSensorHeight = activeArraySize.data.i32[1];
+        _config->mActiveSensorWidth = activeArraySize.data.i32[0];
+        _config->mActiveSensorHeight = activeArraySize.data.i32[1];
     } else if (activeArraySize.count == 4) {
-        mConfig->mActiveSensorWidth = activeArraySize.data.i32[2];
-        mConfig->mActiveSensorHeight = activeArraySize.data.i32[3];
+        _config->mActiveSensorWidth = activeArraySize.data.i32[2];
+        _config->mActiveSensorHeight = activeArraySize.data.i32[3];
     } else {
         QCAMX_PRINT("failed to get active size \n");
     }
