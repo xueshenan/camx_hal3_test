@@ -353,7 +353,7 @@ int main(int argc, char *argv[]) {
                 // add
                 QCamxHAL3TestCase *testCase = NULL;
                 QCamxHAL3TestConfig *testConf = new QCamxHAL3TestConfig();
-                result = testConf->parseCommandlineAdd(size, (char *)param.c_str());
+                result = testConf->parse_commandline_add(size, (char *)param.c_str());
                 if (result != 0) {
                     QCAMX_PRINT("error command order res:%d\n", result);
                     break;
@@ -416,7 +416,7 @@ int main(int argc, char *argv[]) {
                         (QCamxHAL3TestPreviewOnly *)s_HAL3_test[current_camera_id];
 
                     QCamxHAL3TestConfig *testConf = testPreview->_config;
-                    result = testConf->parseCommandlineAdd(size, (char *)param.c_str());
+                    result = testConf->parse_commandline_add(size, (char *)param.c_str());
 
                     QCamxHAL3TestVideo *testVideo =
                         new QCamxHAL3TestVideo(s_camera_module, testConf);
@@ -506,7 +506,7 @@ int main(int argc, char *argv[]) {
             case 'U': {
                 QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
                 android::CameraMetadata *meta = testCase->getCurrentMeta();
-                testCase->_config->parseCommandlineMetaUpdate((char *)param.c_str(), meta);
+                testCase->_config->parse_commandline_meta_update((char *)param.c_str(), meta);
                 testCase->updataMetaDatas(meta);
 
                 break;
@@ -514,7 +514,7 @@ int main(int argc, char *argv[]) {
             case 'E': {
                 QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
                 android::CameraMetadata *meta = testCase->getCurrentMeta();
-                testCase->_config->parseCommandlineMetaUpdate((char *)param.c_str(), meta);
+                testCase->_config->parse_commandline_meta_update((char *)param.c_str(), meta);
                 testCase->updataMetaDatas(meta);
 
                 int num = 1;
@@ -533,7 +533,7 @@ int main(int argc, char *argv[]) {
             }
             case 'M': {
                 QCAMX_PRINT("meta dump:\n");
-                int res = s_HAL3_test[current_camera_id]->_config->parseCommandlineMetaDump(
+                int res = s_HAL3_test[current_camera_id]->_config->parse_commandline_meta_dump(
                     1, (char *)param.c_str());
                 if (res) {
                     QCAMX_ERR("parseCommandlineMetaDump failed!");

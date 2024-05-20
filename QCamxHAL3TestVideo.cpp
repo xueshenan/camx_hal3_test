@@ -505,7 +505,7 @@ int QCamxHAL3TestVideo::PreinitStreams() {
     mSnapshotStream.height = _config->_snapshot_stream.height;
     mSnapshotStream.format = _config->_snapshot_stream.format;
 
-    if (true == _config->_heic_snapshot) {
+    if (_config->_heic_snapshot) {
         mSnapshotStream.data_space = static_cast<android_dataspace_t>(HAL_DATASPACE_HEIF);
         mSnapshotStream.usage = GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_HW_CAMERA_WRITE;
         mSnapshotStreaminfo.subformat = _config->_snapshot_stream.subformat;

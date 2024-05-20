@@ -78,8 +78,8 @@ QCamxHAL3TestConfig::~QCamxHAL3TestConfig() {
 * name : parseCommandlineMetaUpdate
 * function: get update meta info from cmd.
 ************************************************************************/
-int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
-                                                    android::CameraMetadata *metaUpdate) {
+int QCamxHAL3TestConfig::parse_commandline_meta_update(char *order,
+                                                       android::CameraMetadata *meta_update) {
     enum {
         MANUAL_EXPOSURE = 0,
         MANUAL_ISO,
@@ -141,7 +141,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 int32_t aecomp = 0;
                 sscanf(value, "%d", &aecomp);
                 if (_AE_comp_range_min <= aecomp && aecomp <= _AE_comp_range_max) {
-                    (*metaUpdate).update(ANDROID_CONTROL_AE_EXPOSURE_COMPENSATION, &(aecomp), 1);
+                    (*meta_update).update(ANDROID_CONTROL_AE_EXPOSURE_COMPENSATION, &(aecomp), 1);
                     QCAMX_PRINT(
                         "AECOMP setting ANDROID_CONTROL_AE_EXPOSURE_COMPENSATION value to :%d\n",
                         aecomp);
@@ -159,8 +159,8 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 sscanf(value, "%f", &expTimeMs);
                 int64_t expTimeNs = (int64_t)(expTimeMs * 1000000L);
                 uint8_t aemode = 0;
-                (*metaUpdate).update(ANDROID_CONTROL_AE_MODE, &(aemode), 1);
-                (*metaUpdate).update(ANDROID_SENSOR_EXPOSURE_TIME, &(expTimeNs), 1);
+                (*meta_update).update(ANDROID_CONTROL_AE_MODE, &(aemode), 1);
+                (*meta_update).update(ANDROID_SENSOR_EXPOSURE_TIME, &(expTimeNs), 1);
                 break;
             }
             case MANUAL_ISO: {
@@ -168,14 +168,14 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 int32_t iso;
                 uint8_t aemode = 0;
                 sscanf(value, "%d", &iso);
-                (*metaUpdate).update(ANDROID_CONTROL_AE_MODE, &(aemode), 1);
-                (*metaUpdate).update(ANDROID_SENSOR_SENSITIVITY, &(iso), 1);
+                (*meta_update).update(ANDROID_CONTROL_AE_MODE, &(aemode), 1);
+                (*meta_update).update(ANDROID_SENSOR_SENSITIVITY, &(iso), 1);
                 break;
             }
             case ANTBANDING: {
                 uint8_t antimode;
                 sscanf(value, "%c", &antimode);
-                (*metaUpdate).update(ANDROID_CONTROL_AE_ANTIBANDING_MODE, &antimode, 1);
+                (*meta_update).update(ANDROID_CONTROL_AE_ANTIBANDING_MODE, &antimode, 1);
                 break;
             }
             case MANUAL_SENSITIVIYT: {
@@ -183,22 +183,22 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 int64_t expTimeNs;
                 QCAMX_PRINT("sensor sensitivity:%s\n", value);
                 sscanf(value, "%d", &sensitivity);
-                (*metaUpdate).update(ANDROID_SENSOR_SENSITIVITY, &(sensitivity), 1);
+                (*meta_update).update(ANDROID_SENSOR_SENSITIVITY, &(sensitivity), 1);
                 if (100 == sensitivity) {
                     expTimeNs = 10000000;
-                    (*metaUpdate).update(ANDROID_SENSOR_EXPOSURE_TIME, &(expTimeNs), 1);
+                    (*meta_update).update(ANDROID_SENSOR_EXPOSURE_TIME, &(expTimeNs), 1);
                 } else if (200 == sensitivity) {
                     expTimeNs = 20000000;
-                    (*metaUpdate).update(ANDROID_SENSOR_EXPOSURE_TIME, &(expTimeNs), 1);
+                    (*meta_update).update(ANDROID_SENSOR_EXPOSURE_TIME, &(expTimeNs), 1);
                 } else if (400 == sensitivity) {
                     expTimeNs = 40000000;
-                    (*metaUpdate).update(ANDROID_SENSOR_EXPOSURE_TIME, &(expTimeNs), 1);
+                    (*meta_update).update(ANDROID_SENSOR_EXPOSURE_TIME, &(expTimeNs), 1);
                 } else if (800 == sensitivity) {
                     expTimeNs = 60000000;
-                    (*metaUpdate).update(ANDROID_SENSOR_EXPOSURE_TIME, &(expTimeNs), 1);
+                    (*meta_update).update(ANDROID_SENSOR_EXPOSURE_TIME, &(expTimeNs), 1);
                 } else if (1600 == sensitivity) {
                     expTimeNs = 80000000;
-                    (*metaUpdate).update(ANDROID_SENSOR_EXPOSURE_TIME, &(expTimeNs), 1);
+                    (*meta_update).update(ANDROID_SENSOR_EXPOSURE_TIME, &(expTimeNs), 1);
                 }
                 break;
             }
@@ -206,7 +206,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 uint8_t awbmode;
                 QCAMX_PRINT("awb mode:%s 0:off 1:auto\n", value);
                 sscanf(value, "%c", &awbmode);
-                (*metaUpdate).update(ANDROID_CONTROL_AWB_MODE, &(awbmode), 1);
+                (*meta_update).update(ANDROID_CONTROL_AWB_MODE, &(awbmode), 1);
                 break;
             }
             case MANUALWB_MODE: {
@@ -216,7 +216,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 sscanf(value, "%d", &mwbmode);
                 CameraMetadata::getTagFromName("org.codeaurora.qcamera3.manualWB.partial_mwb_mode",
                                                vTags.get(), &tag);
-                (*metaUpdate).update(tag, &mwbmode, 1);
+                (*meta_update).update(tag, &mwbmode, 1);
                 break;
             }
             case MANUALWB_CCT: {
@@ -226,7 +226,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 sscanf(value, "%d", &mwb_cct);
                 CameraMetadata::getTagFromName("org.codeaurora.qcamera3.manualWB.color_temperature",
                                                vTags.get(), &tag);
-                (*metaUpdate).update(tag, &mwb_cct, 1);
+                (*meta_update).update(tag, &mwb_cct, 1);
                 break;
             }
             case MANUALWB_GAINS: {
@@ -236,49 +236,49 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 sscanf(value, "%f-%f-%f", &mwb_gains[0], &mwb_gains[1], &mwb_gains[2]);
                 CameraMetadata::getTagFromName("org.codeaurora.qcamera3.manualWB.gains",
                                                vTags.get(), &tag);
-                (*metaUpdate).update(tag, mwb_gains, 3);
+                (*meta_update).update(tag, mwb_gains, 3);
                 break;
             }
             case MANUAL_AF_MODE: {
                 uint8_t afmode;
                 QCAMX_PRINT("af mode:%s 0:off 1:auto\n", value);
                 sscanf(value, "%c", &afmode);
-                (*metaUpdate).update(ANDROID_CONTROL_AF_MODE, &(afmode), 1);
+                (*meta_update).update(ANDROID_CONTROL_AF_MODE, &(afmode), 1);
                 break;
             }
             case MANUAL_AE_MODE: {
                 uint8_t aemode = 0;
                 sscanf(value, "%c", &aemode);
                 QCAMX_PRINT("ae mode:%d 0:off 1:on\n", aemode);
-                (*metaUpdate).update(ANDROID_CONTROL_AE_MODE, &(aemode), 1);
+                (*meta_update).update(ANDROID_CONTROL_AE_MODE, &(aemode), 1);
                 break;
             }
             case MANUAL_AE_ANTIBANDING_MODE: {
                 uint8_t antibandingmode;
                 QCAMX_PRINT("antibanding mode :%s 0:off 1:50hz 2:60hz 3:auto\n", value);
                 sscanf(value, "%c", &antibandingmode);
-                (*metaUpdate).update(ANDROID_CONTROL_AE_ANTIBANDING_MODE, &(antibandingmode), 1);
+                (*meta_update).update(ANDROID_CONTROL_AE_ANTIBANDING_MODE, &(antibandingmode), 1);
                 break;
             }
             case MANUAL_COLOR_CORRECTION_MODE: {
                 uint8_t colorCorrectMode;
                 QCAMX_PRINT("color correction mode:%s 0:matrix 1:fast 2:hightQuality\n", value);
                 sscanf(value, "%c", &colorCorrectMode);
-                (*metaUpdate).update(ANDROID_COLOR_CORRECTION_MODE, &(colorCorrectMode), 1);
+                (*meta_update).update(ANDROID_COLOR_CORRECTION_MODE, &(colorCorrectMode), 1);
                 break;
             }
             case MANUAL_CONTROL_MODE: {
                 uint8_t ctrlMode;
                 QCAMX_PRINT("contorl mode:%s 0:off 1:auto\n", value);
                 sscanf(value, "%c", &ctrlMode);
-                (*metaUpdate).update(ANDROID_CONTROL_MODE, &(ctrlMode), 1);
+                (*meta_update).update(ANDROID_CONTROL_MODE, &(ctrlMode), 1);
                 break;
             }
             case MANUAL_ZSL_MODE: {
                 uint8_t zslMode;
                 sscanf(value, "%c", &zslMode);
                 QCAMX_PRINT("enble zslMode:%d\n 0:false 1:true\n", zslMode);
-                (*metaUpdate).update(ANDROID_CONTROL_ENABLE_ZSL, &(zslMode), 1);
+                (*meta_update).update(ANDROID_CONTROL_ENABLE_ZSL, &(zslMode), 1);
                 break;
             }
             case ZOOM: {
@@ -314,7 +314,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                             activeHeight, cropregion[0], cropregion[1], cropregion[2],
                             cropregion[3]);
 
-                (*metaUpdate).update(ANDROID_SCALER_CROP_REGION, cropregion, 4);
+                (*meta_update).update(ANDROID_SCALER_CROP_REGION, cropregion, 4);
                 break;
             }
             case TOTAL_NUM_FRAMES: {
@@ -323,7 +323,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 sscanf(value, "%d", &numFrames);
                 CameraMetadata::getTagFromName("org.quic.camera2.mfnrconfigs.MFNRTotalNumFrames",
                                                vTags.get(), &tag);
-                (*metaUpdate).update(tag, &numFrames, 1);
+                (*meta_update).update(tag, &numFrames, 1);
                 break;
             }
             case EXPOSURE_METERING: {
@@ -333,7 +333,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 CameraMetadata::getTagFromName(
                     "org.codeaurora.qcamera3.exposure_metering.exposure_metering_mode", vTags.get(),
                     &tag);
-                (*metaUpdate).update(tag, &metering, 1);
+                (*meta_update).update(tag, &metering, 1);
                 break;
             }
             case SELECT_PRIORITY: {
@@ -342,7 +342,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 sscanf(value, "%d", &selPriority);
                 CameraMetadata::getTagFromName(
                     "org.codeaurora.qcamera3.iso_exp_priority.select_priority", vTags.get(), &tag);
-                (*metaUpdate).update(tag, &selPriority, 1);
+                (*meta_update).update(tag, &selPriority, 1);
                 break;
             }
             case EXP_PRIORITY: {
@@ -352,14 +352,14 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 CameraMetadata::getTagFromName(
                     "org.codeaurora.qcamera3.iso_exp_priority.use_iso_exp_priority", vTags.get(),
                     &tag);
-                (*metaUpdate).update(tag, &expPriority, 1);
+                (*meta_update).update(tag, &expPriority, 1);
                 break;
             }
             case JPEG_QUALITY: {
                 QCAMX_PRINT("jpegquality value:%s\n", value);
                 uint8_t jpegquality = 0;
                 sscanf(value, "%c", &jpegquality);
-                (*metaUpdate).update(ANDROID_JPEG_QUALITY, &(jpegquality), 1);
+                (*meta_update).update(ANDROID_JPEG_QUALITY, &(jpegquality), 1);
                 break;
             }
             case CROP_REGION: {
@@ -403,7 +403,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                             activeHeight, cropregion[0], cropregion[1], cropregion[2],
                             cropregion[3]);
 
-                (*metaUpdate).update(ANDROID_SCALER_CROP_REGION, cropregion, 4);
+                (*meta_update).update(ANDROID_SCALER_CROP_REGION, cropregion, 4);
                 break;
             }
             case COMPENSATION_RATIO: {
@@ -412,7 +412,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
                 sscanf(value, "%f", &compRatio);
                 CameraMetadata::getTagFromName("org.codeaurora.qcamera3.compensation_ratio.ratio",
                                                vTags.get(), &tag);
-                (*metaUpdate).update(tag, &compRatio, 1);
+                (*meta_update).update(tag, &compRatio, 1);
                 break;
             }
             default:
@@ -427,7 +427,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaUpdate(char *order,
 * name : parseCommandlineMetaDump
 * function: get dump meta info from cmd.
 ************************************************************************/
-int QCamxHAL3TestConfig::parseCommandlineMetaDump(int ordersize, char *order) {
+int QCamxHAL3TestConfig::parse_commandline_meta_dump(int ordersize, char *order) {
     enum {
         EXPOSURE_VALUE = 0,
         ISO_VALUE,
@@ -637,7 +637,7 @@ int QCamxHAL3TestConfig::parseCommandlineMetaDump(int ordersize, char *order) {
 * name : parseCommandlineAdd
 * function: get Initialize info from cmd for open camera.
 ************************************************************************/
-int QCamxHAL3TestConfig::parseCommandlineAdd(int ordersize, char *order) {
+int QCamxHAL3TestConfig::parse_commandline_add(int ordersize, char *order) {
     enum {
         ID_OPT = 0,
         PREVIEW_SIZE_OPT,

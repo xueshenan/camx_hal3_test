@@ -159,12 +159,9 @@ public:
     meta_stat_t _meta_stat;
     CameraMetadata _static_meta;
 public:
-    void setDefaultConfig();
-    void setCameraConfig(int camera, int argc, char *argv[]);
-    int parseCommandlineAdd(int ordersize, char *order);
-    int parseCommandlineChange(int ordersize, char *order);
-    int parseCommandlineMetaDump(int ordersize, char *order);
-    int parseCommandlineMetaUpdate(char *order, android::CameraMetadata *metaUpdate);
+    int parse_commandline_add(int ordersize, char *order);
+    int parse_commandline_meta_dump(int ordersize, char *order);
+    int parse_commandline_meta_update(char *order, android::CameraMetadata *meta_update);
 public:
     QCamxHAL3TestConfig();
     ~QCamxHAL3TestConfig();
