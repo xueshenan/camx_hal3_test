@@ -149,7 +149,7 @@ int QCamxHAL3TestSnapshot::initSnapshotStreams() {
     }
 
     _device->setSyncBufferMode(SYNC_BUFFER_INTERNAL);
-    _device->setFpsRange(_config->_fps_range[0], _config->_fps_range[1]);
+    _device->set_fps_range(_config->_fps_range[0], _config->_fps_range[1]);
     _device->configureStreams(_streams);
 
     if (_metadata_ext) {
@@ -235,7 +235,7 @@ int QCamxHAL3TestSnapshot::pre_init_stream() {
 void QCamxHAL3TestSnapshot::run() {
     //open camera
     QCAMX_PRINT("QCamxHAL3TestSnapshot CameraId:%d\n", _config->_camera_id);
-    _device->setCallBack(this);
+    _device->set_callback(this);
     initSnapshotStreams();
 
     CameraThreadData *resultThread = new CameraThreadData();

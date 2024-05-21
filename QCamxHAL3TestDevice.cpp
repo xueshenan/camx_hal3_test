@@ -75,8 +75,8 @@ QCamxHAL3TestDevice::~QCamxHAL3TestDevice() {
 * name : setCallBack
 * function: set callback for upper layer.
 ************************************************************************/
-void QCamxHAL3TestDevice::setCallBack(DeviceCallback *callback) {
-    mCallback = callback;
+void QCamxHAL3TestDevice::set_callback(DeviceCallback *callback) {
+    _callback = callback;
 }
 /************************************************************************
 * name : findStream
@@ -101,6 +101,7 @@ void QCamxHAL3TestDevice::setCurrentMeta(android::CameraMetadata *meta) {
     mSettingMetaQ.push_back(mCurrentMeta);
     pthread_mutex_unlock(&mSettingMetaLock);
 }
+
 /************************************************************************
  * name : doCapturePostProcess
  * function: Thread for Post process capture result
@@ -133,7 +134,7 @@ void *doCapturePostProcess(void *data) {
         pthread_mutex_unlock(&thData->mutex);
         camera3_capture_result result = msg->result;
         const camera3_stream_buffer_t *buffers = result.output_buffers = msg->streamBuffers.data();
-        device->mCallback->CapturePostProcess(device->mCallback, &result);
+        device->_callback->CapturePostProcess(device->_callback, &result);
         // return the buffer back
         if (device->getSyncBufferMode() != SYNC_BUFFER_EXTERNAL) {
             for (int i = 0; i < result.num_output_buffers; i++) {
@@ -161,7 +162,7 @@ void QCamxHAL3TestDevice::CallbackOps::ProcessCaptureResult(const camera3_callba
 
     if (result->partial_result >= 1) {
         // handle the metadata callback
-        cbOps->mParent->mCallback->HandleMetaData(cbOps->mParent->mCallback,
+        cbOps->mParent->_callback->HandleMetaData(cbOps->mParent->_callback,
                                                   (camera3_capture_result *)result);
     }
 
@@ -292,7 +293,7 @@ void QCamxHAL3TestDevice::configureStreams(std::vector<Stream *> streams, int op
 
     // set fps range
     mInitMeta = mCharacteristics;
-    mInitMeta.update(ANDROID_CONTROL_AE_TARGET_FPS_RANGE, mFpsRange, 2);
+    mInitMeta.update(ANDROID_CONTROL_AE_TARGET_FPS_RANGE, _fps_range, 2);
 
     int32_t pStreamMapData[8] = {0};
     uint32_t tag = 0;
@@ -356,10 +357,10 @@ void QCamxHAL3TestDevice::constructDefaultRequestSettings(int index,
         pthread_mutex_lock(&mSettingMetaLock);
         camera_metadata *meta = clone_camera_metadata(mCameraStreams[index]->metadata);
         mCurrentMeta = meta;
-        mCurrentMeta.update(ANDROID_CONTROL_AE_TARGET_FPS_RANGE, mFpsRange, 2);
+        mCurrentMeta.update(ANDROID_CONTROL_AE_TARGET_FPS_RANGE, _fps_range, 2);
 
-        if (mFpsRange[0] == mFpsRange[1]) {
-            int64_t frameDuration = 1e9 / mFpsRange[0];
+        if (_fps_range[0] == _fps_range[1]) {
+            int64_t frameDuration = 1e9 / _fps_range[0];
             mCurrentMeta.update(ANDROID_SENSOR_FRAME_DURATION, &frameDuration, 1);
         }
         {
@@ -750,15 +751,13 @@ int QCamxHAL3TestDevice::updateMetadataForNextRequest(android::CameraMetadata *m
 ************************************************************************/
 int QCamxHAL3TestDevice::GetValidOutputStreams(std::vector<AvailableStream> &outputStreams,
                                                const AvailableStream *ValidStream) {
-    int ret = 0;
-
     if (mCharacteristics == nullptr) {
         return -1;
     }
 
     camera_metadata_ro_entry entry;
-    ret = find_camera_metadata_ro_entry(mCharacteristics,
-                                        ANDROID_SCALER_AVAILABLE_STREAM_CONFIGURATIONS, &entry);
+    int ret = find_camera_metadata_ro_entry(mCharacteristics,
+                                            ANDROID_SCALER_AVAILABLE_STREAM_CONFIGURATIONS, &entry);
     if ((ret != 0) || ((entry.count % 4) != 0)) {
         return -1;
     }

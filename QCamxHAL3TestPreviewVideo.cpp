@@ -289,7 +289,7 @@ int QCamxHAL3TestPreviewVideo::initVideoStreams() {
 
     //check snapshot stream
     _device->setSyncBufferMode(SYNC_BUFFER_EXTERNAL);
-    _device->setFpsRange(_config->_fps_range[0], _config->_fps_range[1]);
+    _device->set_fps_range(_config->_fps_range[0], _config->_fps_range[1]);
 
     uint32_t operation_mode = CAMERA3_STREAM_CONFIGURATION_NORMAL_MODE;
     if (mVideoMode >= VIDEO_MODE_HFR60) {
@@ -473,7 +473,7 @@ void QCamxHAL3TestPreviewVideo::run() {
     //open camera
     int res = 0;
 
-    _device->setCallBack(this);
+    _device->set_callback(this);
     res = initVideoStreams();
 
     if (mVideoMode <= VIDEO_MODE_HFR60) {

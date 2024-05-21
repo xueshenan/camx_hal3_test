@@ -51,8 +51,8 @@ QCamxConfig::QCamxConfig() {
     memset(&_meta_dump, 0, sizeof(meta_dump_t));
     _dump_log = new QCamxLog("/data/misc/camera/test1.log");
 
-    // default fps range is 1-30
-    _fps_range[0] = 1;
+    // default fps range is 30-30
+    _fps_range[0] = 30;
     _fps_range[1] = 30;
     _range_mode = -1;
     _image_type = -1;

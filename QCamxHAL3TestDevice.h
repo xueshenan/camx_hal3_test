@@ -6,7 +6,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// @file  QCamxHAL3TestDevice.h
-/// @brief camera devices layer to contrl camera hardware ,camera3_device implementation
+/// @brief camera devices layer to control camera hardware ,camera3_device implementation
 ///        provide camera device to QCamxHAL3TestCase
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef _QCAMERA_HAL3_TEST_DEVICE_
@@ -145,16 +145,16 @@ public:
                                          bool useDefaultMeta = false);
     int processCaptureRequestOn(CameraThreadData *requestThread, CameraThreadData *resultThread);
     void flush();
-    void setCallBack(DeviceCallback *mCallback);
+    void set_callback(DeviceCallback *callback);
 
     int GetValidOutputStreams(std::vector<AvailableStream> &outputStreams,
                               const AvailableStream *ValidStream);
     int findStream(camera3_stream_t *stream);
     int getSyncBufferMode() { return mSyncBufMode; }
     void setSyncBufferMode(SyncBufferMode putbuf) { mSyncBufMode = putbuf; }
-    void setFpsRange(int min, int max) {
-        mFpsRange[0] = min;
-        mFpsRange[1] = max;
+    void set_fps_range(int min, int max) {
+        _fps_range[0] = min;
+        _fps_range[1] = max;
     };
     int updateMetadataForNextRequest(android::CameraMetadata *meta);
     int ProcessOneCaptureRequest(int *requestNumberOfEachStream, int *frameNumber);
@@ -173,7 +173,7 @@ public:
     QCamxHAL3TestBufferManager *mQCamxHAL3TestBufferManager[MAXSTREAM];
     std::vector<camera3_stream_t *> mStreams;
     //capture result and notify to upper layer
-    DeviceCallback *mCallback;
+    DeviceCallback *_callback;
 
     android::CameraMetadata mCurrentMeta;
     int mLivingRequestExtAppend;
@@ -181,7 +181,7 @@ private:
     camera_module_t *mModule;
     int mCameraId;
     int mSyncBufMode;
-    int32_t mFpsRange[2];
+    int32_t _fps_range[2];
     pthread_mutex_t mSettingMetaLock;
     std::list<CameraMetadata> mSettingMetaQ;
     pthread_mutex_t mPendingLock;

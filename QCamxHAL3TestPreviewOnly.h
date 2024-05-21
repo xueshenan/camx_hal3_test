@@ -15,14 +15,18 @@
 
 class QCamxHAL3TestPreviewOnly : public QCamxHAL3TestCase {
 public:
-    QCamxHAL3TestPreviewOnly(camera_module_t *module, QCamxConfig *config);
-    ~QCamxHAL3TestPreviewOnly();
+    virtual int pre_init_stream() override;
     virtual void run() override;
     virtual void stop() override;
     virtual void CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) override;
-    virtual int pre_init_stream() override;
+public:
+    QCamxHAL3TestPreviewOnly(camera_module_t *module, QCamxConfig *config);
+    ~QCamxHAL3TestPreviewOnly();
 private:
-    int initPreviewStream();
+    /**
+     * @breif do prepare for preview stream.
+    */
+    int init_preview_stream();
 private:
     camera3_stream_t _preview_stream;
     Stream _preview_streaminfo;

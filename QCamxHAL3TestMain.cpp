@@ -393,7 +393,7 @@ int main(int argc, char *argv[]) {
                     }
                 }
 
-                if (testCase) {
+                if (testCase != NULL) {
                     testCase->set_callbacks(&camx_hal3_test_cbs);
                     testCase->pre_init_stream();
                     testCase->open_camera();
