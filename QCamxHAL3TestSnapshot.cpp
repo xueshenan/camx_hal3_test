@@ -99,13 +99,13 @@ int QCamxHAL3TestSnapshot::initSnapshotStreams() {
                                         _config->_preview_stream.format};
     if (res == 0) {
         camera_metadata_ro_entry entry;
-        res = find_camera_metadata_ro_entry(_device->mCharacteristics,
+        res = find_camera_metadata_ro_entry(_device->_camera_characteristics,
                                             ANDROID_REQUEST_PARTIAL_RESULT_COUNT, &entry);
         if ((0 == res) && (entry.count > 0)) {
             partialResultCount = entry.data.i32[0];
             supportsPartialResults = (partialResultCount > 1);
         }
-        res = _device->GetValidOutputStreams(outputPreviewStreams, &previewThreshold);
+        res = _device->get_valid_output_streams(outputPreviewStreams, &previewThreshold);
     }
     if (res < 0 || outputPreviewStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for preview: w: %d, h: %d, fmt: %d",
@@ -120,13 +120,13 @@ int QCamxHAL3TestSnapshot::initSnapshotStreams() {
                                          _config->_snapshot_stream.format};
     if (res == 0) {
         camera_metadata_ro_entry entry;
-        res = find_camera_metadata_ro_entry(_device->mCharacteristics,
+        res = find_camera_metadata_ro_entry(_device->_camera_characteristics,
                                             ANDROID_REQUEST_PARTIAL_RESULT_COUNT, &entry);
         if ((0 == res) && (entry.count > 0)) {
             partialResultCount = entry.data.i32[0];
             supportsPartialResults = (partialResultCount > 1);
         }
-        res = _device->GetValidOutputStreams(outputSnapshotStreams, &snapshotThreshold);
+        res = _device->get_valid_output_streams(outputSnapshotStreams, &snapshotThreshold);
     }
     if (res < 0 || outputSnapshotStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for snapshot: w: %d, h: %d, fmt: %d",
@@ -137,8 +137,8 @@ int QCamxHAL3TestSnapshot::initSnapshotStreams() {
 
     //get SensorOrientation metadata.
     camera_metadata_ro_entry entry;
-    res = find_camera_metadata_ro_entry(_device->mCharacteristics, ANDROID_SENSOR_ORIENTATION,
-                                        &entry);
+    res = find_camera_metadata_ro_entry(_device->_camera_characteristics,
+                                        ANDROID_SENSOR_ORIENTATION, &entry);
     if ((0 == res) && (entry.count > 0)) {
         SensorOrientation = entry.data.i32[0];
         QCAMX_INFO("successfully to get SensorOrientation metadata, orientation: %d",
@@ -148,12 +148,12 @@ int QCamxHAL3TestSnapshot::initSnapshotStreams() {
         res = 0;
     }
 
-    _device->setSyncBufferMode(SYNC_BUFFER_INTERNAL);
+    _device->set_sync_buffer_mode(SYNC_BUFFER_INTERNAL);
     _device->set_fps_range(_config->_fps_range[0], _config->_fps_range[1]);
-    _device->configureStreams(_streams);
+    _device->config_streams(_streams);
 
     if (_metadata_ext) {
-        _device->setCurrentMeta(_metadata_ext);
+        _device->set_current_meta(_metadata_ext);
         _device->constructDefaultRequestSettings(PREVIEW_IDX, CAMERA3_TEMPLATE_PREVIEW);
     } else {
         _device->constructDefaultRequestSettings(PREVIEW_IDX, CAMERA3_TEMPLATE_PREVIEW, true);
@@ -223,7 +223,7 @@ int QCamxHAL3TestSnapshot::pre_init_stream() {
     _streams[PREVIEW_IDX] = &mPreviewStreaminfo;
     _streams[SNAPSHOT_IDX] = &mSnapshotStreaminfo;
 
-    _device->PreAllocateStreams(_streams);
+    _device->pre_allocate_streams(_streams);
     QCAMX_INFO("preinit snapshot streams end\n");
     return res;
 }

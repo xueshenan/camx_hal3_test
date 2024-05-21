@@ -113,13 +113,13 @@ int QCamxHAL3TestDepth::initDepthStream() {
                                       _config->_depth_stream.format};
     if (res == 0) {
         camera_metadata_ro_entry entry;
-        res = find_camera_metadata_ro_entry(_device->mCharacteristics,
+        res = find_camera_metadata_ro_entry(_device->_camera_characteristics,
                                             ANDROID_REQUEST_PARTIAL_RESULT_COUNT, &entry);
         if ((0 == res) && (entry.count > 0)) {
             partialResultCount = entry.data.i32[0];
             supportsPartialResults = (partialResultCount > 1);
         }
-        res = _device->GetValidOutputStreams(outputDepthStreams, &DepthThreshold);
+        res = _device->get_valid_output_streams(outputDepthStreams, &DepthThreshold);
     }
     if (res < 0 || outputDepthStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for preview: w: %d, h: %d, fmt: %d",
@@ -128,13 +128,13 @@ int QCamxHAL3TestDepth::initDepthStream() {
         return -1;
     }
 
-    _device->setSyncBufferMode(SYNC_BUFFER_INTERNAL);
+    _device->set_sync_buffer_mode(SYNC_BUFFER_INTERNAL);
     _device->set_fps_range(_config->_fps_range[0], _config->_fps_range[1]);
     QCAMX_INFO("op_mode 0x1100000 mConfig->mFpsRange[0] %d mConfig->mFpsRange[1] %d \n",
                _config->_fps_range[0], _config->_fps_range[1]);
-    _device->configureStreams(_streams, 0x1100000);
+    _device->config_streams(_streams, 0x1100000);
     if (_metadata_ext) {
-        _device->setCurrentMeta(_metadata_ext);
+        _device->set_current_meta(_metadata_ext);
         _device->constructDefaultRequestSettings(DEPTH_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD, true);
     } else {
         _device->constructDefaultRequestSettings(DEPTH_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD, true);
@@ -203,7 +203,7 @@ int QCamxHAL3TestDepth::pre_init_stream() {
         _streams[DEPTH_IRBG_IDX] = &mDepthIRBGStreaminfo;
     }
 
-    _device->PreAllocateStreams(_streams);
+    _device->pre_allocate_streams(_streams);
     return res;
 }
 

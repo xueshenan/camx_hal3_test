@@ -24,7 +24,7 @@ public:
     ~QCamxHAL3TestPreviewOnly();
 private:
     /**
-     * @breif do prepare for preview stream.
+     * @brief do prepare for preview stream.
     */
     int init_preview_stream();
 private:

@@ -9,8 +9,9 @@
 /// @brief camera devices layer to control camera hardware ,camera3_device implementation
 ///        provide camera device to QCamxHAL3TestCase
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _QCAMERA_HAL3_TEST_DEVICE_
-#define _QCAMERA_HAL3_TEST_DEVICE_
+
+#pragma once
+
 #include <camera/CameraMetadata.h>
 #include <dlfcn.h>
 #include <errno.h>
@@ -40,8 +41,6 @@
 #include "qcamx_config.h"
 #include "qcamx_log.h"
 
-using namespace android;
-
 #define REQUEST_NUMBER_UMLIMIT (-1)
 #define MAXSTREAM (4)
 #define CAMX_LIVING_REQUEST_MAX (5)
@@ -58,6 +57,7 @@ struct AvailableStream {
     int32_t height;
     int32_t format;
 };
+
 // Request and Result Pending
 class RequestPending {
 public:
@@ -133,64 +133,87 @@ typedef struct _Stream {
 
 class QCamxHAL3TestDevice {
 public:
-    QCamxHAL3TestDevice(camera_module_t *module, int cameraId, QCamxConfig *Config, int mode = 0);
+    QCamxHAL3TestDevice(camera_module_t *camera_module, int camera_id, QCamxConfig *config,
+                        int mode = 0);
     ~QCamxHAL3TestDevice();
 public:
-    int open_camera();
+    /**
+    * @brief open camera device
+    * @return weather open camera success
+    */
+    bool open_camera();
+    /**
+     * @brief close the camera
+    */
     void close_camera();
-    void PreAllocateStreams(std::vector<Stream *> streams);
-    void configureStreams(std::vector<Stream *> streams,
-                          int opMode = CAMERA3_STREAM_CONFIGURATION_NORMAL_MODE);
+    /**
+     * @brief allocate stream buffer manager
+    */
+    void pre_allocate_streams(std::vector<Stream *> streams);
+    /**
+    * @brief configure stream paramaters
+    * @return weather config success
+    */
+    bool config_streams(std::vector<Stream *> streams,
+                        int op_mode = CAMERA3_STREAM_CONFIGURATION_NORMAL_MODE);
     void constructDefaultRequestSettings(int index, camera3_request_template_t type,
                                          bool useDefaultMeta = false);
     int processCaptureRequestOn(CameraThreadData *requestThread, CameraThreadData *resultThread);
     void flush();
     void set_callback(DeviceCallback *callback);
-
-    int GetValidOutputStreams(std::vector<AvailableStream> &outputStreams,
-                              const AvailableStream *ValidStream);
+    /**
+     * @brief Get all valid output streams
+     * @param output_streams output streams
+     * @param valid_stream input match stream if is null,will output all streams
+     * @return return negative value on failed
+    */
+    int get_valid_output_streams(std::vector<AvailableStream> &output_streams,
+                                 const AvailableStream *valid_stream);
     int findStream(camera3_stream_t *stream);
-    int getSyncBufferMode() { return mSyncBufMode; }
-    void setSyncBufferMode(SyncBufferMode putbuf) { mSyncBufMode = putbuf; }
+    int get_sync_buffer_mode() { return _sync_buffer_mode; }
+    void set_sync_buffer_mode(SyncBufferMode sync_buffer_mode) {
+        _sync_buffer_mode = sync_buffer_mode;
+    }
     void set_fps_range(int min, int max) {
         _fps_range[0] = min;
         _fps_range[1] = max;
-    };
+    }
     int updateMetadataForNextRequest(android::CameraMetadata *meta);
     int ProcessOneCaptureRequest(int *requestNumberOfEachStream, int *frameNumber);
     void stopStreams();
-    void setCurrentMeta(android::CameraMetadata *meta);
-
-    camera_metadata_t *mCharacteristics;
-    android::CameraMetadata mInitMeta;
-    camera3_stream_configuration_t mStreamConfig;
-    camera3_device_t *mDevice;
+    /**
+     * @brief set a external metadata as current metadata
+    */
+    void set_current_meta(android::CameraMetadata *metadata);
+private:
+    /**
+     * @brief get jpeg buffer size
+     * @param width,height jpeg image resoltuion
+     * @return return 0 on failed
+    */
+    int get_jpeg_buffer_size(uint32_t width, uint32_t height);
+public:
+    camera_metadata_t *_camera_characteristics;
+    android::CameraMetadata _init_metadata;
+    camera3_stream_configuration_t _camera3_stream_config;
+    std::vector<camera3_stream_t *> _camera3_streams;
+    camera3_device_t *_camera3_device;
     //Threads
     CameraThreadData *mRequestThread;
     CameraThreadData *mResultThread;
 
     CameraStream *mCameraStreams[MAXSTREAM];
-    QCamxHAL3TestBufferManager *mQCamxHAL3TestBufferManager[MAXSTREAM];
-    std::vector<camera3_stream_t *> mStreams;
+
     //capture result and notify to upper layer
     DeviceCallback *_callback;
 
     android::CameraMetadata mCurrentMeta;
     int mLivingRequestExtAppend;
 private:
-    camera_module_t *mModule;
-    int mCameraId;
-    int mSyncBufMode;
-    int32_t _fps_range[2];
-    pthread_mutex_t mSettingMetaLock;
-    std::list<CameraMetadata> mSettingMetaQ;
-    pthread_mutex_t mPendingLock;
-    pthread_cond_t mPendingCond;
-    android::KeyedVector<int, RequestPending *> mPendingVector;
-    android::CameraMetadata setting;
-
-    int getJpegBufferSize(uint32_t width, uint32_t height);
-
+    camera_module_t *_camera_module;
+    int _camera_id;
+    QCamxConfig *_config;
+private:
     class CallbackOps : public camera3_callback_ops {
     public:
         CallbackOps(QCamxHAL3TestDevice *parent)
@@ -201,7 +224,16 @@ private:
     private:
         QCamxHAL3TestDevice *mParent;
     };
-    CallbackOps *mCBOps;
-    QCamxConfig *mConfig;
+    CallbackOps *_callback_ops;
+private:
+    QCamxHAL3TestBufferManager *_buffer_manager[MAXSTREAM];
+private:
+    SyncBufferMode _sync_buffer_mode;
+    int32_t _fps_range[2];
+    pthread_mutex_t _setting_metadata_lock;
+    std::list<android::CameraMetadata> _setting_metadata_list;
+    pthread_mutex_t mPendingLock;
+    pthread_cond_t mPendingCond;
+    android::KeyedVector<int, RequestPending *> mPendingVector;
+    android::CameraMetadata setting;
 };
-#endif

@@ -679,7 +679,7 @@ bool QCamxHAL3TestCase::init(camera_module_t *module, QCamxConfig *config) {
         _config = config;
         _camera_id = _config->_camera_id;
         _device = new QCamxHAL3TestDevice(_module, _camera_id, config);
-        _config->_static_meta = _device->mCharacteristics;
+        _config->_static_meta = _device->_camera_characteristics;
     } else {
         QCAMX_ERR("invalid parameters!");
         return false;

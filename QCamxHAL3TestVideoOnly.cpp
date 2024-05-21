@@ -114,7 +114,7 @@ void QCamxHAL3TestVideoOnly::selectOpMode(uint32_t *operation_mode, int width, i
     CameraMetadata::getTagFromName("org.quic.camera2.sensormode.info.SensorModeTable", vTags.get(),
                                    &tags);
 
-    res = find_camera_metadata_ro_entry(_device->mCharacteristics, tags, &entry);
+    res = find_camera_metadata_ro_entry(_device->_camera_characteristics, tags, &entry);
     if ((res == 0) && (entry.count > 0)) {
         sensorModeTable = entry.data.i32;
     }
@@ -190,13 +190,13 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     //AvailableStream videoThreshold = {1920, 1080, HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED};
     if (res == 0) {
         camera_metadata_ro_entry entry;
-        res = find_camera_metadata_ro_entry(_device->mCharacteristics,
+        res = find_camera_metadata_ro_entry(_device->_camera_characteristics,
                                             ANDROID_REQUEST_PARTIAL_RESULT_COUNT, &entry);
         if ((0 == res) && (entry.count > 0)) {
             partialResultCount = entry.data.i32[0];
             supportsPartialResults = (partialResultCount > 1);
         }
-        res = _device->GetValidOutputStreams(outputVideoStreams, &videoThreshold);
+        res = _device->get_valid_output_streams(outputVideoStreams, &videoThreshold);
     }
     if (res < 0 || outputVideoStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for video: w: %d, h: %d, fmt: %d",
@@ -233,7 +233,7 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     vStream.type = VIDEO_TYPE;
     streams.push_back(&vStream);
 
-    _device->setSyncBufferMode(SYNC_BUFFER_EXTERNAL);
+    _device->set_sync_buffer_mode(SYNC_BUFFER_EXTERNAL);
     _device->set_fps_range(_config->_fps_range[0], _config->_fps_range[1]);
     if (mVideoMode >= VIDEO_ONLY_MODE_HFR60) {
         // for HFR case
@@ -249,9 +249,9 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
                      streams[stream_index]->pstream->height, _config->_fps_range[1]);
     }
 
-    _device->configureStreams(streams, operation_mode);
+    _device->config_streams(streams, operation_mode);
     if (_metadata_ext) {
-        _device->setCurrentMeta(_metadata_ext);
+        _device->set_current_meta(_metadata_ext);
         _device->constructDefaultRequestSettings(0 /*video only case*/,
                                                  CAMERA3_TEMPLATE_VIDEO_RECORD);
     } else {
@@ -332,7 +332,7 @@ int QCamxHAL3TestVideoOnly::pre_init_stream() {
     _streams[0] = &mVideoStreaminfo;
     QCAMX_INFO("mStream access start3\n");
 
-    _device->PreAllocateStreams(_streams);
+    _device->pre_allocate_streams(_streams);
 
     return res;
 }

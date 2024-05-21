@@ -46,7 +46,7 @@ int QCamxHAL3TestPreviewOnly::pre_init_stream() {
     _streams.resize(1);
     _streams[kPreviewIndex] = &_preview_streaminfo;
 
-    _device->PreAllocateStreams(_streams);
+    _device->pre_allocate_streams(_streams);
     return 0;
 }
 
@@ -127,15 +127,15 @@ QCamxHAL3TestPreviewOnly::~QCamxHAL3TestPreviewOnly() {
 
 int QCamxHAL3TestPreviewOnly::init_preview_stream() {
     //init stream configure
-    std::vector<AvailableStream> output_preview_streams;
-    QCAMX_PRINT("preview:%dx%d %d\n", _config->_preview_stream.width,
-                _config->_preview_stream.height, _config->_preview_stream.format);
     AvailableStream preview_threshold = {_config->_preview_stream.width,
                                          _config->_preview_stream.height,
                                          _config->_preview_stream.format};
 
+    QCAMX_PRINT("preview : %dx%d %d\n", _config->_preview_stream.width,
+                _config->_preview_stream.height, _config->_preview_stream.format);
+
     camera_metadata_ro_entry entry;
-    int res = find_camera_metadata_ro_entry(_device->mCharacteristics,
+    int res = find_camera_metadata_ro_entry(_device->_camera_characteristics,
                                             ANDROID_REQUEST_PARTIAL_RESULT_COUNT, &entry);
     if (res == 0 && entry.count > 0) {
         uint32_t partial_result_count = entry.data.i32[0];
@@ -147,19 +147,20 @@ int QCamxHAL3TestPreviewOnly::init_preview_stream() {
         }
     }
 
-    res = _device->GetValidOutputStreams(output_preview_streams, &preview_threshold);
+    std::vector<AvailableStream> output_preview_streams;
+    res = _device->get_valid_output_streams(output_preview_streams, &preview_threshold);
     if (res < 0 || output_preview_streams.size() == 0) {
-        QCAMX_PRINT("Failed to find output stream for preview: w: %d, h: %d, fmt: %d",
+        QCAMX_PRINT("Failed to find output stream for preview: w: %d, h: %d, fmt: %d\n",
                     _config->_preview_stream.width, _config->_preview_stream.height,
                     _config->_preview_stream.format);
         return -1;
     }
 
-    _device->setSyncBufferMode(SYNC_BUFFER_INTERNAL);
+    _device->set_sync_buffer_mode(SYNC_BUFFER_INTERNAL);
     _device->set_fps_range(_config->_fps_range[0], _config->_fps_range[1]);
-    _device->configureStreams(_streams);
-    if (_metadata_ext) {
-        _device->setCurrentMeta(_metadata_ext);
+    _device->config_streams(_streams);
+    if (_metadata_ext != NULL) {
+        _device->set_current_meta(_metadata_ext);
         _device->constructDefaultRequestSettings(kPreviewIndex, CAMERA3_TEMPLATE_PREVIEW);
     } else {
         _device->constructDefaultRequestSettings(kPreviewIndex, CAMERA3_TEMPLATE_PREVIEW, true);
