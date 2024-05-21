@@ -139,7 +139,7 @@ int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetad
             case MANUAL_EXPOSURE_COMP: {
                 int32_t aecomp = 0;
                 sscanf(value, "%d", &aecomp);
-                if (_AE_comp_range_min <= aecomp && aecomp <= _AE_comp_range_max) {
+                if (_ae_comp_range_min <= aecomp && aecomp <= _ae_comp_range_max) {
                     (*meta_update).update(ANDROID_CONTROL_AE_EXPOSURE_COMPENSATION, &(aecomp), 1);
                     QCAMX_PRINT(
                         "AECOMP setting ANDROID_CONTROL_AE_EXPOSURE_COMPENSATION value to :%d\n",
@@ -147,7 +147,7 @@ int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetad
                 } else {
                     QCAMX_PRINT("AECOMP ANDROID_CONTROL_AE_EXPOSURE_COMPENSATION value %d out of "
                                 "range | expected range %d - %d",
-                                aecomp, _AE_comp_range_min, _AE_comp_range_max);
+                                aecomp, _ae_comp_range_min, _ae_comp_range_max);
                 }
                 break;
             }

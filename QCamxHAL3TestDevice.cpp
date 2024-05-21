@@ -134,9 +134,9 @@ bool QCamxHAL3TestDevice::config_streams(std::vector<Stream *> streams, int op_m
         _camera3_streams[i] = new_camera3_stream;
 
         CameraStream *new_stream = new CameraStream();
-        mCameraStreams[i] = new_stream;
+        _camera_streams[i] = new_stream;
         new_stream->streamId = i;
-        mCameraStreams[i]->bufferManager = _buffer_manager[i];
+        _camera_streams[i]->bufferManager = _buffer_manager[i];
     }
 
     // update the operation_mode with mConfig->mRangeMode(0/1), mImageType(0/1/2/3/4)
@@ -184,6 +184,54 @@ bool QCamxHAL3TestDevice::config_streams(std::vector<Stream *> streams, int op_m
     return result;
 }
 
+void QCamxHAL3TestDevice::construct_default_request_settings(int index,
+                                                             camera3_request_template_t type,
+                                                             bool use_default_metadata) {
+    // construct default
+    _camera_streams[index]->metadata =
+        (camera_metadata *)_camera3_device->ops->construct_default_request_settings(_camera3_device,
+                                                                                    type);
+    _camera_streams[index]->stream_type = type;
+    if (use_default_metadata) {
+        pthread_mutex_lock(&_setting_metadata_lock);
+        camera_metadata *metadata = clone_camera_metadata(_camera_streams[index]->metadata);
+        _current_metadata = metadata;
+        _current_metadata.update(ANDROID_CONTROL_AE_TARGET_FPS_RANGE, _config->_fps_range, 2);
+
+        if (_config->_fps_range[0] == _config->_fps_range[1]) {
+            int64_t frame_duration = 1e9 / _config->_fps_range[0];  // ns
+            _current_metadata.update(ANDROID_SENSOR_FRAME_DURATION, &frame_duration, 1);
+        }
+        {
+            camera_metadata_ro_entry entry;
+            int res = find_camera_metadata_ro_entry(_camera_characteristics,
+                                                    ANDROID_CONTROL_AE_COMPENSATION_RANGE, &entry);
+            if (res == 0 && entry.count > 0) {
+                int ae_comp_range_min = entry.data.i32[0];
+                int ae_comp_range_max = entry.data.i32[1];
+
+                _config->_ae_comp_range_min = ae_comp_range_min;
+                _config->_ae_comp_range_max = ae_comp_range_max;
+
+                QCAMX_PRINT("AE_COMPENSATION_RANGE ae_comp_range min = %d, max = %d\n",
+                            _config->_ae_comp_range_min, _config->_ae_comp_range_max);
+            } else {
+                QCAMX_ERR("Error getting ANDROID_CONTROL_AE_COMPENSATION_RANGE");
+            }
+        }
+        uint32_t tag;
+        uint8_t pcr = 0;
+        sp<VendorTagDescriptor> vendor_tag_descriptor =
+            android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
+        CameraMetadata::getTagFromName("org.quic.camera.EarlyPCRenable.EarlyPCRenable",
+                                       vendor_tag_descriptor.get(), &tag);
+        _current_metadata.update(tag, &(pcr), 1);
+        _setting_metadata_list.push_back(_current_metadata);
+
+        pthread_mutex_unlock(&_setting_metadata_lock);
+    }
+}
+
 /************************************************************************
 * name : setCallBack
 * function: set callback for upper layer.
@@ -206,8 +254,8 @@ int QCamxHAL3TestDevice::findStream(camera3_stream_t *stream) {
 
 void QCamxHAL3TestDevice::set_current_meta(android::CameraMetadata *metadata) {
     pthread_mutex_lock(&_setting_metadata_lock);
-    mCurrentMeta = *metadata;
-    _setting_metadata_list.push_back(mCurrentMeta);
+    _current_metadata = *metadata;
+    _setting_metadata_list.push_back(_current_metadata);
     pthread_mutex_unlock(&_setting_metadata_lock);
 }
 
@@ -248,7 +296,7 @@ void *doCapturePostProcess(void *data) {
         if (device->get_sync_buffer_mode() != SYNC_BUFFER_EXTERNAL) {
             for (int i = 0; i < result.num_output_buffers; i++) {
                 int index = device->findStream(buffers[i].stream);
-                CameraStream *stream = device->mCameraStreams[index];
+                CameraStream *stream = device->_camera_streams[index];
                 stream->bufferManager->ReturnBuffer(buffers[i].buffer);
             }
         }
@@ -326,57 +374,6 @@ void QCamxHAL3TestDevice::CallbackOps::ProcessCaptureResult(const camera3_callba
 void QCamxHAL3TestDevice::CallbackOps::Notify(const struct camera3_callback_ops *cb,
                                               const camera3_notify_msg_t *msg) {}
 
-/************************************************************************
-* name : constructDefaultRequestSettings
-* function: configure strema default paramaters.
-************************************************************************/
-void QCamxHAL3TestDevice::constructDefaultRequestSettings(int index,
-                                                          camera3_request_template_t type,
-                                                          bool useDefaultMeta) {
-    // construct default
-    mCameraStreams[index]->metadata =
-        (camera_metadata *)_camera3_device->ops->construct_default_request_settings(_camera3_device,
-                                                                                    type);
-    mCameraStreams[index]->streamType = type;
-    if (useDefaultMeta) {
-        pthread_mutex_lock(&_setting_metadata_lock);
-        camera_metadata *meta = clone_camera_metadata(mCameraStreams[index]->metadata);
-        mCurrentMeta = meta;
-        mCurrentMeta.update(ANDROID_CONTROL_AE_TARGET_FPS_RANGE, _config->_fps_range, 2);
-
-        if (_config->_fps_range[0] == _config->_fps_range[1]) {
-            int64_t frameDuration = 1e9 / _config->_fps_range[0];
-            mCurrentMeta.update(ANDROID_SENSOR_FRAME_DURATION, &frameDuration, 1);
-        }
-        {
-            camera_metadata_ro_entry entry;
-            int res = find_camera_metadata_ro_entry(_camera_characteristics,
-                                                    ANDROID_CONTROL_AE_COMPENSATION_RANGE, &entry);
-            if (res == 0 && entry.count > 0) {
-                int ae_comp_range_min = entry.data.i32[0];
-                int ae_comp_range_max = entry.data.i32[1];
-
-                _config->_AE_comp_range_min = ae_comp_range_min;
-                _config->_AE_comp_range_max = ae_comp_range_max;
-
-                QCAMX_PRINT("AECOMP ae_comp_range min = %d, max = %d\n",
-                            _config->_AE_comp_range_min, _config->_AE_comp_range_max);
-            } else {
-                QCAMX_ERR("Error getting ANDROID_CONTROL_AE_COMPENSATION_RANGE");
-            }
-        }
-        uint32_t tag;
-        uint8_t pcr = 0;
-        sp<VendorTagDescriptor> vTags =
-            android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
-        CameraMetadata::getTagFromName("org.quic.camera.EarlyPCRenable.EarlyPCRenable", vTags.get(),
-                                       &tag);
-        mCurrentMeta.update(tag, &(pcr), 1);
-        _setting_metadata_list.push_back(mCurrentMeta);
-        pthread_mutex_unlock(&_setting_metadata_lock);
-    }
-}
-
 RequestPending::RequestPending() {
     mNumOutputbuffer = 0;
     mNumMetadata = 0;
@@ -410,7 +407,7 @@ int QCamxHAL3TestDevice::ProcessOneCaptureRequest(int *requestNumberOfEachStream
         if (requestNumberOfEachStream[i] == 0) {
             continue;
         }
-        stream = mCameraStreams[i];
+        stream = _camera_streams[i];
         camera3_stream_buffer_t streamBuffer;
         streamBuffer.buffer = (const native_handle_t **)(stream->bufferManager->GetBuffer());
         // make a capture request and send to HAL
@@ -458,7 +455,7 @@ int QCamxHAL3TestDevice::ProcessOneCaptureRequest(int *requestNumberOfEachStream
         QCAMX_ERR("process_capture_quest failed, frame:%d", *frameNumber);
         for (int i = 0; i < pend->mRequest.num_output_buffers; i++) {
             index = findStream(streamBuffers[i].stream);
-            stream = mCameraStreams[index];
+            stream = _camera_streams[index];
             stream->bufferManager->ReturnBuffer(streamBuffers[i].buffer);
         }
         pthread_mutex_lock(&mPendingLock);
@@ -676,14 +673,14 @@ void QCamxHAL3TestDevice::stopStreams() {
     delete mResultThread;
     mResultThread = NULL;
     int size = (int)_camera3_streams.size();
-    mCurrentMeta.clear();
+    _current_metadata.clear();
     for (int i = 0; i < size; i++) {
         delete _camera3_streams[i];
         _camera3_streams[i] = NULL;
-        delete mCameraStreams[i]->bufferManager;
-        mCameraStreams[i]->bufferManager = NULL;
-        delete mCameraStreams[i];
-        mCameraStreams[i] = NULL;
+        delete _camera_streams[i]->bufferManager;
+        _camera_streams[i]->bufferManager = NULL;
+        delete _camera_streams[i];
+        _camera_streams[i] = NULL;
     }
     _camera3_streams.erase(_camera3_streams.begin(),
                            _camera3_streams.begin() + _camera3_streams.size());

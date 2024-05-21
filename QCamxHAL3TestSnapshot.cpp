@@ -50,9 +50,9 @@ void QCamxHAL3TestSnapshot::CapturePostProcess(DeviceCallback *cb, camera3_captu
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
         int index = device->findStream(buffers[i].stream);
-        CameraStream *stream = device->mCameraStreams[index];
+        CameraStream *stream = device->_camera_streams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
-        if (stream->streamType == CAMERA3_TEMPLATE_STILL_CAPTURE) {
+        if (stream->stream_type == CAMERA3_TEMPLATE_STILL_CAPTURE) {
             if (_callbacks && _callbacks->snapshot_cb) {
                 _callbacks->snapshot_cb(info, result->frame_number);
             }
@@ -63,7 +63,7 @@ void QCamxHAL3TestSnapshot::CapturePostProcess(DeviceCallback *cb, camera3_captu
                 QCAMX_INFO("Get One Picture %d Last\n", mSnapshotNum);
             }
         }
-        if (stream->streamType == CAMERA3_TEMPLATE_PREVIEW) {
+        if (stream->stream_type == CAMERA3_TEMPLATE_PREVIEW) {
             if (_callbacks && _callbacks->preview_cb) {
                 _callbacks->preview_cb(info, result->frame_number);
             }
@@ -153,12 +153,12 @@ int QCamxHAL3TestSnapshot::initSnapshotStreams() {
 
     if (_metadata_ext) {
         _device->set_current_meta(_metadata_ext);
-        _device->constructDefaultRequestSettings(PREVIEW_IDX, CAMERA3_TEMPLATE_PREVIEW);
+        _device->construct_default_request_settings(PREVIEW_IDX, CAMERA3_TEMPLATE_PREVIEW);
     } else {
-        _device->constructDefaultRequestSettings(PREVIEW_IDX, CAMERA3_TEMPLATE_PREVIEW, true);
+        _device->construct_default_request_settings(PREVIEW_IDX, CAMERA3_TEMPLATE_PREVIEW, true);
     }
 
-    _device->constructDefaultRequestSettings(SNAPSHOT_IDX, CAMERA3_TEMPLATE_STILL_CAPTURE);
+    _device->construct_default_request_settings(SNAPSHOT_IDX, CAMERA3_TEMPLATE_STILL_CAPTURE);
 
     uint8_t jpegquality = JPEG_QUALITY_DEFAULT;
     int32_t jpegOrientation = 0;

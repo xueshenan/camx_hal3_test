@@ -220,7 +220,7 @@ void QCamxHAL3TestCase::set_current_meta(CameraMetadata *meta) {
 }
 
 CameraMetadata *QCamxHAL3TestCase::get_current_meta() {
-    return &(_device->mCurrentMeta);
+    return &(_device->_current_metadata);
 }
 
 void QCamxHAL3TestCase::updata_meta_data(CameraMetadata *meta) {

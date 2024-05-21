@@ -50,7 +50,7 @@ void QCamxHAL3TestDepth::CapturePostProcess(DeviceCallback *cb, camera3_capture_
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
         int index = _device->findStream(buffers[i].stream);
-        CameraStream *stream = _device->mCameraStreams[index];
+        CameraStream *stream = _device->_camera_streams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
         if (stream->streamId == DEPTH_IDX) {
             if (_callbacks && _callbacks->video_cb) {
@@ -134,14 +134,14 @@ int QCamxHAL3TestDepth::initDepthStream() {
     _device->config_streams(_streams, 0x1100000);
     if (_metadata_ext) {
         _device->set_current_meta(_metadata_ext);
-        _device->constructDefaultRequestSettings(DEPTH_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD, true);
+        _device->construct_default_request_settings(DEPTH_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD, true);
     } else {
-        _device->constructDefaultRequestSettings(DEPTH_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD, true);
+        _device->construct_default_request_settings(DEPTH_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD, true);
     }
 
     if (_config->_depth_IRBG_enabled) {
-        _device->constructDefaultRequestSettings(DEPTH_IRBG_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD,
-                                                 true);
+        _device->construct_default_request_settings(DEPTH_IRBG_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD,
+                                                    true);
     }
     outputDepthStreams.erase(outputDepthStreams.begin(),
                              outputDepthStreams.begin() + outputDepthStreams.size());

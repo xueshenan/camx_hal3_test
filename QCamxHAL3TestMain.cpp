@@ -505,17 +505,17 @@ int main(int argc, char *argv[]) {
             }
             case 'U': {
                 QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
-                android::CameraMetadata *meta = testCase->get_current_meta();
-                testCase->_config->parse_commandline_meta_update((char *)param.c_str(), meta);
-                testCase->updata_meta_data(meta);
+                android::CameraMetadata *metadata = testCase->get_current_meta();
+                testCase->_config->parse_commandline_meta_update((char *)param.c_str(), metadata);
+                testCase->updata_meta_data(metadata);
 
                 break;
             }
             case 'E': {
                 QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
-                android::CameraMetadata *meta = testCase->get_current_meta();
-                testCase->_config->parse_commandline_meta_update((char *)param.c_str(), meta);
-                testCase->updata_meta_data(meta);
+                android::CameraMetadata *metadata = testCase->get_current_meta();
+                testCase->_config->parse_commandline_meta_update((char *)param.c_str(), metadata);
+                testCase->updata_meta_data(metadata);
 
                 int num = 1;
                 int RequestCameraId = current_camera_id;

@@ -69,9 +69,9 @@ void QCamxHAL3TestVideoOnly::CapturePostProcess(DeviceCallback *cb,
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
         int index = device->findStream(buffers[i].stream);
-        CameraStream *stream = device->mCameraStreams[index];
+        CameraStream *stream = device->_camera_streams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
-        if (stream->streamType == CAMERA3_TEMPLATE_VIDEO_RECORD) {
+        if (stream->stream_type == CAMERA3_TEMPLATE_VIDEO_RECORD) {
             if (_callbacks && _callbacks->video_cb) {
                 _callbacks->video_cb(info, result->frame_number);
             }
@@ -251,11 +251,11 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     _device->config_streams(streams, operation_mode);
     if (_metadata_ext) {
         _device->set_current_meta(_metadata_ext);
-        _device->constructDefaultRequestSettings(0 /*video only case*/,
-                                                 CAMERA3_TEMPLATE_VIDEO_RECORD);
+        _device->construct_default_request_settings(0 /*video only case*/,
+                                                    CAMERA3_TEMPLATE_VIDEO_RECORD);
     } else {
-        _device->constructDefaultRequestSettings(0 /*video only case*/,
-                                                 CAMERA3_TEMPLATE_VIDEO_RECORD, true);
+        _device->construct_default_request_settings(0 /*video only case*/,
+                                                    CAMERA3_TEMPLATE_VIDEO_RECORD, true);
     }
 
     android::CameraMetadata *metaUpdate = get_current_meta();

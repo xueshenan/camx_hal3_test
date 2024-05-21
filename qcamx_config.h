@@ -140,8 +140,8 @@ public:
     uint32_t _active_sensor_height;
     int _rawformat;
     uint32_t _force_opmode;
-    int _AE_comp_range_min;
-    int _AE_comp_range_max;
+    int _ae_comp_range_min;
+    int _ae_comp_range_max;
     // snap heic format
     bool _heic_snapshot;
 

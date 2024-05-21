@@ -126,7 +126,7 @@ typedef struct _Stream {
     camera_metadata *metadata;
     //stream
     int streamId;
-    int streamType;
+    int stream_type;  //camera3_request_template_t
     //RunTime
     camera3_stream_buffer_t streamBuffer;
 } CameraStream;
@@ -157,9 +157,13 @@ public:
     */
     bool config_streams(std::vector<Stream *> streams,
                         int op_mode = CAMERA3_STREAM_CONFIGURATION_NORMAL_MODE);
-
-    void constructDefaultRequestSettings(int index, camera3_request_template_t type,
-                                         bool useDefaultMeta = false);
+    /**
+     * @brief configure stream default paramaters
+     * @param index camera stream index
+     * @param type camera3 template CAMERA3_TEMPLATE_PREVIEW/CAMERA3_TEMPLATE_VIDEO_RECORD/CAMERA3_TEMPLATE_STILL_CAPTURE
+    */
+    void construct_default_request_settings(int index, camera3_request_template_t type,
+                                            bool use_default_metadata = false);
     int processCaptureRequestOn(CameraThreadData *requestThread, CameraThreadData *resultThread);
     void flush();
     void set_callback(DeviceCallback *callback);
@@ -200,12 +204,12 @@ public:
     CameraThreadData *mRequestThread;
     CameraThreadData *mResultThread;
 
-    CameraStream *mCameraStreams[MAXSTREAM];
+    CameraStream *_camera_streams[MAXSTREAM];
 
     //capture result and notify to upper layer
     DeviceCallback *_callback;
-
-    android::CameraMetadata mCurrentMeta;
+    //current use metadata
+    android::CameraMetadata _current_metadata;
     int mLivingRequestExtAppend;
 private:
     camera_module_t *_camera_module;
