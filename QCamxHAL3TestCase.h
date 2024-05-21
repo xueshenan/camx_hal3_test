@@ -89,30 +89,8 @@ struct YUVFormat {
 
 class QCamxHAL3TestCase : public DeviceCallback {
 public:
-    camera_module_t *_module;
-    QCamxHAL3TestConfig *_config;
-protected:
-    QCamxHAL3TestDevice *mDevice;
-    int _camera_id;
-
-    CameraMetadata *mMetadataExt;
-
-    unsigned int mDumpPreviewNum;
-    unsigned int mDumpVideoNum;
-    unsigned int mDumpInterval;
-    volatile unsigned int mPreviewFrameCount;
-    volatile unsigned int mPreviewLastFrameCount;
-    volatile nsecs_t mPreviewLastFpsTime;
-    volatile unsigned int mVideoFrameCount;
-    volatile unsigned int mVideoLastFrameCount;
-    volatile nsecs_t mVideoLastFpsTime;
-    std::vector<Stream *> mStreams;
-
-    qcamx_hal3_test_cbs_t *mCbs;
-    uint32_t mTagIdTemperature;
-public:
     // virtual functions
-    virtual int PreinitStreams() = 0;
+    virtual int pre_init_stream() = 0;
     virtual void run() = 0;
     virtual void stop() = 0;
     virtual void RequestCaptures(StreamCapture requst) {};
@@ -120,23 +98,59 @@ public:
     virtual void CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) override {};
     virtual void HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) override;
 public:
-    int openCamera();
-    void closeCamera();
-    void setCallbacks(qcamx_hal3_test_cbs_t *cbs);
-    void triggerDump(int count, int interval = 0);
-    void setCurrentMeta(CameraMetadata *meta);
-    CameraMetadata *getCurrentMeta();
-    void updataMetaDatas(CameraMetadata *meta);
-    static void DumpFrame(BufferInfo *info, unsigned int frameNum, StreamType dumpType,
-                          Implsubformat subformat);
+    int open_camera();
+    void close_camera();
+    void set_callbacks(qcamx_hal3_test_cbs_t *callbacks);
+    void trigger_dump(int count, int interval = 0);
+    void set_current_meta(CameraMetadata *meta);
+    CameraMetadata *get_current_meta();
+    void updata_meta_data(CameraMetadata *meta);
+public:
+    static void dump_frame(BufferInfo *info, unsigned int frameNum, StreamType dumpType,
+                           Implsubformat subformat);
     static inline uint32_t ALIGN(uint32_t operand, uint32_t alignment) {
         uint32_t remainder = (operand % alignment);
 
         return (0 == remainder) ? operand : operand - remainder + alignment;
     }
 protected:
-    void init(camera_module_t *module, QCamxHAL3TestConfig *config);
+    /**
+     * @brief initialization of variables
+    */
+    bool init(camera_module_t *module, QCamxHAL3TestConfig *config);
+    /**
+     * @brief deinitialization of variables
+    */
     void deinit();
-    void showFPS(StreamType streamType);
+    /**
+     * @brief show preview stream / video stream frame fps
+    */
+    void show_fps(StreamType stream_type);
+public:
+    camera_module_t *_module;
+    QCamxHAL3TestConfig *_config;
+protected:
+    QCamxHAL3TestDevice *_device;
+    int _camera_id;
+
+    CameraMetadata *_metadata_ext;
+
+    unsigned int _dump_preview_num;
+    unsigned int _dump_video_num;
+    unsigned int _dump_interval;
+    // calc preview stream fps value
+    volatile unsigned int _preview_frame_count;       // current preview frame count
+    volatile unsigned int _preview_last_frame_count;  // before calc fps preview frame count
+    volatile nsecs_t _preview_last_fps_time;          // before calc fps preivew current time
+    // calc video frame fps value
+    volatile unsigned int _video_frame_count;
+    volatile unsigned int _video_last_frame_count;
+    volatile nsecs_t _video_last_fps_time;
+
+    std::vector<Stream *> _streams;
+
+    qcamx_hal3_test_cbs_t *_callbacks;
+    uint32_t _tag_id_temperature;
 };
+
 #endif

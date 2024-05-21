@@ -136,8 +136,9 @@ public:
     QCamxHAL3TestDevice(camera_module_t *module, int cameraId, QCamxHAL3TestConfig *Config,
                         int mode = 0);
     ~QCamxHAL3TestDevice();
-    int openCamera();
-    void closeCamera();
+public:
+    int open_camera();
+    void close_camera();
     void PreAllocateStreams(std::vector<Stream *> streams);
     void configureStreams(std::vector<Stream *> streams,
                           int opMode = CAMERA3_STREAM_CONFIGURATION_NORMAL_MODE);

@@ -45,49 +45,49 @@ QCamxHAL3TestDepth::~QCamxHAL3TestDepth() {
 void QCamxHAL3TestDepth::CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestDepth *testpre = (QCamxHAL3TestDepth *)cb;
-    QCamxHAL3TestDevice *device = testpre->mDevice;
+    QCamxHAL3TestDevice *device = testpre->_device;
     buffers = result->output_buffers;
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
-        int index = mDevice->findStream(buffers[i].stream);
-        CameraStream *stream = mDevice->mCameraStreams[index];
+        int index = _device->findStream(buffers[i].stream);
+        CameraStream *stream = _device->mCameraStreams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
         if (stream->streamId == DEPTH_IDX) {
-            if (mCbs && mCbs->video_cb) {
-                mCbs->video_cb(info, result->frame_number);
+            if (_callbacks && _callbacks->video_cb) {
+                _callbacks->video_cb(info, result->frame_number);
             }
-            if (mDumpVideoNum > 0 &&
-                (mDumpInterval == 0 ||
-                 (mDumpInterval > 0 && result->frame_number % mDumpInterval == 0))) {
-                QCamxHAL3TestCase::DumpFrame(info, result->frame_number, DEPTH_TYPE,
-                                             _config->_video_stream.subformat);
-                if (mDumpInterval == 0) {
-                    mDumpVideoNum--;
+            if (_dump_video_num > 0 &&
+                (_dump_interval == 0 ||
+                 (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
+                QCamxHAL3TestCase::dump_frame(info, result->frame_number, DEPTH_TYPE,
+                                              _config->_video_stream.subformat);
+                if (_dump_interval == 0) {
+                    _dump_video_num--;
                 }
             }
 
             stream->bufferManager->ReturnBuffer(buffers[i].buffer);
 
             if (_config->_show_fps) {
-                showFPS(DEPTH_TYPE);
+                show_fps(DEPTH_TYPE);
             }
         } else if (stream->streamId == DEPTH_IRBG_IDX) {
-            if (mCbs && mCbs->preview_cb) {
-                mCbs->preview_cb(info, result->frame_number);
+            if (_callbacks && _callbacks->preview_cb) {
+                _callbacks->preview_cb(info, result->frame_number);
             }
-            if (mDumpPreviewNum > 0 &&
-                (mDumpInterval == 0 ||
-                 (mDumpInterval > 0 && result->frame_number % mDumpInterval == 0))) {
-                QCamxHAL3TestCase::DumpFrame(info, result->frame_number, IRBG_TYPE,
-                                             _config->_preview_stream.subformat);
-                if (mDumpInterval == 0) {
-                    mDumpPreviewNum--;
+            if (_dump_preview_num > 0 &&
+                (_dump_interval == 0 ||
+                 (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
+                QCamxHAL3TestCase::dump_frame(info, result->frame_number, IRBG_TYPE,
+                                              _config->_preview_stream.subformat);
+                if (_dump_interval == 0) {
+                    _dump_preview_num--;
                 }
             }
             stream->bufferManager->ReturnBuffer(buffers[i].buffer);
 
             if (_config->_show_fps) {
-                showFPS(IRBG_TYPE);
+                show_fps(IRBG_TYPE);
             }
         }
     }
@@ -113,13 +113,13 @@ int QCamxHAL3TestDepth::initDepthStream() {
                                       _config->_depth_stream.format};
     if (res == 0) {
         camera_metadata_ro_entry entry;
-        res = find_camera_metadata_ro_entry(mDevice->mCharacteristics,
+        res = find_camera_metadata_ro_entry(_device->mCharacteristics,
                                             ANDROID_REQUEST_PARTIAL_RESULT_COUNT, &entry);
         if ((0 == res) && (entry.count > 0)) {
             partialResultCount = entry.data.i32[0];
             supportsPartialResults = (partialResultCount > 1);
         }
-        res = mDevice->GetValidOutputStreams(outputDepthStreams, &DepthThreshold);
+        res = _device->GetValidOutputStreams(outputDepthStreams, &DepthThreshold);
     }
     if (res < 0 || outputDepthStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for preview: w: %d, h: %d, fmt: %d",
@@ -128,20 +128,20 @@ int QCamxHAL3TestDepth::initDepthStream() {
         return -1;
     }
 
-    mDevice->setSyncBufferMode(SYNC_BUFFER_INTERNAL);
-    mDevice->setFpsRange(_config->_fps_range[0], _config->_fps_range[1]);
+    _device->setSyncBufferMode(SYNC_BUFFER_INTERNAL);
+    _device->setFpsRange(_config->_fps_range[0], _config->_fps_range[1]);
     QCAMX_INFO("op_mode 0x1100000 mConfig->mFpsRange[0] %d mConfig->mFpsRange[1] %d \n",
                _config->_fps_range[0], _config->_fps_range[1]);
-    mDevice->configureStreams(mStreams, 0x1100000);
-    if (mMetadataExt) {
-        mDevice->setCurrentMeta(mMetadataExt);
-        mDevice->constructDefaultRequestSettings(DEPTH_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD, true);
+    _device->configureStreams(_streams, 0x1100000);
+    if (_metadata_ext) {
+        _device->setCurrentMeta(_metadata_ext);
+        _device->constructDefaultRequestSettings(DEPTH_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD, true);
     } else {
-        mDevice->constructDefaultRequestSettings(DEPTH_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD, true);
+        _device->constructDefaultRequestSettings(DEPTH_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD, true);
     }
 
     if (_config->_depth_IRBG_enabled) {
-        mDevice->constructDefaultRequestSettings(DEPTH_IRBG_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD,
+        _device->constructDefaultRequestSettings(DEPTH_IRBG_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD,
                                                  true);
     }
     outputDepthStreams.erase(outputDepthStreams.begin(),
@@ -149,7 +149,7 @@ int QCamxHAL3TestDepth::initDepthStream() {
     return res;
 }
 
-int QCamxHAL3TestDepth::PreinitStreams() {
+int QCamxHAL3TestDepth::pre_init_stream() {
     int res = 0;
     int stream_num = 1;
 
@@ -172,12 +172,12 @@ int QCamxHAL3TestDepth::PreinitStreams() {
     mDepthStream.max_buffers = PREVIEW_STREAM_BUFFER_MAX;
     mDepthStream.priv = 0;
 
-    mStreams.resize(stream_num);
+    _streams.resize(stream_num);
 
     mDepthStreaminfo.pstream = &mDepthStream;
     mDepthStreaminfo.subformat = _config->_depth_stream.subformat;
     mDepthStreaminfo.type = DEPTH_TYPE;
-    mStreams[DEPTH_IDX] = &mDepthStreaminfo;
+    _streams[DEPTH_IDX] = &mDepthStreaminfo;
 
     if (_config->_depth_IRBG_enabled) {
         QCAMX_INFO("IRBG :%dx%d %d\n", _config->_depth_stream.width, _config->_depth_stream.height,
@@ -200,10 +200,10 @@ int QCamxHAL3TestDepth::PreinitStreams() {
         mDepthIRBGStreaminfo.pstream = &mDepthIRBGStream;
         mDepthIRBGStreaminfo.subformat = _config->_depth_stream.subformat;
         mDepthIRBGStreaminfo.type = IRBG_TYPE;
-        mStreams[DEPTH_IRBG_IDX] = &mDepthIRBGStreaminfo;
+        _streams[DEPTH_IRBG_IDX] = &mDepthIRBGStreaminfo;
     }
 
-    mDevice->PreAllocateStreams(mStreams);
+    _device->PreAllocateStreams(_streams);
     return res;
 }
 
@@ -213,7 +213,7 @@ int QCamxHAL3TestDepth::PreinitStreams() {
 ************************************************************************/
 void QCamxHAL3TestDepth::run() {
     //open camera
-    mDevice->setCallBack(this);
+    _device->setCallBack(this);
     initDepthStream();
 
     CameraThreadData *resultThreadPreview = new CameraThreadData();
@@ -227,7 +227,7 @@ void QCamxHAL3TestDepth::run() {
 
     mIsStoped = false;
 
-    mDevice->processCaptureRequestOn(requestThreadPreview, resultThreadPreview);
+    _device->processCaptureRequestOn(requestThreadPreview, resultThreadPreview);
 }
 
 /************************************************************************
@@ -236,5 +236,5 @@ void QCamxHAL3TestDepth::run() {
 ************************************************************************/
 void QCamxHAL3TestDepth::stop() {
     mIsStoped = true;
-    mDevice->stopStreams();
+    _device->stopStreams();
 }

@@ -19,7 +19,7 @@ public:
     virtual void run() override;
     virtual void stop() override;
     virtual void CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) override;
-    virtual int PreinitStreams() override;
+    virtual int pre_init_stream() override;
 private:
     bool mIsStoped;
     int initDepthStream();

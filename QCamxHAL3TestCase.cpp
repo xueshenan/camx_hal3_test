@@ -74,8 +74,8 @@ static inline const char *getFileTypeString(uint32_t format) {
 * name : DumpFrame
 * function: Dump frames to file
 ************************************************************************/
-void QCamxHAL3TestCase::DumpFrame(BufferInfo *info, unsigned int frameNum, StreamType dumpType,
-                                  Implsubformat subformat) {
+void QCamxHAL3TestCase::dump_frame(BufferInfo *info, unsigned int frameNum, StreamType dumpType,
+                                   Implsubformat subformat) {
     char fname[256];
     time_t timer;
     time(&timer);
@@ -197,38 +197,36 @@ void QCamxHAL3TestCase::DumpFrame(BufferInfo *info, unsigned int frameNum, Strea
     fclose(fd);
 }
 
-int QCamxHAL3TestCase::openCamera() {
-    return mDevice->openCamera();
+int QCamxHAL3TestCase::open_camera() {
+    return _device->open_camera();
 }
 
-void QCamxHAL3TestCase::closeCamera() {
-    return mDevice->closeCamera();
+void QCamxHAL3TestCase::close_camera() {
+    return _device->close_camera();
 }
 
-void QCamxHAL3TestCase::setCallbacks(qcamx_hal3_test_cbs_t *cbs) {
-    if (cbs) {
-        mCbs = cbs;
-    }
+void QCamxHAL3TestCase::set_callbacks(qcamx_hal3_test_cbs_t *callbacks) {
+    _callbacks = callbacks;
 }
 
-void QCamxHAL3TestCase::triggerDump(int count, int interval) {
-    mDumpPreviewNum = count;
-    mDumpVideoNum = count;
+void QCamxHAL3TestCase::trigger_dump(int count, int interval) {
+    _dump_preview_num = count;
+    _dump_video_num = count;
     if (interval >= 0) {
-        mDumpInterval = interval;
+        _dump_interval = interval;
     }
 }
 
-void QCamxHAL3TestCase::setCurrentMeta(CameraMetadata *meta) {
-    mMetadataExt = meta;
+void QCamxHAL3TestCase::set_current_meta(CameraMetadata *meta) {
+    _metadata_ext = meta;
 }
 
-CameraMetadata *QCamxHAL3TestCase::getCurrentMeta() {
-    return &(mDevice->mCurrentMeta);
+CameraMetadata *QCamxHAL3TestCase::get_current_meta() {
+    return &(_device->mCurrentMeta);
 }
 
-void QCamxHAL3TestCase::updataMetaDatas(CameraMetadata *meta) {
-    mDevice->updateMetadataForNextRequest(meta);
+void QCamxHAL3TestCase::updata_meta_data(CameraMetadata *meta) {
+    _device->updateMetadataForNextRequest(meta);
 }
 
 /************************************************************************
@@ -238,7 +236,7 @@ void QCamxHAL3TestCase::updataMetaDatas(CameraMetadata *meta) {
 void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) {
     int res = 0;
     QCamxHAL3TestCase *testcase = (QCamxHAL3TestCase *)cb;
-    QCamxHAL3TestDevice *device = testcase->mDevice;
+    QCamxHAL3TestDevice *device = testcase->_device;
     sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
     if (result->partial_result >= 1) {
@@ -645,8 +643,8 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             camera_metadata_ro_entry entry;
             int temperature = 0;
 
-            if (mTagIdTemperature != 0) {
-                res = find_camera_metadata_ro_entry(result->result, mTagIdTemperature, &entry);
+            if (_tag_id_temperature != 0) {
+                res = find_camera_metadata_ro_entry(result->result, _tag_id_temperature, &entry);
 
                 if ((0 == res) && (entry.count > 0)) {
                     temperature = entry.data.i64[0];
@@ -661,102 +659,98 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
     }
 }
 
-/************************************************************************
-* name : showFPS
-* function: show preview / video frame FPS.
-************************************************************************/
-void QCamxHAL3TestCase::showFPS(StreamType stream_type) {
-    double fps = 0;
-    nsecs_t now = systemTime();
+bool QCamxHAL3TestCase::init(camera_module_t *module, QCamxHAL3TestConfig *config) {
+    _metadata_ext = NULL;
 
-    volatile unsigned int *frameCount = NULL;
-    volatile unsigned int *lastFrameCount = NULL;
-    volatile nsecs_t *lastFpsTime = NULL;
-    const char *tag;
+    _dump_preview_num = 0;
+    _dump_video_num = 0;
+    _dump_interval = 0;
+
+    _preview_frame_count = 0;
+    _preview_last_frame_count = 0;
+    _preview_last_fps_time = 0;
+
+    _video_frame_count = 0;
+    _video_last_frame_count = 0;
+    _video_last_fps_time = 0;
+
+    _callbacks = NULL;
+
+    if (module != NULL && config != NULL) {
+        _module = module;
+        _config = config;
+        _camera_id = _config->_camera_id;
+        _device = new QCamxHAL3TestDevice(_module, _camera_id, config);
+        _config->_static_meta = _device->mCharacteristics;
+    } else {
+        QCAMX_ERR("invalid parameters!");
+        return false;
+    }
+
+    _tag_id_temperature = 0;
+    sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
+    CameraMetadata::getTagFromName("com.qti.chi.temperature.temperature", vTags.get(),
+                                   &_tag_id_temperature);
+
+    camera_metadata_ro_entry active_array_size =
+        ((const CameraMetadata)_config->_static_meta).find(ANDROID_SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+    if (active_array_size.count == 2) {
+        _config->_active_sensor_width = active_array_size.data.i32[0];
+        _config->_active_sensor_height = active_array_size.data.i32[1];
+        QCAMX_PRINT("active sensor resolution %dx%d\n", _config->_active_sensor_width,
+                    _config->_active_sensor_height);
+    } else if (active_array_size.count == 4) {
+        _config->_active_sensor_width = active_array_size.data.i32[2];
+        _config->_active_sensor_height = active_array_size.data.i32[3];
+        QCAMX_PRINT("active sensor resolution %dx%d\n", _config->_active_sensor_width,
+                    _config->_active_sensor_height);
+    } else {
+        QCAMX_PRINT("failed to get active resoltuion\n");
+    }
+
+    return true;
+}
+
+void QCamxHAL3TestCase::deinit() {
+    if (_device) {
+        delete _device;
+        _device = NULL;
+    }
+}
+
+void QCamxHAL3TestCase::show_fps(StreamType stream_type) {
+    volatile unsigned int *frame_count = NULL;
+    volatile unsigned int *last_frame_count = NULL;
+    volatile nsecs_t *last_fps_time = NULL;
+    const char *tag = NULL;
 
     if (stream_type == PREVIEW_TYPE) {
-        frameCount = &mPreviewFrameCount;
-        lastFpsTime = &mPreviewLastFpsTime;
-        lastFrameCount = &mPreviewLastFrameCount;
+        frame_count = &_preview_frame_count;
+        last_fps_time = &_preview_last_fps_time;
+        last_frame_count = &_preview_last_frame_count;
         tag = "PROFILE_PREVIEW_FRAMES_PER_SECOND";
     } else if (stream_type == VIDEO_TYPE) {
-        frameCount = &mVideoFrameCount;
-        lastFpsTime = &mVideoLastFpsTime;
-        lastFrameCount = &mVideoLastFrameCount;
+        frame_count = &_video_frame_count;
+        last_fps_time = &_video_last_fps_time;
+        last_frame_count = &_video_last_frame_count;
         tag = "PROFILE_VIDEO_FRAMES_PER_SECOND";
     } else {
         QCAMX_ERR("invalid stream!");
         return;
     }
 
-    volatile nsecs_t diff = now - (*lastFpsTime);
+    nsecs_t now = systemTime();
+    volatile nsecs_t diff = now - (*last_fps_time);
 
     if (diff > s2ns(1)) {
-        fps = (((double)((*frameCount) - (*lastFrameCount))) * (double)(s2ns(1))) / (double)diff;
+        double fps =
+            (((double)((*frame_count) - (*last_frame_count))) * (double)(s2ns(1))) / (double)diff;
         QCAMX_INFO("CAMERA %d, %s: %.4f, frameCount %d\n", _config->_camera_id, tag, fps,
-                   (*frameCount));
-        (*lastFpsTime) = now;
-        (*lastFrameCount) = (*frameCount);
+                   (*frame_count));
+        (*last_fps_time) = now;
+        (*last_frame_count) = (*frame_count);
     }
 
-    *frameCount = (*frameCount) + 1;
-}
-
-/************************************************************************
-* name : init
-* function: Initialization of variables。
-************************************************************************/
-void QCamxHAL3TestCase::init(camera_module_t *module, QCamxHAL3TestConfig *config) {
-    mDumpPreviewNum = 0;
-    mDumpVideoNum = 0;
-    mDumpInterval = 0;
-    mPreviewFrameCount = 0;
-    mPreviewLastFrameCount = 0;
-    mPreviewLastFpsTime = 0;
-    mVideoFrameCount = 0;
-    mVideoLastFrameCount = 0;
-    mVideoLastFpsTime = 0;
-    mMetadataExt = NULL;
-    mCbs = NULL;
-
-    if (module != NULL && config != NULL) {
-        _module = module;
-        _config = config;
-        _camera_id = _config->_camera_id;
-        mDevice = new QCamxHAL3TestDevice(_module, _camera_id, config);
-        _config->_static_meta = mDevice->mCharacteristics;
-    } else {
-        QCAMX_ERR("invalid parameters!");
-    }
-
-    mTagIdTemperature = 0;
-    sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
-    CameraMetadata::getTagFromName("com.qti.chi.temperature.temperature", vTags.get(),
-                                   &mTagIdTemperature);
-    camera_metadata_ro_entry activeArraySize =
-        ((const CameraMetadata)_config->_static_meta).find(ANDROID_SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-    if (activeArraySize.count == 2) {
-        _config->_active_sensor_width = activeArraySize.data.i32[0];
-        _config->_active_sensor_height = activeArraySize.data.i32[1];
-        QCAMX_PRINT("active sensor resolution %dx%d\n", _config->_active_sensor_width,
-                    _config->_active_sensor_height);
-    } else if (activeArraySize.count == 4) {
-        _config->_active_sensor_width = activeArraySize.data.i32[2];
-        _config->_active_sensor_height = activeArraySize.data.i32[3];
-        QCAMX_PRINT("active sensor resolution %dx%d\n", _config->_active_sensor_width,
-                    _config->_active_sensor_height);
-    } else {
-        QCAMX_PRINT("failed to get active size \n");
-    }
-}
-
-/************************************************************************
-* name : deinit
-* function: Deinitialization of variables。
-************************************************************************/
-void QCamxHAL3TestCase::deinit() {
-    if (mDevice) {
-        delete mDevice;
-        mDevice = NULL;
-    }
+    // increate current frame count
+    *frame_count = (*frame_count) + 1;
 }

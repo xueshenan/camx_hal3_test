@@ -38,7 +38,7 @@ public:
     virtual void CapturePostProcess(DeviceCallback *cb,
                                     camera3_capture_result *hal_result) override;
     virtual void HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) override;
-    virtual int PreinitStreams() override;
+    virtual int pre_init_stream() override;
     virtual void RequestCaptures(StreamCapture requst) override;
 private:
 #ifdef ENABLE_VIDEO_ENCODER

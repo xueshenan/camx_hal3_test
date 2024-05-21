@@ -217,17 +217,17 @@ void QCamxHAL3TestDevice::CallbackOps::Notify(const struct camera3_callback_ops 
                                               const camera3_notify_msg_t *msg) {}
 
 /************************************************************************
-* name : openCamera
+* name : open_camera
 * function: open camera device.
 ************************************************************************/
-int QCamxHAL3TestDevice::openCamera() {
-    int res = 0;
-    QCAMX_INFO("open Camera: %d\n", mCameraId);
+int QCamxHAL3TestDevice::open_camera() {
+    QCAMX_PRINT("open Camera: %d\n", mCameraId);
     struct camera_info info;
     char camera_name[20] = {0};
     snprintf(camera_name, sizeof(camera_name), "%d", mCameraId);
-    res = mModule->common.methods->open(&mModule->common, camera_name, (hw_device_t **)(&mDevice));
-    if (0 != res) {
+    int res =
+        mModule->common.methods->open(&mModule->common, camera_name, (hw_device_t **)(&mDevice));
+    if (res != 0) {
         QCAMX_ERR("open Camera failed\n");
         return res;
     }
@@ -236,6 +236,16 @@ int QCamxHAL3TestDevice::openCamera() {
     res = mModule->get_camera_info(mCameraId, &info);
     mCharacteristics = (camera_metadata_t *)info.static_camera_characteristics;
     return res;
+}
+
+/************************************************************************
+* name : close_camera
+* function: close the camera
+************************************************************************/
+void QCamxHAL3TestDevice::close_camera() {
+    mDevice->common.close(&mDevice->common);
+    delete mCBOps;
+    mCBOps = NULL;
 }
 
 /************************************************************************
@@ -695,15 +705,6 @@ void QCamxHAL3TestDevice::stopStreams() {
     }
     mStreams.erase(mStreams.begin(), mStreams.begin() + mStreams.size());
     memset(&mStreamConfig, 0, sizeof(camera3_stream_configuration_t));
-}
-/************************************************************************
-* name : closeCamera
-* function: close the camera
-************************************************************************/
-void QCamxHAL3TestDevice::closeCamera() {
-    mDevice->common.close(&mDevice->common);
-    delete mCBOps;
-    mCBOps = NULL;
 }
 
 /************************************************************************

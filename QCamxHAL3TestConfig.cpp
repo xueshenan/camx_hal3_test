@@ -45,7 +45,7 @@ QCamxHAL3TestConfig::QCamxHAL3TestConfig() {
     //disable IRBG
     _depth_IRBG_enabled = false;
 
-    // show FPS statics by default
+    // show fps statics by default
     _show_fps = 1;
 
     memset(&_meta_dump, 0, sizeof(meta_dump_t));

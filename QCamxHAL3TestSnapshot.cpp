@@ -45,7 +45,7 @@ QCamxHAL3TestSnapshot::~QCamxHAL3TestSnapshot() {
 void QCamxHAL3TestSnapshot::CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestSnapshot *testsnap = (QCamxHAL3TestSnapshot *)cb;
-    QCamxHAL3TestDevice *device = testsnap->mDevice;
+    QCamxHAL3TestDevice *device = testsnap->_device;
     buffers = result->output_buffers;
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
@@ -53,31 +53,31 @@ void QCamxHAL3TestSnapshot::CapturePostProcess(DeviceCallback *cb, camera3_captu
         CameraStream *stream = device->mCameraStreams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
         if (stream->streamType == CAMERA3_TEMPLATE_STILL_CAPTURE) {
-            if (mCbs && mCbs->snapshot_cb) {
-                mCbs->snapshot_cb(info, result->frame_number);
+            if (_callbacks && _callbacks->snapshot_cb) {
+                _callbacks->snapshot_cb(info, result->frame_number);
             }
             if (mSnapshotNum > 0) {
-                QCamxHAL3TestCase::DumpFrame(info, result->frame_number, SNAPSHOT_TYPE,
-                                             _config->_snapshot_stream.subformat);
+                QCamxHAL3TestCase::dump_frame(info, result->frame_number, SNAPSHOT_TYPE,
+                                              _config->_snapshot_stream.subformat);
                 mSnapshotNum--;
                 QCAMX_INFO("Get One Picture %d Last\n", mSnapshotNum);
             }
         }
         if (stream->streamType == CAMERA3_TEMPLATE_PREVIEW) {
-            if (mCbs && mCbs->preview_cb) {
-                mCbs->preview_cb(info, result->frame_number);
+            if (_callbacks && _callbacks->preview_cb) {
+                _callbacks->preview_cb(info, result->frame_number);
             }
-            if (testsnap->mDumpPreviewNum > 0 &&
-                (mDumpInterval == 0 ||
-                 (mDumpInterval > 0 && result->frame_number % mDumpInterval == 0))) {
-                QCamxHAL3TestCase::DumpFrame(info, result->frame_number, PREVIEW_TYPE,
-                                             _config->_preview_stream.subformat);
-                if (mDumpInterval == 0) {
-                    testsnap->mDumpPreviewNum--;
+            if (testsnap->_dump_preview_num > 0 &&
+                (_dump_interval == 0 ||
+                 (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
+                QCamxHAL3TestCase::dump_frame(info, result->frame_number, PREVIEW_TYPE,
+                                              _config->_preview_stream.subformat);
+                if (_dump_interval == 0) {
+                    testsnap->_dump_preview_num--;
                 }
             }
             if (_config->_show_fps) {
-                showFPS(PREVIEW_TYPE);
+                show_fps(PREVIEW_TYPE);
             }
         }
     }
@@ -99,13 +99,13 @@ int QCamxHAL3TestSnapshot::initSnapshotStreams() {
                                         _config->_preview_stream.format};
     if (res == 0) {
         camera_metadata_ro_entry entry;
-        res = find_camera_metadata_ro_entry(mDevice->mCharacteristics,
+        res = find_camera_metadata_ro_entry(_device->mCharacteristics,
                                             ANDROID_REQUEST_PARTIAL_RESULT_COUNT, &entry);
         if ((0 == res) && (entry.count > 0)) {
             partialResultCount = entry.data.i32[0];
             supportsPartialResults = (partialResultCount > 1);
         }
-        res = mDevice->GetValidOutputStreams(outputPreviewStreams, &previewThreshold);
+        res = _device->GetValidOutputStreams(outputPreviewStreams, &previewThreshold);
     }
     if (res < 0 || outputPreviewStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for preview: w: %d, h: %d, fmt: %d",
@@ -120,13 +120,13 @@ int QCamxHAL3TestSnapshot::initSnapshotStreams() {
                                          _config->_snapshot_stream.format};
     if (res == 0) {
         camera_metadata_ro_entry entry;
-        res = find_camera_metadata_ro_entry(mDevice->mCharacteristics,
+        res = find_camera_metadata_ro_entry(_device->mCharacteristics,
                                             ANDROID_REQUEST_PARTIAL_RESULT_COUNT, &entry);
         if ((0 == res) && (entry.count > 0)) {
             partialResultCount = entry.data.i32[0];
             supportsPartialResults = (partialResultCount > 1);
         }
-        res = mDevice->GetValidOutputStreams(outputSnapshotStreams, &snapshotThreshold);
+        res = _device->GetValidOutputStreams(outputSnapshotStreams, &snapshotThreshold);
     }
     if (res < 0 || outputSnapshotStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for snapshot: w: %d, h: %d, fmt: %d",
@@ -137,7 +137,7 @@ int QCamxHAL3TestSnapshot::initSnapshotStreams() {
 
     //get SensorOrientation metadata.
     camera_metadata_ro_entry entry;
-    res = find_camera_metadata_ro_entry(mDevice->mCharacteristics, ANDROID_SENSOR_ORIENTATION,
+    res = find_camera_metadata_ro_entry(_device->mCharacteristics, ANDROID_SENSOR_ORIENTATION,
                                         &entry);
     if ((0 == res) && (entry.count > 0)) {
         SensorOrientation = entry.data.i32[0];
@@ -148,23 +148,23 @@ int QCamxHAL3TestSnapshot::initSnapshotStreams() {
         res = 0;
     }
 
-    mDevice->setSyncBufferMode(SYNC_BUFFER_INTERNAL);
-    mDevice->setFpsRange(_config->_fps_range[0], _config->_fps_range[1]);
-    mDevice->configureStreams(mStreams);
+    _device->setSyncBufferMode(SYNC_BUFFER_INTERNAL);
+    _device->setFpsRange(_config->_fps_range[0], _config->_fps_range[1]);
+    _device->configureStreams(_streams);
 
-    if (mMetadataExt) {
-        mDevice->setCurrentMeta(mMetadataExt);
-        mDevice->constructDefaultRequestSettings(PREVIEW_IDX, CAMERA3_TEMPLATE_PREVIEW);
+    if (_metadata_ext) {
+        _device->setCurrentMeta(_metadata_ext);
+        _device->constructDefaultRequestSettings(PREVIEW_IDX, CAMERA3_TEMPLATE_PREVIEW);
     } else {
-        mDevice->constructDefaultRequestSettings(PREVIEW_IDX, CAMERA3_TEMPLATE_PREVIEW, true);
+        _device->constructDefaultRequestSettings(PREVIEW_IDX, CAMERA3_TEMPLATE_PREVIEW, true);
     }
 
-    mDevice->constructDefaultRequestSettings(SNAPSHOT_IDX, CAMERA3_TEMPLATE_STILL_CAPTURE);
+    _device->constructDefaultRequestSettings(SNAPSHOT_IDX, CAMERA3_TEMPLATE_STILL_CAPTURE);
 
     uint8_t jpegquality = JPEG_QUALITY_DEFAULT;
     int32_t jpegOrientation = 0;
     uint8_t ZslEnable = ANDROID_CONTROL_ENABLE_ZSL_FALSE;
-    android::CameraMetadata *metaUpdate = getCurrentMeta();
+    android::CameraMetadata *metaUpdate = get_current_meta();
     (*metaUpdate).update(ANDROID_JPEG_QUALITY, &(jpegquality), sizeof(jpegquality));
     (*metaUpdate).update(ANDROID_JPEG_ORIENTATION, &(jpegOrientation), 1);
 
@@ -173,12 +173,12 @@ int QCamxHAL3TestSnapshot::initSnapshotStreams() {
     }
     (*metaUpdate).update(ANDROID_CONTROL_ENABLE_ZSL, &(ZslEnable), 1);
 
-    updataMetaDatas(metaUpdate);
+    updata_meta_data(metaUpdate);
 
     return res;
 }
 
-int QCamxHAL3TestSnapshot::PreinitStreams() {
+int QCamxHAL3TestSnapshot::pre_init_stream() {
     int res = 0;
     QCAMX_INFO("preinit snapshot streams start\n");
 
@@ -219,11 +219,11 @@ int QCamxHAL3TestSnapshot::PreinitStreams() {
     mSnapshotStreaminfo.subformat = _config->_snapshot_stream.subformat;
     mSnapshotStreaminfo.type = SNAPSHOT_TYPE;
 
-    mStreams.resize(stream_num);
-    mStreams[PREVIEW_IDX] = &mPreviewStreaminfo;
-    mStreams[SNAPSHOT_IDX] = &mSnapshotStreaminfo;
+    _streams.resize(stream_num);
+    _streams[PREVIEW_IDX] = &mPreviewStreaminfo;
+    _streams[SNAPSHOT_IDX] = &mSnapshotStreaminfo;
 
-    mDevice->PreAllocateStreams(mStreams);
+    _device->PreAllocateStreams(_streams);
     QCAMX_INFO("preinit snapshot streams end\n");
     return res;
 }
@@ -234,8 +234,8 @@ int QCamxHAL3TestSnapshot::PreinitStreams() {
 ************************************************************************/
 void QCamxHAL3TestSnapshot::run() {
     //open camera
-    QCAMX_PRINT("CameraId:%d\n", _config->_camera_id);
-    mDevice->setCallBack(this);
+    QCAMX_PRINT("QCamxHAL3TestSnapshot CameraId:%d\n", _config->_camera_id);
+    _device->setCallBack(this);
     initSnapshotStreams();
 
     CameraThreadData *resultThread = new CameraThreadData();
@@ -248,7 +248,7 @@ void QCamxHAL3TestSnapshot::run() {
         requestThread->requestNumber[SNAPSHOT_IDX] = REQUEST_NUMBER_UMLIMIT;
     }
 
-    mDevice->processCaptureRequestOn(requestThread, resultThread);
+    _device->processCaptureRequestOn(requestThread, resultThread);
 }
 
 /************************************************************************
@@ -256,7 +256,7 @@ void QCamxHAL3TestSnapshot::run() {
 * function:  stop all the thread and release the device object.
 ************************************************************************/
 void QCamxHAL3TestSnapshot::stop() {
-    mDevice->stopStreams();
+    _device->stopStreams();
 }
 
 /************************************************************************
@@ -270,14 +270,14 @@ void QCamxHAL3TestSnapshot::RequestCaptures(StreamCapture request) {
     }
 
     // send a message to request thread
-    pthread_mutex_lock(&mDevice->mRequestThread->mutex);
+    pthread_mutex_lock(&_device->mRequestThread->mutex);
     CameraRequestMsg *msg = new CameraRequestMsg();
     memset(msg, 0, sizeof(CameraRequestMsg));
     msg->requestNumber[SNAPSHOT_IDX] = request.count;
     msg->mask = 1 << SNAPSHOT_IDX;
     msg->msgType = REQUEST_CHANGE;
-    mDevice->mRequestThread->msgQueue.push_back(msg);
+    _device->mRequestThread->msgQueue.push_back(msg);
     QCAMX_INFO("Msg for capture picture mask%x \n", msg->mask);
-    pthread_cond_signal(&mDevice->mRequestThread->cond);
-    pthread_mutex_unlock(&mDevice->mRequestThread->mutex);
+    pthread_cond_signal(&_device->mRequestThread->cond);
+    pthread_mutex_unlock(&_device->mRequestThread->mutex);
 }

@@ -52,20 +52,20 @@ void QCamxHAL3TestPreviewVideo::CapturePostProcess(DeviceCallback *cb,
     buffers = result->output_buffers;
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
-        int index = mDevice->findStream(buffers[i].stream);
-        CameraStream *stream = mDevice->mCameraStreams[index];
+        int index = _device->findStream(buffers[i].stream);
+        CameraStream *stream = _device->mCameraStreams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
         if (stream->streamId == VIDEO_IDX) {
-            if (mCbs && mCbs->video_cb) {
-                mCbs->video_cb(info, result->frame_number);
+            if (_callbacks && _callbacks->video_cb) {
+                _callbacks->video_cb(info, result->frame_number);
             }
-            if (mDumpVideoNum > 0 &&
-                (mDumpInterval == 0 ||
-                 (mDumpInterval > 0 && result->frame_number % mDumpInterval == 0))) {
-                QCamxHAL3TestCase::DumpFrame(info, result->frame_number, VIDEO_TYPE,
-                                             _config->_video_stream.subformat);
-                if (mDumpInterval == 0) {
-                    mDumpVideoNum--;
+            if (_dump_video_num > 0 &&
+                (_dump_interval == 0 ||
+                 (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
+                QCamxHAL3TestCase::dump_frame(info, result->frame_number, VIDEO_TYPE,
+                                              _config->_video_stream.subformat);
+                if (_dump_interval == 0) {
+                    _dump_video_num--;
                 }
             }
             if (mIsStoped) {
@@ -74,25 +74,25 @@ void QCamxHAL3TestPreviewVideo::CapturePostProcess(DeviceCallback *cb,
                 EnqueueFrameBuffer(stream, buffers[i].buffer);
             }
             if (_config->_show_fps) {
-                showFPS(VIDEO_TYPE);
+                show_fps(VIDEO_TYPE);
             }
         } else if (stream->streamId == PREVIEW_IDX) {
-            if (mCbs && mCbs->preview_cb) {
-                mCbs->preview_cb(info, result->frame_number);
+            if (_callbacks && _callbacks->preview_cb) {
+                _callbacks->preview_cb(info, result->frame_number);
             }
-            if (mDumpPreviewNum > 0 &&
-                (mDumpInterval == 0 ||
-                 (mDumpInterval > 0 && result->frame_number % mDumpInterval == 0))) {
-                QCamxHAL3TestCase::DumpFrame(info, result->frame_number, PREVIEW_TYPE,
-                                             _config->_preview_stream.subformat);
-                if (mDumpInterval == 0) {
-                    mDumpPreviewNum--;
+            if (_dump_preview_num > 0 &&
+                (_dump_interval == 0 ||
+                 (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
+                QCamxHAL3TestCase::dump_frame(info, result->frame_number, PREVIEW_TYPE,
+                                              _config->_preview_stream.subformat);
+                if (_dump_interval == 0) {
+                    _dump_preview_num--;
                 }
             }
             stream->bufferManager->ReturnBuffer(buffers[i].buffer);
 
             if (_config->_show_fps) {
-                showFPS(PREVIEW_TYPE);
+                show_fps(PREVIEW_TYPE);
             }
         }
     }
@@ -105,7 +105,7 @@ void QCamxHAL3TestPreviewVideo::CapturePostProcess(DeviceCallback *cb,
 void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestPreviewVideo *testpre = (QCamxHAL3TestPreviewVideo *)cb;
-    QCamxHAL3TestDevice *device = testpre->mDevice;
+    QCamxHAL3TestDevice *device = testpre->_device;
     sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
     if (result->partial_result >= 1) {
@@ -190,7 +190,7 @@ void QCamxHAL3TestPreviewVideo::selectOpMode(uint32_t *operation_mode, int width
     CameraMetadata::getTagFromName("org.quic.camera2.sensormode.info.SensorModeTable", vTags.get(),
                                    &tags);
 
-    res = find_camera_metadata_ro_entry(mDevice->mCharacteristics, tags, &entry);
+    res = find_camera_metadata_ro_entry(_device->mCharacteristics, tags, &entry);
     if ((res == 0) && (entry.count > 0)) {
         sensorModeTable = entry.data.i32;
     }
@@ -227,9 +227,9 @@ void QCamxHAL3TestPreviewVideo::selectOpMode(uint32_t *operation_mode, int width
 int QCamxHAL3TestPreviewVideo::initVideoStreams() {
     int res = 0;
 
-    mStreams[PREVIEW_IDX]->pstream = &mPreviewStream;
-    mStreams[PREVIEW_IDX]->type = PREVIEW_TYPE;
-    mStreams[PREVIEW_IDX]->subformat = None;
+    _streams[PREVIEW_IDX]->pstream = &mPreviewStream;
+    _streams[PREVIEW_IDX]->type = PREVIEW_TYPE;
+    _streams[PREVIEW_IDX]->subformat = None;
 
     //init stream configure
     //check preview stream
@@ -244,13 +244,13 @@ int QCamxHAL3TestPreviewVideo::initVideoStreams() {
                                         _config->_preview_stream.format};
     if (res == 0) {
         camera_metadata_ro_entry entry;
-        res = find_camera_metadata_ro_entry(mDevice->mCharacteristics,
+        res = find_camera_metadata_ro_entry(_device->mCharacteristics,
                                             ANDROID_REQUEST_PARTIAL_RESULT_COUNT, &entry);
         if ((0 == res) && (entry.count > 0)) {
             partialResultCount = entry.data.i32[0];
             supportsPartialResults = (partialResultCount > 1);
         }
-        res = mDevice->GetValidOutputStreams(outputPreviewStreams, &previewThreshold);
+        res = _device->GetValidOutputStreams(outputPreviewStreams, &previewThreshold);
     }
     if (res < 0 || outputPreviewStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for preview: w: %d, h: %d, fmt: %d",
@@ -259,9 +259,9 @@ int QCamxHAL3TestPreviewVideo::initVideoStreams() {
         return -1;
     }
 
-    mStreams[VIDEO_IDX]->pstream = &mVideoStream;
-    mStreams[VIDEO_IDX]->type = VIDEO_TYPE;
-    mStreams[VIDEO_IDX]->subformat = _config->_video_stream.subformat;
+    _streams[VIDEO_IDX]->pstream = &mVideoStream;
+    _streams[VIDEO_IDX]->type = VIDEO_TYPE;
+    _streams[VIDEO_IDX]->subformat = _config->_video_stream.subformat;
 
     //check video stream
     std::vector<AvailableStream> outputVideoStreams;
@@ -273,13 +273,13 @@ int QCamxHAL3TestPreviewVideo::initVideoStreams() {
 
     if (res == 0) {
         camera_metadata_ro_entry entry;
-        res = find_camera_metadata_ro_entry(mDevice->mCharacteristics,
+        res = find_camera_metadata_ro_entry(_device->mCharacteristics,
                                             ANDROID_REQUEST_PARTIAL_RESULT_COUNT, &entry);
         if ((0 == res) && (entry.count > 0)) {
             partialResultCount = entry.data.i32[0];
             supportsPartialResults = (partialResultCount > 1);
         }
-        res = mDevice->GetValidOutputStreams(outputVideoStreams, &videoThreshold);
+        res = _device->GetValidOutputStreams(outputVideoStreams, &videoThreshold);
     }
     if (res < 0 || outputVideoStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for video: w: %d, h: %d, fmt: %d",
@@ -289,37 +289,37 @@ int QCamxHAL3TestPreviewVideo::initVideoStreams() {
     }
 
     //check snapshot stream
-    mDevice->setSyncBufferMode(SYNC_BUFFER_EXTERNAL);
-    mDevice->setFpsRange(_config->_fps_range[0], _config->_fps_range[1]);
+    _device->setSyncBufferMode(SYNC_BUFFER_EXTERNAL);
+    _device->setFpsRange(_config->_fps_range[0], _config->_fps_range[1]);
 
     uint32_t operation_mode = CAMERA3_STREAM_CONFIGURATION_NORMAL_MODE;
     if (mVideoMode >= VIDEO_MODE_HFR60) {
         // for HFR case
         int stream_size = 0;
         int stream_index = 0;
-        for (int i = 0; i < (int)mStreams.size(); i++) {
-            if ((mStreams[i]->pstream->width * mStreams[i]->pstream->height) > stream_size) {
-                stream_size = mStreams[i]->pstream->width * mStreams[i]->pstream->height;
+        for (int i = 0; i < (int)_streams.size(); i++) {
+            if ((_streams[i]->pstream->width * _streams[i]->pstream->height) > stream_size) {
+                stream_size = _streams[i]->pstream->width * _streams[i]->pstream->height;
                 stream_index = i;
             }
         }
         operation_mode = CAMERA3_STREAM_CONFIGURATION_CONSTRAINED_HIGH_SPEED_MODE;
-        selectOpMode(&operation_mode, mStreams[stream_index]->pstream->width,
-                     mStreams[stream_index]->pstream->height, _config->_fps_range[1]);
+        selectOpMode(&operation_mode, _streams[stream_index]->pstream->width,
+                     _streams[stream_index]->pstream->height, _config->_fps_range[1]);
     }
 
-    mDevice->configureStreams(mStreams, operation_mode);
+    _device->configureStreams(_streams, operation_mode);
 
-    mDevice->constructDefaultRequestSettings(PREVIEW_IDX, _config->_preview_stream.type);
+    _device->constructDefaultRequestSettings(PREVIEW_IDX, _config->_preview_stream.type);
 
-    if (mMetadataExt) {
-        mDevice->setCurrentMeta(mMetadataExt);
-        mDevice->constructDefaultRequestSettings(VIDEO_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD);
+    if (_metadata_ext) {
+        _device->setCurrentMeta(_metadata_ext);
+        _device->constructDefaultRequestSettings(VIDEO_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD);
     } else {
-        mDevice->constructDefaultRequestSettings(VIDEO_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD, true);
+        _device->constructDefaultRequestSettings(VIDEO_IDX, CAMERA3_TEMPLATE_VIDEO_RECORD, true);
     }
 
-    android::CameraMetadata *metaUpdate = getCurrentMeta();
+    android::CameraMetadata *metaUpdate = get_current_meta();
     sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
     uint8_t antibanding = ANDROID_CONTROL_AE_ANTIBANDING_MODE_AUTO;
@@ -356,11 +356,11 @@ int QCamxHAL3TestPreviewVideo::initVideoStreams() {
         metaUpdate->update(tag, &(EISEnable), 1);
     }
 
-    updataMetaDatas(metaUpdate);
+    updata_meta_data(metaUpdate);
     return res;
 }
 
-int QCamxHAL3TestPreviewVideo::PreinitStreams() {
+int QCamxHAL3TestPreviewVideo::pre_init_stream() {
     int res = 0;
     int stream_num = 3;
 
@@ -427,11 +427,11 @@ int QCamxHAL3TestPreviewVideo::PreinitStreams() {
     mVideoStreaminfo.type = VIDEO_TYPE;
 
     stream_num = 2;
-    mStreams.resize(stream_num);
-    mStreams[VIDEO_IDX] = &mVideoStreaminfo;
-    mStreams[PREVIEW_IDX] = &mPreviewStreaminfo;
+    _streams.resize(stream_num);
+    _streams[VIDEO_IDX] = &mVideoStreaminfo;
+    _streams[PREVIEW_IDX] = &mPreviewStreaminfo;
 
-    mDevice->PreAllocateStreams(mStreams);
+    _device->PreAllocateStreams(_streams);
 
     return res;
 }
@@ -458,12 +458,12 @@ void QCamxHAL3TestPreviewVideo::stop() {
 #ifdef ENABLE_VIDEO_ENCODER
     mVideoEncoder->stop();
 #endif
-    mDevice->stopStreams();
+    _device->stopStreams();
 #ifdef ENABLE_VIDEO_ENCODER
     delete mVideoEncoder;
     mVideoEncoder = NULL;
 #endif
-    mDevice->setSyncBufferMode(SYNC_BUFFER_INTERNAL);
+    _device->setSyncBufferMode(SYNC_BUFFER_INTERNAL);
 }
 
 /************************************************************************
@@ -474,13 +474,13 @@ void QCamxHAL3TestPreviewVideo::run() {
     //open camera
     int res = 0;
 
-    mDevice->setCallBack(this);
+    _device->setCallBack(this);
     res = initVideoStreams();
 
     if (mVideoMode <= VIDEO_MODE_HFR60) {
-        mDevice->mLivingRequestExtAppend = LIVING_REQUEST_APPEND;
+        _device->mLivingRequestExtAppend = LIVING_REQUEST_APPEND;
     } else {
-        mDevice->mLivingRequestExtAppend = HFR_LIVING_REQUEST_APPEND;
+        _device->mLivingRequestExtAppend = HFR_LIVING_REQUEST_APPEND;
     }
 #ifdef ENABLE_VIDEO_ENCODER
     mVideoEncoder->run();
@@ -497,5 +497,5 @@ void QCamxHAL3TestPreviewVideo::run() {
     }
     QCAMX_INFO("skipPattern[PREVIEW_IDX] = %d", requestThreadVideo->skipPattern[PREVIEW_IDX]);
 
-    mDevice->processCaptureRequestOn(requestThreadVideo, resultThreadVideo);
+    _device->processCaptureRequestOn(requestThreadVideo, resultThreadVideo);
 }

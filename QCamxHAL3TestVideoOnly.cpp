@@ -65,7 +65,7 @@ void QCamxHAL3TestVideoOnly::CapturePostProcess(DeviceCallback *cb,
                                                 camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestVideoOnly *testpre = (QCamxHAL3TestVideoOnly *)cb;
-    QCamxHAL3TestDevice *device = testpre->mDevice;
+    QCamxHAL3TestDevice *device = testpre->_device;
     buffers = result->output_buffers;
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
@@ -73,16 +73,16 @@ void QCamxHAL3TestVideoOnly::CapturePostProcess(DeviceCallback *cb,
         CameraStream *stream = device->mCameraStreams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
         if (stream->streamType == CAMERA3_TEMPLATE_VIDEO_RECORD) {
-            if (mCbs && mCbs->video_cb) {
-                mCbs->video_cb(info, result->frame_number);
+            if (_callbacks && _callbacks->video_cb) {
+                _callbacks->video_cb(info, result->frame_number);
             }
-            if (testpre->mDumpVideoNum > 0 &&
-                (mDumpInterval == 0 ||
-                 (mDumpInterval > 0 && result->frame_number % mDumpInterval == 0))) {
-                QCamxHAL3TestCase::DumpFrame(info, result->frame_number, VIDEO_TYPE,
-                                             _config->_video_stream.subformat);
-                if (mDumpInterval == 0) {
-                    testpre->mDumpPreviewNum--;
+            if (testpre->_dump_video_num > 0 &&
+                (_dump_interval == 0 ||
+                 (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
+                QCamxHAL3TestCase::dump_frame(info, result->frame_number, VIDEO_TYPE,
+                                              _config->_video_stream.subformat);
+                if (_dump_interval == 0) {
+                    testpre->_dump_preview_num--;
                 }
             }
             if (mIsStoped) {
@@ -91,7 +91,7 @@ void QCamxHAL3TestVideoOnly::CapturePostProcess(DeviceCallback *cb,
                 EnqueueFrameBuffer(stream, buffers[i].buffer);
             }
             if (_config->_show_fps) {
-                showFPS(VIDEO_TYPE);
+                show_fps(VIDEO_TYPE);
             }
         }
     }
@@ -115,7 +115,7 @@ void QCamxHAL3TestVideoOnly::selectOpMode(uint32_t *operation_mode, int width, i
     CameraMetadata::getTagFromName("org.quic.camera2.sensormode.info.SensorModeTable", vTags.get(),
                                    &tags);
 
-    res = find_camera_metadata_ro_entry(mDevice->mCharacteristics, tags, &entry);
+    res = find_camera_metadata_ro_entry(_device->mCharacteristics, tags, &entry);
     if ((res == 0) && (entry.count > 0)) {
         sensorModeTable = entry.data.i32;
     }
@@ -191,13 +191,13 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     //AvailableStream videoThreshold = {1920, 1080, HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED};
     if (res == 0) {
         camera_metadata_ro_entry entry;
-        res = find_camera_metadata_ro_entry(mDevice->mCharacteristics,
+        res = find_camera_metadata_ro_entry(_device->mCharacteristics,
                                             ANDROID_REQUEST_PARTIAL_RESULT_COUNT, &entry);
         if ((0 == res) && (entry.count > 0)) {
             partialResultCount = entry.data.i32[0];
             supportsPartialResults = (partialResultCount > 1);
         }
-        res = mDevice->GetValidOutputStreams(outputVideoStreams, &videoThreshold);
+        res = _device->GetValidOutputStreams(outputVideoStreams, &videoThreshold);
     }
     if (res < 0 || outputVideoStreams.size() == 0) {
         QCAMX_ERR("Failed to find output stream for video: w: %d, h: %d, fmt: %d",
@@ -234,8 +234,8 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     vStream.type = VIDEO_TYPE;
     streams.push_back(&vStream);
 
-    mDevice->setSyncBufferMode(SYNC_BUFFER_EXTERNAL);
-    mDevice->setFpsRange(_config->_fps_range[0], _config->_fps_range[1]);
+    _device->setSyncBufferMode(SYNC_BUFFER_EXTERNAL);
+    _device->setFpsRange(_config->_fps_range[0], _config->_fps_range[1]);
     if (mVideoMode >= VIDEO_ONLY_MODE_HFR60) {
         // for HFR case
         int stream_size = 0;
@@ -250,17 +250,17 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
                      streams[stream_index]->pstream->height, _config->_fps_range[1]);
     }
 
-    mDevice->configureStreams(streams, operation_mode);
-    if (mMetadataExt) {
-        mDevice->setCurrentMeta(mMetadataExt);
-        mDevice->constructDefaultRequestSettings(0 /*video only case*/,
+    _device->configureStreams(streams, operation_mode);
+    if (_metadata_ext) {
+        _device->setCurrentMeta(_metadata_ext);
+        _device->constructDefaultRequestSettings(0 /*video only case*/,
                                                  CAMERA3_TEMPLATE_VIDEO_RECORD);
     } else {
-        mDevice->constructDefaultRequestSettings(0 /*video only case*/,
+        _device->constructDefaultRequestSettings(0 /*video only case*/,
                                                  CAMERA3_TEMPLATE_VIDEO_RECORD, true);
     }
 
-    android::CameraMetadata *metaUpdate = getCurrentMeta();
+    android::CameraMetadata *metaUpdate = get_current_meta();
     sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
     uint8_t antibanding = ANDROID_CONTROL_AE_ANTIBANDING_MODE_AUTO;
@@ -302,11 +302,11 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
         metaUpdate->update(tag, &(EISEnable), 1);
     }
 
-    updataMetaDatas(metaUpdate);
+    updata_meta_data(metaUpdate);
     return res;
 }
 
-int QCamxHAL3TestVideoOnly::PreinitStreams() {
+int QCamxHAL3TestVideoOnly::pre_init_stream() {
     int res = 0;
     int stream_num = 1;
 
@@ -324,16 +324,16 @@ int QCamxHAL3TestVideoOnly::PreinitStreams() {
     mVideoStream.max_buffers = HFR_VIDEO_STREAM_BUFFER_MAX;
     mVideoStream.priv = 0;
 
-    mStreams.resize(stream_num);
+    _streams.resize(stream_num);
 
     mVideoStreaminfo.pstream = &mVideoStream;
     mVideoStreaminfo.subformat = _config->_video_stream.subformat;
     ;
     mVideoStreaminfo.type = VIDEO_TYPE;
-    mStreams[0] = &mVideoStreaminfo;
+    _streams[0] = &mVideoStreaminfo;
     QCAMX_INFO("mStream access start3\n");
 
-    mDevice->PreAllocateStreams(mStreams);
+    _device->PreAllocateStreams(_streams);
 
     return res;
 }
@@ -344,13 +344,13 @@ int QCamxHAL3TestVideoOnly::PreinitStreams() {
 ************************************************************************/
 void QCamxHAL3TestVideoOnly::run() {
     //open camera
-    mDevice->setCallBack(this);
+    _device->setCallBack(this);
     initVideoOnlyStream();
 
     if (mVideoMode <= VIDEO_ONLY_MODE_HFR60) {
-        mDevice->mLivingRequestExtAppend = LIVING_REQUEST_APPEND;
+        _device->mLivingRequestExtAppend = LIVING_REQUEST_APPEND;
     } else {
-        mDevice->mLivingRequestExtAppend = HFR_LIVING_REQUEST_APPEND;
+        _device->mLivingRequestExtAppend = HFR_LIVING_REQUEST_APPEND;
     }
 #ifdef ENABLE_VIDEO_ENCODER
     QCAMX_PRINT("QCamxHAL3TestVideoOnly::run before\n");
@@ -361,7 +361,7 @@ void QCamxHAL3TestVideoOnly::run() {
     CameraThreadData *resultThreadVideo = new CameraThreadData();
     CameraThreadData *requestThreadVideo = new CameraThreadData();
     requestThreadVideo->requestNumber[0] = REQUEST_NUMBER_UMLIMIT;
-    mDevice->processCaptureRequestOn(requestThreadVideo, resultThreadVideo);
+    _device->processCaptureRequestOn(requestThreadVideo, resultThreadVideo);
 }
 
 /************************************************************************
@@ -381,5 +381,5 @@ void QCamxHAL3TestVideoOnly::EnqueueFrameBuffer(CameraStream *stream, buffer_han
 * function: interface for stop snapshot thread.
 ************************************************************************/
 void QCamxHAL3TestVideoOnly::stop() {
-    mDevice->stopStreams();
+    _device->stopStreams();
 }

@@ -394,9 +394,9 @@ int main(int argc, char *argv[]) {
                 }
 
                 if (testCase) {
-                    testCase->setCallbacks(&camx_hal3_test_cbs);
-                    testCase->PreinitStreams();
-                    testCase->openCamera();
+                    testCase->set_callbacks(&camx_hal3_test_cbs);
+                    testCase->pre_init_stream();
+                    testCase->open_camera();
                     testCase->run();
                     s_HAL3_test[testConf->_camera_id] = testCase;
                 }
@@ -425,9 +425,9 @@ int main(int argc, char *argv[]) {
                     delete testPreview;
                     s_HAL3_test[current_camera_id] = NULL;
 
-                    testVideo->setCallbacks(&camx_hal3_test_cbs);
-                    testVideo->PreinitStreams();
-                    testVideo->openCamera();
+                    testVideo->set_callbacks(&camx_hal3_test_cbs);
+                    testVideo->pre_init_stream();
+                    testVideo->open_camera();
 
                     testVideo->run();
                     s_HAL3_test[testConf->_camera_id] = testVideo;
@@ -451,7 +451,7 @@ int main(int argc, char *argv[]) {
                 testCase->RequestCaptures(request);
 
                 if (ops[0] == 'S') {
-                    testCase->triggerDump(num);
+                    testCase->trigger_dump(num);
                 }
 
                 break;
@@ -478,7 +478,7 @@ int main(int argc, char *argv[]) {
                 QCAMX_PRINT("preview dump:%d/%d for cameraid:%d.\n", num, interval,
                             RequestCameraId);
                 QCamxHAL3TestCase *testCase = s_HAL3_test[RequestCameraId];
-                testCase->triggerDump(num, interval);
+                testCase->trigger_dump(num, interval);
 
                 break;
             }
@@ -495,7 +495,7 @@ int main(int argc, char *argv[]) {
 
                 QCamxHAL3TestCase *testCase = s_HAL3_test[RequestCameraId];
                 testCase->stop();
-                testCase->closeCamera();
+                testCase->close_camera();
                 delete testCase->_config;
                 testCase->_config = NULL;
                 delete testCase;
@@ -505,17 +505,17 @@ int main(int argc, char *argv[]) {
             }
             case 'U': {
                 QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
-                android::CameraMetadata *meta = testCase->getCurrentMeta();
+                android::CameraMetadata *meta = testCase->get_current_meta();
                 testCase->_config->parse_commandline_meta_update((char *)param.c_str(), meta);
-                testCase->updataMetaDatas(meta);
+                testCase->updata_meta_data(meta);
 
                 break;
             }
             case 'E': {
                 QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
-                android::CameraMetadata *meta = testCase->getCurrentMeta();
+                android::CameraMetadata *meta = testCase->get_current_meta();
                 testCase->_config->parse_commandline_meta_update((char *)param.c_str(), meta);
-                testCase->updataMetaDatas(meta);
+                testCase->updata_meta_data(meta);
 
                 int num = 1;
                 int RequestCameraId = current_camera_id;
@@ -527,7 +527,7 @@ int main(int argc, char *argv[]) {
                 QCAMX_PRINT("snapshot request:%d for cameraid %d\n", num, RequestCameraId);
                 StreamCapture request = {SNAPSHOT_TYPE, num};
                 testCase->RequestCaptures(request);
-                testCase->triggerDump(num);
+                testCase->trigger_dump(num);
 
                 break;
             }
@@ -562,7 +562,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < MAX_CAMERA; i++) {
         if (s_HAL3_test[i] != NULL) {
             s_HAL3_test[i]->stop();
-            s_HAL3_test[i]->closeCamera();
+            s_HAL3_test[i]->close_camera();
             if (s_HAL3_test[i]->_config != NULL) {
                 delete s_HAL3_test[i]->_config;
                 s_HAL3_test[i]->_config = NULL;
