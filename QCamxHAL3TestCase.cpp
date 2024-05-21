@@ -659,7 +659,7 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
     }
 }
 
-bool QCamxHAL3TestCase::init(camera_module_t *module, QCamxHAL3TestConfig *config) {
+bool QCamxHAL3TestCase::init(camera_module_t *module, QCamxConfig *config) {
     _metadata_ext = NULL;
 
     _dump_preview_num = 0;

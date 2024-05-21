@@ -24,7 +24,7 @@ using namespace android;
 * name : QCamxTestVideoEncoder
 * function: init default setting
 ************************************************************************/
-QCamxTestVideoEncoder::QCamxTestVideoEncoder(QCamxHAL3TestConfig *config)
+QCamxTestVideoEncoder::QCamxTestVideoEncoder(QCamxConfig *config)
     : mCoder(NULL), mConfig({}), mBufferQueue(NULL) {
     QCAMX_PRINT("new instance for QCamxTestVideoEncoder\n");
     OMX_U32 inputColorFormat;

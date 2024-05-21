@@ -24,8 +24,7 @@ typedef enum {
 * name : QCamxHAL3TestPreviewOnly
 * function: construct object.
 ************************************************************************/
-QCamxHAL3TestPreviewOnly::QCamxHAL3TestPreviewOnly(camera_module_t *module,
-                                                   QCamxHAL3TestConfig *config) {
+QCamxHAL3TestPreviewOnly::QCamxHAL3TestPreviewOnly(camera_module_t *module, QCamxConfig *config) {
     init(module, config);
 }
 

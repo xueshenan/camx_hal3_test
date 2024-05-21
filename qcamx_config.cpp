@@ -25,7 +25,7 @@
 * name : QCamxHAL3TestConfig
 * function: construct object.
 ************************************************************************/
-QCamxHAL3TestConfig::QCamxHAL3TestConfig() {
+QCamxConfig::QCamxConfig() {
     _test_mode = -1;
     _camera_id = -1;
     _is_H265 = 0;
@@ -69,7 +69,7 @@ QCamxHAL3TestConfig::QCamxHAL3TestConfig() {
 * name : ~QCamxHAL3TestConfig
 * function: destory object.
 ************************************************************************/
-QCamxHAL3TestConfig::~QCamxHAL3TestConfig() {
+QCamxConfig::~QCamxConfig() {
     delete _dump_log;
     _dump_log = NULL;
 }
@@ -78,8 +78,7 @@ QCamxHAL3TestConfig::~QCamxHAL3TestConfig() {
 * name : parseCommandlineMetaUpdate
 * function: get update meta info from cmd.
 ************************************************************************/
-int QCamxHAL3TestConfig::parse_commandline_meta_update(char *order,
-                                                       android::CameraMetadata *meta_update) {
+int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetadata *meta_update) {
     enum {
         MANUAL_EXPOSURE = 0,
         MANUAL_ISO,
@@ -427,7 +426,7 @@ int QCamxHAL3TestConfig::parse_commandline_meta_update(char *order,
 * name : parseCommandlineMetaDump
 * function: get dump meta info from cmd.
 ************************************************************************/
-int QCamxHAL3TestConfig::parse_commandline_meta_dump(int ordersize, char *order) {
+int QCamxConfig::parse_commandline_meta_dump(int ordersize, char *order) {
     enum {
         EXPOSURE_VALUE = 0,
         ISO_VALUE,
@@ -637,7 +636,7 @@ int QCamxHAL3TestConfig::parse_commandline_meta_dump(int ordersize, char *order)
 * name : parseCommandlineAdd
 * function: get Initialize info from cmd for open camera.
 ************************************************************************/
-int QCamxHAL3TestConfig::parse_commandline_add(int ordersize, char *order) {
+int QCamxConfig::parse_commandline_add(int ordersize, char *order) {
     enum {
         ID_OPT = 0,
         PREVIEW_SIZE_OPT,

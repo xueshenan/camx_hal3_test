@@ -14,7 +14,7 @@
 
 class QCamxHAL3TestDepth : public QCamxHAL3TestCase {
 public:
-    QCamxHAL3TestDepth(camera_module_t *module, QCamxHAL3TestConfig *config);
+    QCamxHAL3TestDepth(camera_module_t *module, QCamxConfig *config);
     ~QCamxHAL3TestDepth();
     virtual void run() override;
     virtual void stop() override;

@@ -352,7 +352,7 @@ int main(int argc, char *argv[]) {
             case 'a': {
                 // add
                 QCamxHAL3TestCase *testCase = NULL;
-                QCamxHAL3TestConfig *testConf = new QCamxHAL3TestConfig();
+                QCamxConfig *testConf = new QCamxConfig();
                 result = testConf->parse_commandline_add(size, (char *)param.c_str());
                 if (result != 0) {
                     QCAMX_PRINT("error command order res:%d\n", result);
@@ -415,7 +415,7 @@ int main(int argc, char *argv[]) {
                     QCamxHAL3TestPreviewOnly *testPreview =
                         (QCamxHAL3TestPreviewOnly *)s_HAL3_test[current_camera_id];
 
-                    QCamxHAL3TestConfig *testConf = testPreview->_config;
+                    QCamxConfig *testConf = testPreview->_config;
                     result = testConf->parse_commandline_add(size, (char *)param.c_str());
 
                     QCamxHAL3TestVideo *testVideo =

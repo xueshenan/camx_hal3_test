@@ -117,7 +117,7 @@ protected:
     /**
      * @brief initialization of variables
     */
-    bool init(camera_module_t *module, QCamxHAL3TestConfig *config);
+    bool init(camera_module_t *module, QCamxConfig *config);
     /**
      * @brief deinitialization of variables
     */
@@ -128,7 +128,7 @@ protected:
     void show_fps(StreamType stream_type);
 public:
     camera_module_t *_module;
-    QCamxHAL3TestConfig *_config;
+    QCamxConfig *_config;
 protected:
     QCamxHAL3TestDevice *_device;
     int _camera_id;

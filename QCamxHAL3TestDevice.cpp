@@ -40,8 +40,8 @@ static const int kMinJpegBufferSize = 256 * 1024 + sizeof(camera3_jpeg_blob);
 * name : QCamxHAL3TestDevice
 * function: construct object.
 ************************************************************************/
-QCamxHAL3TestDevice::QCamxHAL3TestDevice(camera_module_t *module, int cameraId,
-                                         QCamxHAL3TestConfig *Config, int mode)
+QCamxHAL3TestDevice::QCamxHAL3TestDevice(camera_module_t *module, int cameraId, QCamxConfig *Config,
+                                         int mode)
     : mModule(module), mCameraId(cameraId), mConfig(Config) {
     pthread_mutex_init(&mSettingMetaLock, NULL);
     mSyncBufMode = SYNC_BUFFER_INTERNAL;

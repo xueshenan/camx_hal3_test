@@ -31,7 +31,7 @@ typedef enum {
 
 class QCamxHAL3TestVideoOnly : public QCamxHAL3TestCase {
 public:
-    QCamxHAL3TestVideoOnly(camera_module_t *module, QCamxHAL3TestConfig *config);
+    QCamxHAL3TestVideoOnly(camera_module_t *module, QCamxConfig *config);
     ~QCamxHAL3TestVideoOnly();
     virtual void run() override;
     virtual void stop() override;

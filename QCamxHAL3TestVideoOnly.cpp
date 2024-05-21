@@ -37,8 +37,7 @@ typedef enum {
 * name : QCamxHAL3TestPreviewOnly
 * function: construct object.
 ************************************************************************/
-QCamxHAL3TestVideoOnly::QCamxHAL3TestVideoOnly(camera_module_t *module,
-                                               QCamxHAL3TestConfig *config) {
+QCamxHAL3TestVideoOnly::QCamxHAL3TestVideoOnly(camera_module_t *module, QCamxConfig *config) {
     QCAMX_PRINT("new instance for QCamxHAL3TestVideoOnly\n");
     init(module, config);
 

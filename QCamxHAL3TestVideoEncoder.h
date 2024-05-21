@@ -32,7 +32,7 @@ using namespace std;
 using namespace android;
 class QCamxTestVideoEncoder : public QCamxHAL3TestBufferHolder {
 public:
-    QCamxTestVideoEncoder(QCamxHAL3TestConfig *);
+    QCamxTestVideoEncoder(QCamxConfig *);
     void run();
     void stop();
     int Read(OMX_BUFFERHEADERTYPE *buf);

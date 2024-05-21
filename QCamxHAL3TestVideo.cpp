@@ -23,7 +23,7 @@ typedef enum {
     RAW_SNAPSHOT_IDX = 3,
 } StreamIdx;
 
-QCamxHAL3TestVideo::QCamxHAL3TestVideo(camera_module_t *module, QCamxHAL3TestConfig *config) {
+QCamxHAL3TestVideo::QCamxHAL3TestVideo(camera_module_t *module, QCamxConfig *config) {
     init(module, config);
 
     mVideoMode = VIDEO_MODE_NORMAL;

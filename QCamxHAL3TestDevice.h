@@ -133,8 +133,7 @@ typedef struct _Stream {
 
 class QCamxHAL3TestDevice {
 public:
-    QCamxHAL3TestDevice(camera_module_t *module, int cameraId, QCamxHAL3TestConfig *Config,
-                        int mode = 0);
+    QCamxHAL3TestDevice(camera_module_t *module, int cameraId, QCamxConfig *Config, int mode = 0);
     ~QCamxHAL3TestDevice();
 public:
     int open_camera();
@@ -203,6 +202,6 @@ private:
         QCamxHAL3TestDevice *mParent;
     };
     CallbackOps *mCBOps;
-    QCamxHAL3TestConfig *mConfig;
+    QCamxConfig *mConfig;
 };
 #endif

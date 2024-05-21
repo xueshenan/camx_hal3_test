@@ -23,8 +23,7 @@ typedef enum {
     VIDEO_IDX = 1,
 } StreamIdx;
 
-QCamxHAL3TestPreviewVideo::QCamxHAL3TestPreviewVideo(camera_module_t *module,
-                                                     QCamxHAL3TestConfig *config) {
+QCamxHAL3TestPreviewVideo::QCamxHAL3TestPreviewVideo(camera_module_t *module, QCamxConfig *config) {
     init(module, config);
 
     mVideoMode = VIDEO_MODE_NORMAL;

@@ -14,7 +14,7 @@
 
 class QCamxHAL3TestSnapshot : public QCamxHAL3TestCase {
 public:
-    QCamxHAL3TestSnapshot(camera_module_t *module, QCamxHAL3TestConfig *config);
+    QCamxHAL3TestSnapshot(camera_module_t *module, QCamxConfig *config);
     ~QCamxHAL3TestSnapshot();
     virtual void run() override;
     virtual void stop() override;

@@ -15,7 +15,7 @@
 
 class QCamxHAL3TestPreviewOnly : public QCamxHAL3TestCase {
 public:
-    QCamxHAL3TestPreviewOnly(camera_module_t *module, QCamxHAL3TestConfig *config);
+    QCamxHAL3TestPreviewOnly(camera_module_t *module, QCamxConfig *config);
     ~QCamxHAL3TestPreviewOnly();
     virtual void run() override;
     virtual void stop() override;

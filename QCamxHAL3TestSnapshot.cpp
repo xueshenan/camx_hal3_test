@@ -25,7 +25,7 @@ typedef enum {
 * name : QCamxHAL3TestSnapshot
 * function: construct object.
 ************************************************************************/
-QCamxHAL3TestSnapshot::QCamxHAL3TestSnapshot(camera_module_t *module, QCamxHAL3TestConfig *config) {
+QCamxHAL3TestSnapshot::QCamxHAL3TestSnapshot(camera_module_t *module, QCamxConfig *config) {
     init(module, config);
     mSnapshotNum = 0;
 }

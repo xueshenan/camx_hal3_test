@@ -103,7 +103,7 @@ typedef struct _video_bitrate_config {
 } video_bitrate_config_t;
 
 // Class for Geting and saving Configure from user
-class QCamxHAL3TestConfig {
+class QCamxConfig {
 public:
     // current test mode
     int _test_mode;
@@ -152,6 +152,6 @@ public:
     int parse_commandline_meta_dump(int ordersize, char *order);
     int parse_commandline_meta_update(char *order, android::CameraMetadata *meta_update);
 public:
-    QCamxHAL3TestConfig();
-    ~QCamxHAL3TestConfig();
+    QCamxConfig();
+    ~QCamxConfig();
 };
