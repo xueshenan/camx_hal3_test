@@ -17,7 +17,7 @@
 
 #include <string>
 
-#include "QCamxHAL3TestImpl.h"
+#include "qcamx_define.h"
 #include "qcamx_log.h"
 
 using namespace qcamx;

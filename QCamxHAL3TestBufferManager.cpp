@@ -11,7 +11,7 @@
 
 #include "QCamxHAL3TestBufferManager.h"
 
-#include "QCamxHAL3TestImpl.h"
+#include "qcamx_define.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG

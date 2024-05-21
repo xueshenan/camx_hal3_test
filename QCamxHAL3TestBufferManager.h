@@ -43,7 +43,7 @@ typedef struct gbm_device GBM_DEVICE;
 #include <mutex>
 #include <unordered_map>
 
-#include "QCamxHAL3TestImpl.h"
+#include "qcamx_define.h"
 #include "qcamx_log.h"
 
 #define BUFFER_QUEUE_DEPTH 256

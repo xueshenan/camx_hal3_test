@@ -26,8 +26,8 @@
 #include <mutex>
 
 #include "QCamxHAL3TestDevice.h"
-#include "QCamxHAL3TestImpl.h"
 #include "qcamx_config.h"
+#include "qcamx_define.h"
 
 using namespace android;
 
@@ -106,7 +106,12 @@ public:
     CameraMetadata *get_current_meta();
     void updata_meta_data(CameraMetadata *meta);
 public:
-    static void dump_frame(BufferInfo *info, unsigned int frameNum, StreamType dumpType,
+    /**
+     * @brief dump one frame to file
+     * @param frame_num current frame num
+     * @param dump_type dump frame type
+    */
+    static void dump_frame(BufferInfo *info, unsigned int frame_num, StreamType dump_type,
                            Implsubformat subformat);
     static inline uint32_t ALIGN(uint32_t operand, uint32_t alignment) {
         uint32_t remainder = (operand % alignment);
