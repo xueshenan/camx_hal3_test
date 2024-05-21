@@ -10,8 +10,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef __QCAMX_HAL3_TEST_BUFFER_MANAGER__
 #define __QCAMX_HAL3_TEST_BUFFER_MANAGER__
-//#include <log.h>
-//#include "QCamxHAL3TestConfig.h"
 
 #if defined USE_GRALLOC1
 #include <gralloc_priv.h>

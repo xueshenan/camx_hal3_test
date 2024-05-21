@@ -25,9 +25,9 @@
 #include <iostream>
 #include <mutex>
 
-#include "QCamxHAL3TestConfig.h"
 #include "QCamxHAL3TestDevice.h"
 #include "QCamxHAL3TestImpl.h"
+#include "qcamx_config.h"
 
 using namespace android;
 

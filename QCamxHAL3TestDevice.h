@@ -37,7 +37,7 @@
 #include <vector>
 
 #include "QCamxHAL3TestBufferManager.h"
-#include "QCamxHAL3TestConfig.h"
+#include "qcamx_config.h"
 #include "qcamx_log.h"
 
 using namespace android;

@@ -1,15 +1,14 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright (c) 2018-2021 Qualcomm Technologies, Inc.
-// All Rights Reserved.
-// Confidential and Proprietary - Qualcomm Technologies, Inc.
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file  QCamxHAL3TestConfig.h
-/// @brief for QCamxHAL3TestConfig handle
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _QCAMX_HAL3_TEST_CONFIG_
-#define _QCAMX_HAL3_TEST_CONFIG_
+/**
+ * qcamx config info
+ * There are 3 Test Modes: preview, snapshot, video
+ *  preview : There is only preview stream, in NonZSL case, preview
+ *            mode is needed when there is no snapshot request
+ *  snapshot : There are preview stream and snapshot stream, it is
+ *             needed when snapshot requests in NonZSL or ZSL mode
+ *  Video: There are preview, video and snapshot streams, it is needed
+ *         when video/liveshot
+*/
+#pragma once
 
 #include <camera/CameraMetadata.h>
 #include <camera/VendorTagDescriptor.h>
@@ -23,16 +22,6 @@
 
 using namespace qcamx;
 using namespace android;
-
-/******************************************************************************************************************************
- * There are 3 Test Modes: preview, snapshot, video
- * preview : There is only preview stream, in NonZSL case, preview
- *           mode is needed when there is no snapshot request
- * snapshot : There are preview stream and snapshot stream, it is
- *            needed when snapshot requests in NonZSL or ZSL mode
- * Video: There are preview, video and snapshot streams, it is needed
- *        when video/liveshot
- ******************************************************************************************************************************/
 
 #define TESTMODE_PREVIEW 0
 #define TESTMODE_SNAPSHOT 1
@@ -166,5 +155,3 @@ public:
     QCamxHAL3TestConfig();
     ~QCamxHAL3TestConfig();
 };
-
-#endif

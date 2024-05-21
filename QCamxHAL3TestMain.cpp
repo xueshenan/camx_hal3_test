@@ -13,7 +13,6 @@
 #include <sys/time.h>
 
 #include "QCamxHAL3TestCase.h"
-#include "QCamxHAL3TestConfig.h"
 #include "QCamxHAL3TestDepth.h"
 #include "QCamxHAL3TestPreviewOnly.h"
 #include "QCamxHAL3TestPreviewVideo.h"
@@ -21,6 +20,7 @@
 #include "QCamxHAL3TestVideo.h"
 #include "QCamxHAL3TestVideoOnly.h"
 #include "g_version.h"
+#include "qcamx_config.h"
 #include "qcamx_log.h"
 #include "qcamx_signal_monitor.h"
 

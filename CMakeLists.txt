@@ -67,13 +67,13 @@ add_custom_target (autogen_version_camxtest ALL
 add_executable( camx-hal3-test
     qcamx_log.cpp
     qcamx_signal_monitor.cpp
+    qcamx_config.cpp
      QCamxHAL3TestCase.cpp
      QCamxHAL3TestBufferManager.cpp
      QCamxHAL3TestDevice.cpp
      QCamxHAL3TestSnapshot.cpp
      QCamxHAL3TestMain.cpp
      QCamxHAL3TestVideo.cpp
-     QCamxHAL3TestConfig.cpp
      QCamxHAL3TestPreviewOnly.cpp
      QCamxHAL3TestDepth.cpp
      QCamxHAL3TestVideoOnly.cpp
