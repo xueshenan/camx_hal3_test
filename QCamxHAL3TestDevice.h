@@ -147,7 +147,8 @@ public:
     */
     void close_camera();
     /**
-     * @brief allocate stream buffer manager
+     * @brief allocate stream buffer
+     * @param streams streams need alloc buffer
     */
     void pre_allocate_streams(std::vector<Stream *> streams);
     /**
@@ -156,6 +157,7 @@ public:
     */
     bool config_streams(std::vector<Stream *> streams,
                         int op_mode = CAMERA3_STREAM_CONFIGURATION_NORMAL_MODE);
+
     void constructDefaultRequestSettings(int index, camera3_request_template_t type,
                                          bool useDefaultMeta = false);
     int processCaptureRequestOn(CameraThreadData *requestThread, CameraThreadData *resultThread);
@@ -173,10 +175,6 @@ public:
     int get_sync_buffer_mode() { return _sync_buffer_mode; }
     void set_sync_buffer_mode(SyncBufferMode sync_buffer_mode) {
         _sync_buffer_mode = sync_buffer_mode;
-    }
-    void set_fps_range(int min, int max) {
-        _fps_range[0] = min;
-        _fps_range[1] = max;
     }
     int updateMetadataForNextRequest(android::CameraMetadata *meta);
     int ProcessOneCaptureRequest(int *requestNumberOfEachStream, int *frameNumber);
@@ -229,7 +227,6 @@ private:
     QCamxHAL3TestBufferManager *_buffer_manager[MAXSTREAM];
 private:
     SyncBufferMode _sync_buffer_mode;
-    int32_t _fps_range[2];
     pthread_mutex_t _setting_metadata_lock;
     std::list<android::CameraMetadata> _setting_metadata_list;
     pthread_mutex_t mPendingLock;

@@ -88,6 +88,102 @@ void QCamxHAL3TestDevice::close_camera() {
     _callback_ops = NULL;
 }
 
+void QCamxHAL3TestDevice::pre_allocate_streams(std::vector<Stream *> streams) {
+    QCAMX_PRINT("allocate buffer start\n");
+    for (uint32_t i = 0; i < streams.size(); i++) {
+        QCamxHAL3TestBufferManager *buffer_manager = new QCamxHAL3TestBufferManager();
+        int stream_buffer_max = streams[i]->pstream->max_buffers;
+        Implsubformat subformat = streams[i]->subformat;
+        QCAMX_PRINT("Subformat for stream %d: %d\n", i, subformat);
+
+        if (streams[i]->pstream->format == HAL_PIXEL_FORMAT_BLOB) {
+            int size =
+                get_jpeg_buffer_size(streams[i]->pstream->width, streams[i]->pstream->height);
+
+            buffer_manager->AllocateBuffers(stream_buffer_max, size, 1,
+                                            (int32_t)(streams[i]->pstream->format),
+                                            streams[i]->pstream->usage, streams[i]->pstream->usage,
+                                            streams[i]->type, subformat);
+        } else {
+            buffer_manager->AllocateBuffers(
+                stream_buffer_max, streams[i]->pstream->width, streams[i]->pstream->height,
+                (int32_t)(streams[i]->pstream->format), streams[i]->pstream->usage,
+                streams[i]->pstream->usage, streams[i]->type, subformat);
+        }
+        _buffer_manager[i] = buffer_manager;
+    }
+    QCAMX_PRINT("allocate buffer end\n");
+}
+
+bool QCamxHAL3TestDevice::config_streams(std::vector<Stream *> streams, int op_mode) {
+    // configure
+    _camera3_stream_config.num_streams = streams.size();
+    _camera3_streams.resize(_camera3_stream_config.num_streams);
+    for (uint32_t i = 0; i < _camera3_stream_config.num_streams; i++) {
+        camera3_stream_t *new_camera3_stream = new camera3_stream_t();
+        new_camera3_stream->stream_type = streams[i]->pstream->stream_type;  //OUTPUT
+        new_camera3_stream->width = streams[i]->pstream->width;
+        new_camera3_stream->height = streams[i]->pstream->height;
+        new_camera3_stream->format = streams[i]->pstream->format;
+        new_camera3_stream->data_space = streams[i]->pstream->data_space;
+        new_camera3_stream->usage =
+            streams[i]->pstream->usage;  //GRALLOC1_CONSUMER_USAGE_HWCOMPOSER;
+        new_camera3_stream->rotation = streams[i]->pstream->rotation;
+        new_camera3_stream->max_buffers = streams[i]->pstream->max_buffers;
+        new_camera3_stream->priv = streams[i]->pstream->priv;
+        _camera3_streams[i] = new_camera3_stream;
+
+        CameraStream *new_stream = new CameraStream();
+        mCameraStreams[i] = new_stream;
+        new_stream->streamId = i;
+        mCameraStreams[i]->bufferManager = _buffer_manager[i];
+    }
+
+    // update the operation_mode with mConfig->mRangeMode(0/1), mImageType(0/1/2/3/4)
+    if (_config && _config->_range_mode != -1 && _config->_image_type != -1) {
+        // use StreamConfigModeSensorMode in camx
+        op_mode =
+            (op_mode) | ((_config->_range_mode * 5 + _config->_image_type + 1) << 16) | (0x1 << 24);
+    }
+
+    _camera3_stream_config.operation_mode = op_mode;
+    if (_config->_force_opmode != 0) {
+        _camera3_stream_config.operation_mode = _config->_force_opmode;
+    }
+    _camera3_stream_config.streams = _camera3_streams.data();
+
+    /**
+     * Assignment clones metadata buffer.
+     * CameraMetadata &operator=(const camera_metadata_t *buffer);
+    */
+    _init_metadata = _camera_characteristics;
+
+    // set fps range
+    _init_metadata.update(ANDROID_CONTROL_AE_TARGET_FPS_RANGE, _config->_fps_range, 2);
+
+    int32_t stream_mapdata[8] = {0};
+    stream_mapdata[5] = 0;  // TODO(anxs) camera id need use camera id ?
+    stream_mapdata[4] = ANDROID_CONTROL_CAPTURE_INTENT_CUSTOM;  // capture intent
+    sp<VendorTagDescriptor> vendor_tag_descriptor =
+        android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
+    uint32_t tag = 0;
+    CameraMetadata::getTagFromName("org.codeaurora.qcamera3.sessionParameters.availableStreamMap",
+                                   vendor_tag_descriptor.get(), &tag);
+    _init_metadata.update(tag, stream_mapdata, 8);
+
+    _camera3_stream_config.session_parameters = (camera_metadata *)_init_metadata.getAndLock();
+
+    int return_value =
+        _camera3_device->ops->configure_streams(_camera3_device, &_camera3_stream_config);
+    bool result = true;
+    if (return_value != 0) {
+        QCAMX_ERR("configure_streams error with :%d\n", return_value);
+        result = false;
+    }
+    _init_metadata.unlock(_camera3_stream_config.session_parameters);
+    return result;
+}
+
 /************************************************************************
 * name : setCallBack
 * function: set callback for upper layer.
@@ -231,106 +327,6 @@ void QCamxHAL3TestDevice::CallbackOps::Notify(const struct camera3_callback_ops 
                                               const camera3_notify_msg_t *msg) {}
 
 /************************************************************************
-* name : configureStreams
-* function: configure stream paramaters.
-************************************************************************/
-bool QCamxHAL3TestDevice::config_streams(std::vector<Stream *> streams, int op_mode) {
-    // configure
-    _camera3_stream_config.num_streams = streams.size();
-    _camera3_streams.resize(_camera3_stream_config.num_streams);
-    for (uint32_t i = 0; i < _camera3_stream_config.num_streams; i++) {
-        camera3_stream_t *new_camera3_stream = new camera3_stream_t();
-        new_camera3_stream->stream_type = streams[i]->pstream->stream_type;  //OUTPUT
-        new_camera3_stream->width = streams[i]->pstream->width;
-        new_camera3_stream->height = streams[i]->pstream->height;
-        new_camera3_stream->format = streams[i]->pstream->format;
-        new_camera3_stream->data_space = streams[i]->pstream->data_space;
-        new_camera3_stream->usage =
-            streams[i]->pstream->usage;  //GRALLOC1_CONSUMER_USAGE_HWCOMPOSER;
-        new_camera3_stream->rotation = streams[i]->pstream->rotation;
-        new_camera3_stream->max_buffers = streams[i]->pstream->max_buffers;
-        new_camera3_stream->priv = streams[i]->pstream->priv;
-        _camera3_streams[i] = new_camera3_stream;
-
-        CameraStream *new_stream = new CameraStream();
-        mCameraStreams[i] = new_stream;
-        new_stream->streamId = i;
-        mCameraStreams[i]->bufferManager = _buffer_manager[i];
-    }
-
-    // update the operation_mode with mConfig->mRangeMode(0/1), mImageType(0/1/2/3/4)
-    if (_config && _config->_range_mode != -1 && _config->_image_type != -1) {
-        // use StreamConfigModeSensorMode in camx
-        op_mode =
-            (op_mode) | ((_config->_range_mode * 5 + _config->_image_type + 1) << 16) | (0x1 << 24);
-    }
-
-    _camera3_stream_config.operation_mode = op_mode;
-    if (_config->_force_opmode != 0) {
-        _camera3_stream_config.operation_mode = _config->_force_opmode;
-    }
-    _camera3_stream_config.streams = _camera3_streams.data();
-
-    /**
-     * Assignment clones metadata buffer.
-     * CameraMetadata &operator=(const camera_metadata_t *buffer);
-    */
-    _init_metadata = _camera_characteristics;
-
-    // set fps range
-    _init_metadata.update(ANDROID_CONTROL_AE_TARGET_FPS_RANGE, _fps_range, 2);
-
-    int32_t stream_mapdata[8] = {0};
-    stream_mapdata[5] = 0;  // TODO(anxs) camera id need use camera id ?
-    stream_mapdata[4] = ANDROID_CONTROL_CAPTURE_INTENT_CUSTOM;  // capture intent
-    sp<VendorTagDescriptor> vendor_tag_descriptor =
-        android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
-    uint32_t tag = 0;
-    CameraMetadata::getTagFromName("org.codeaurora.qcamera3.sessionParameters.availableStreamMap",
-                                   vendor_tag_descriptor.get(), &tag);
-    _init_metadata.update(tag, stream_mapdata, 8);
-
-    _camera3_stream_config.session_parameters = (camera_metadata *)_init_metadata.getAndLock();
-
-    int return_value =
-        _camera3_device->ops->configure_streams(_camera3_device, &_camera3_stream_config);
-    bool result = true;
-    if (return_value != 0) {
-        QCAMX_ERR("configure_streams error with :%d\n", return_value);
-        result = false;
-    }
-    _init_metadata.unlock(_camera3_stream_config.session_parameters);
-    return result;
-}
-
-void QCamxHAL3TestDevice::pre_allocate_streams(std::vector<Stream *> streams) {
-    QCAMX_PRINT("allocate buffer start\n");
-    for (uint32_t i = 0; i < streams.size(); i++) {
-        QCamxHAL3TestBufferManager *buffer_manager = new QCamxHAL3TestBufferManager();
-        int stream_buffer_max = streams[i]->pstream->max_buffers;
-        Implsubformat subformat = streams[i]->subformat;
-        QCAMX_PRINT("Subformat for stream %d: %d\n", i, subformat);
-
-        if (streams[i]->pstream->format == HAL_PIXEL_FORMAT_BLOB) {
-            int size =
-                get_jpeg_buffer_size(streams[i]->pstream->width, streams[i]->pstream->height);
-
-            buffer_manager->AllocateBuffers(stream_buffer_max, size, 1,
-                                            (int32_t)(streams[i]->pstream->format),
-                                            streams[i]->pstream->usage, streams[i]->pstream->usage,
-                                            streams[i]->type, subformat);
-        } else {
-            buffer_manager->AllocateBuffers(
-                stream_buffer_max, streams[i]->pstream->width, streams[i]->pstream->height,
-                (int32_t)(streams[i]->pstream->format), streams[i]->pstream->usage,
-                streams[i]->pstream->usage, streams[i]->type, subformat);
-        }
-        _buffer_manager[i] = buffer_manager;
-    }
-    QCAMX_PRINT("allocate buffer end\n");
-}
-
-/************************************************************************
 * name : constructDefaultRequestSettings
 * function: configure strema default paramaters.
 ************************************************************************/
@@ -346,10 +342,10 @@ void QCamxHAL3TestDevice::constructDefaultRequestSettings(int index,
         pthread_mutex_lock(&_setting_metadata_lock);
         camera_metadata *meta = clone_camera_metadata(mCameraStreams[index]->metadata);
         mCurrentMeta = meta;
-        mCurrentMeta.update(ANDROID_CONTROL_AE_TARGET_FPS_RANGE, _fps_range, 2);
+        mCurrentMeta.update(ANDROID_CONTROL_AE_TARGET_FPS_RANGE, _config->_fps_range, 2);
 
-        if (_fps_range[0] == _fps_range[1]) {
-            int64_t frameDuration = 1e9 / _fps_range[0];
+        if (_config->_fps_range[0] == _config->_fps_range[1]) {
+            int64_t frameDuration = 1e9 / _config->_fps_range[0];
             mCurrentMeta.update(ANDROID_SENSOR_FRAME_DURATION, &frameDuration, 1);
         }
         {

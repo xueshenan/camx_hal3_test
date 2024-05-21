@@ -157,7 +157,6 @@ int QCamxHAL3TestPreviewOnly::init_preview_stream() {
     }
 
     _device->set_sync_buffer_mode(SYNC_BUFFER_INTERNAL);
-    _device->set_fps_range(_config->_fps_range[0], _config->_fps_range[1]);
     _device->config_streams(_streams);
     if (_metadata_ext != NULL) {
         _device->set_current_meta(_metadata_ext);

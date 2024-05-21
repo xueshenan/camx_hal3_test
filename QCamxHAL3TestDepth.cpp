@@ -129,7 +129,6 @@ int QCamxHAL3TestDepth::initDepthStream() {
     }
 
     _device->set_sync_buffer_mode(SYNC_BUFFER_INTERNAL);
-    _device->set_fps_range(_config->_fps_range[0], _config->_fps_range[1]);
     QCAMX_INFO("op_mode 0x1100000 mConfig->mFpsRange[0] %d mConfig->mFpsRange[1] %d \n",
                _config->_fps_range[0], _config->_fps_range[1]);
     _device->config_streams(_streams, 0x1100000);

@@ -234,7 +234,6 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     streams.push_back(&vStream);
 
     _device->set_sync_buffer_mode(SYNC_BUFFER_EXTERNAL);
-    _device->set_fps_range(_config->_fps_range[0], _config->_fps_range[1]);
     if (mVideoMode >= VIDEO_ONLY_MODE_HFR60) {
         // for HFR case
         int stream_size = 0;
