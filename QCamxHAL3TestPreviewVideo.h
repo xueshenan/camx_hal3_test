@@ -16,7 +16,7 @@
 #include "QCamxHAL3TestVideoEncoder.h"
 #endif
 
-class QCamxHAL3TestPreviewVideo : public QCamxHAL3TestCase {
+class QCamxHAL3TestPreviewVideo : public QCamxCase {
 public:
     QCamxHAL3TestPreviewVideo(camera_module_t *module, QCamxConfig *config);
     ~QCamxHAL3TestPreviewVideo();

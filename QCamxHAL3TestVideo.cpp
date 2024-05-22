@@ -66,7 +66,7 @@ void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_captur
             if (_callbacks && _callbacks->snapshot_cb) {
                 _callbacks->snapshot_cb(info, result->frame_number);
             }
-            QCamxHAL3TestCase::dump_frame(info, result->frame_number, SNAPSHOT_TYPE,
+            QCamxCase::dump_frame(info, result->frame_number, SNAPSHOT_TYPE,
                                           _config->_snapshot_stream.subformat);
             stream->bufferManager->ReturnBuffer(buffers[i].buffer);
         } else if (stream->streamId == VIDEO_IDX) {
@@ -76,7 +76,7 @@ void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_captur
             if (_dump_video_num > 0 &&
                 (_dump_interval == 0 ||
                  (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
-                QCamxHAL3TestCase::dump_frame(info, result->frame_number, VIDEO_TYPE,
+                QCamxCase::dump_frame(info, result->frame_number, VIDEO_TYPE,
                                               _config->_video_stream.subformat);
                 if (_dump_interval == 0) {
                     _dump_video_num--;
@@ -97,7 +97,7 @@ void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_captur
             if (_dump_preview_num > 0 &&
                 (_dump_interval == 0 ||
                  (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
-                QCamxHAL3TestCase::dump_frame(info, result->frame_number, PREVIEW_TYPE,
+                QCamxCase::dump_frame(info, result->frame_number, PREVIEW_TYPE,
                                               _config->_preview_stream.subformat);
                 if (_dump_interval == 0) {
                     _dump_preview_num--;

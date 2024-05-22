@@ -1,7 +1,7 @@
 /**
 * @file  qcamx_device.h
 * @brief camera devices layer to control camera hardware ,camera3_device implementation
-*        provide camera device to QCamxHAL3TestCase
+*        provide camera device to QCamxCase
 */
 
 #pragma once

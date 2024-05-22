@@ -12,7 +12,7 @@
 #define _QCAMX_HAL3_TEST_SNAPSHOT_
 #include "QCamxHAL3TestCase.h"
 
-class QCamxHAL3TestSnapshot : public QCamxHAL3TestCase {
+class QCamxHAL3TestSnapshot : public QCamxCase {
 public:
     QCamxHAL3TestSnapshot(camera_module_t *module, QCamxConfig *config);
     ~QCamxHAL3TestSnapshot();

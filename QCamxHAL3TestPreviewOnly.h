@@ -13,7 +13,7 @@
 
 #include "QCamxHAL3TestCase.h"
 
-class QCamxHAL3TestPreviewOnly : public QCamxHAL3TestCase {
+class QCamxHAL3TestPreviewOnly : public QCamxCase {
 public:
     virtual int pre_init_stream() override;
     virtual void run() override;

@@ -70,7 +70,7 @@ struct YUVFormat {
     size_t planeSize;    ///< Size in pixels for this plane.
 };
 
-class QCamxHAL3TestCase : public DeviceCallback {
+class QCamxCase : public DeviceCallback {
 public:  // DeviceCallback function
     /**
      * @brief empty implementation
@@ -116,8 +116,8 @@ public:
     static void dump_frame(BufferInfo *info, unsigned int frame_num, StreamType dump_type,
                            Implsubformat subformat);
 public:
-    QCamxHAL3TestCase() {}
-    virtual ~QCamxHAL3TestCase() {}
+    QCamxCase() {}
+    virtual ~QCamxCase() {}
 protected:
     /**
      * @brief initialization of variables

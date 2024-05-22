@@ -12,7 +12,7 @@
 #define _QCAMX_HAL3_TEST_DEPTH_
 #include "QCamxHAL3TestCase.h"
 
-class QCamxHAL3TestDepth : public QCamxHAL3TestCase {
+class QCamxHAL3TestDepth : public QCamxCase {
 public:
     QCamxHAL3TestDepth(camera_module_t *module, QCamxConfig *config);
     ~QCamxHAL3TestDepth();

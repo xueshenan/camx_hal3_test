@@ -58,8 +58,8 @@ void QCamxHAL3TestSnapshot::capture_post_process(DeviceCallback *cb,
                 _callbacks->snapshot_cb(info, result->frame_number);
             }
             if (mSnapshotNum > 0) {
-                QCamxHAL3TestCase::dump_frame(info, result->frame_number, SNAPSHOT_TYPE,
-                                              _config->_snapshot_stream.subformat);
+                QCamxCase::dump_frame(info, result->frame_number, SNAPSHOT_TYPE,
+                                      _config->_snapshot_stream.subformat);
                 mSnapshotNum--;
                 QCAMX_INFO("Get One Picture %d Last\n", mSnapshotNum);
             }
@@ -71,8 +71,8 @@ void QCamxHAL3TestSnapshot::capture_post_process(DeviceCallback *cb,
             if (testsnap->_dump_preview_num > 0 &&
                 (_dump_interval == 0 ||
                  (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
-                QCamxHAL3TestCase::dump_frame(info, result->frame_number, PREVIEW_TYPE,
-                                              _config->_preview_stream.subformat);
+                QCamxCase::dump_frame(info, result->frame_number, PREVIEW_TYPE,
+                                      _config->_preview_stream.subformat);
                 if (_dump_interval == 0) {
                     testsnap->_dump_preview_num--;
                 }

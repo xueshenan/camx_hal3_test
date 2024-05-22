@@ -34,7 +34,7 @@ using namespace std;
 static camera_module_t *s_camera_module;
 static int current_camera_id;
 #define MAX_CAMERA 8
-static QCamxHAL3TestCase *s_HAL3_test[MAX_CAMERA];
+static QCamxCase *s_HAL3_test[MAX_CAMERA];
 
 /************************************************************************
  * name : preview_cb
@@ -42,7 +42,7 @@ static QCamxHAL3TestCase *s_HAL3_test[MAX_CAMERA];
  ************************************************************************/
 void preview_cb(BufferInfo *info, int frameNum) {
     // QCAMX_PRINT("preview: %d\n", frameNum);
-    // QCamxHAL3TestCase::DumpFrame(info, frameNum, PREVIEW_TYPE, YUV420NV12);
+    // QCamxCase::DumpFrame(info, frameNum, PREVIEW_TYPE, YUV420NV12);
 }
 
 /************************************************************************
@@ -351,7 +351,7 @@ int main(int argc, char *argv[]) {
             case 'A':
             case 'a': {
                 // add
-                QCamxHAL3TestCase *testCase = NULL;
+                QCamxCase *testCase = NULL;
                 QCamxConfig *testConf = new QCamxConfig();
                 result = testConf->parse_commandline_add(size, (char *)param.c_str());
                 if (result != 0) {
@@ -446,7 +446,7 @@ int main(int argc, char *argv[]) {
                 sscanf(param.c_str(), "%d", &num);
 
                 QCAMX_PRINT("snapshot request:%d for cameraid %d\n", num, RequestCameraId);
-                QCamxHAL3TestCase *testCase = s_HAL3_test[RequestCameraId];
+                QCamxCase *testCase = s_HAL3_test[RequestCameraId];
                 StreamCapture request = {SNAPSHOT_TYPE, num};
                 testCase->request_capture(request);
 
@@ -477,7 +477,7 @@ int main(int argc, char *argv[]) {
 
                 QCAMX_PRINT("preview dump:%d/%d for cameraid:%d.\n", num, interval,
                             RequestCameraId);
-                QCamxHAL3TestCase *testCase = s_HAL3_test[RequestCameraId];
+                QCamxCase *testCase = s_HAL3_test[RequestCameraId];
                 testCase->trigger_dump(num, interval);
 
                 break;
@@ -493,7 +493,7 @@ int main(int argc, char *argv[]) {
                     break;
                 }
 
-                QCamxHAL3TestCase *testCase = s_HAL3_test[RequestCameraId];
+                QCamxCase *testCase = s_HAL3_test[RequestCameraId];
                 testCase->stop();
                 testCase->close_camera();
                 delete testCase->_config;
@@ -504,7 +504,7 @@ int main(int argc, char *argv[]) {
                 break;
             }
             case 'U': {
-                QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
+                QCamxCase *testCase = s_HAL3_test[current_camera_id];
                 android::CameraMetadata *metadata = testCase->get_current_meta();
                 testCase->_config->parse_commandline_meta_update((char *)param.c_str(), metadata);
                 testCase->updata_metadata(metadata);
@@ -512,7 +512,7 @@ int main(int argc, char *argv[]) {
                 break;
             }
             case 'E': {
-                QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
+                QCamxCase *testCase = s_HAL3_test[current_camera_id];
                 android::CameraMetadata *metadata = testCase->get_current_meta();
                 testCase->_config->parse_commandline_meta_update((char *)param.c_str(), metadata);
                 testCase->updata_metadata(metadata);

@@ -5,7 +5,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file  QCamxHAL3TestCase.cpp
+/// @file  QCamxCase.cpp
 /// @brief base class
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -43,14 +43,14 @@ static inline const char *get_file_type_string(uint32_t format);
 
 /******************************** DeviceCallback function *****************************/
 
-void QCamxHAL3TestCase::capture_post_process(DeviceCallback *cb, camera3_capture_result *result) {}
+void QCamxCase::capture_post_process(DeviceCallback *cb, camera3_capture_result *result) {}
 /************************************************************************
 * name : handle_metadata
 * function: analysis meta info from capture result.
 ************************************************************************/
-void QCamxHAL3TestCase::handle_metadata(DeviceCallback *cb, camera3_capture_result *result) {
+void QCamxCase::handle_metadata(DeviceCallback *cb, camera3_capture_result *result) {
     int res = 0;
-    QCamxHAL3TestCase *testcase = (QCamxHAL3TestCase *)cb;
+    QCamxCase *testcase = (QCamxCase *)cb;
     QCamxDevice *device = testcase->_device;
     android::sp<android::VendorTagDescriptor> vTags =
         android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
@@ -476,19 +476,19 @@ void QCamxHAL3TestCase::handle_metadata(DeviceCallback *cb, camera3_capture_resu
 }
 
 /************************ public method ******************************/
-int QCamxHAL3TestCase::open_camera() {
+int QCamxCase::open_camera() {
     return _device->open_camera();
 }
 
-void QCamxHAL3TestCase::close_camera() {
+void QCamxCase::close_camera() {
     return _device->close_camera();
 }
 
-void QCamxHAL3TestCase::set_callbacks(qcamx_hal3_test_cbs_t *callbacks) {
+void QCamxCase::set_callbacks(qcamx_hal3_test_cbs_t *callbacks) {
     _callbacks = callbacks;
 }
 
-void QCamxHAL3TestCase::trigger_dump(int count, int interval) {
+void QCamxCase::trigger_dump(int count, int interval) {
     _dump_preview_num = count;
     _dump_video_num = count;
     if (interval >= 0) {
@@ -496,15 +496,15 @@ void QCamxHAL3TestCase::trigger_dump(int count, int interval) {
     }
 }
 
-void QCamxHAL3TestCase::set_current_metadata(android::CameraMetadata *meta) {
+void QCamxCase::set_current_metadata(android::CameraMetadata *meta) {
     _metadata_ext = meta;
 }
 
-android::CameraMetadata *QCamxHAL3TestCase::get_current_meta() {
+android::CameraMetadata *QCamxCase::get_current_meta() {
     return &(_device->_current_metadata);
 }
 
-void QCamxHAL3TestCase::updata_metadata(android::CameraMetadata *meta) {
+void QCamxCase::updata_metadata(android::CameraMetadata *meta) {
     _device->update_metadata_for_next_request(meta);
 }
 
@@ -513,8 +513,8 @@ static inline uint32_t ALIGN(uint32_t operand, uint32_t alignment) {
     return (0 == remainder) ? operand : operand - remainder + alignment;
 }
 
-void QCamxHAL3TestCase::dump_frame(BufferInfo *info, unsigned int frame_num, StreamType dump_type,
-                                   Implsubformat subformat) {
+void QCamxCase::dump_frame(BufferInfo *info, unsigned int frame_num, StreamType dump_type,
+                           Implsubformat subformat) {
     uint8_t *data = (uint8_t *)info->vaddr;
     int size = info->size;
     int width = info->width;
@@ -636,7 +636,7 @@ void QCamxHAL3TestCase::dump_frame(BufferInfo *info, unsigned int frame_num, Str
 }
 
 /**************************** protected method *************************************/
-bool QCamxHAL3TestCase::init(camera_module_t *module, QCamxConfig *config) {
+bool QCamxCase::init(camera_module_t *module, QCamxConfig *config) {
     _metadata_ext = NULL;
 
     _dump_preview_num = 0;
@@ -690,14 +690,14 @@ bool QCamxHAL3TestCase::init(camera_module_t *module, QCamxConfig *config) {
     return true;
 }
 
-void QCamxHAL3TestCase::deinit() {
+void QCamxCase::deinit() {
     if (_device) {
         delete _device;
         _device = NULL;
     }
 }
 
-void QCamxHAL3TestCase::show_fps(StreamType stream_type) {
+void QCamxCase::show_fps(StreamType stream_type) {
     volatile unsigned int *frame_count = NULL;
     volatile unsigned int *last_frame_count = NULL;
     volatile nsecs_t *last_fps_time = NULL;

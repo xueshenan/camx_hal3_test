@@ -29,7 +29,7 @@ typedef enum {
 #define LIVING_REQUEST_APPEND (7)
 #define HFR_LIVING_REQUEST_APPEND (35)
 
-class QCamxHAL3TestVideoOnly : public QCamxHAL3TestCase {
+class QCamxHAL3TestVideoOnly : public QCamxCase {
 public:
     QCamxHAL3TestVideoOnly(camera_module_t *module, QCamxConfig *config);
     ~QCamxHAL3TestVideoOnly();

@@ -59,8 +59,8 @@ void QCamxHAL3TestDepth::capture_post_process(DeviceCallback *cb, camera3_captur
             if (_dump_video_num > 0 &&
                 (_dump_interval == 0 ||
                  (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
-                QCamxHAL3TestCase::dump_frame(info, result->frame_number, DEPTH_TYPE,
-                                              _config->_video_stream.subformat);
+                QCamxCase::dump_frame(info, result->frame_number, DEPTH_TYPE,
+                                      _config->_video_stream.subformat);
                 if (_dump_interval == 0) {
                     _dump_video_num--;
                 }
@@ -78,8 +78,8 @@ void QCamxHAL3TestDepth::capture_post_process(DeviceCallback *cb, camera3_captur
             if (_dump_preview_num > 0 &&
                 (_dump_interval == 0 ||
                  (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
-                QCamxHAL3TestCase::dump_frame(info, result->frame_number, IRBG_TYPE,
-                                              _config->_preview_stream.subformat);
+                QCamxCase::dump_frame(info, result->frame_number, IRBG_TYPE,
+                                      _config->_preview_stream.subformat);
                 if (_dump_interval == 0) {
                     _dump_preview_num--;
                 }
