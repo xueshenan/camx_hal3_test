@@ -44,10 +44,10 @@ QCamxHAL3TestDevice::QCamxHAL3TestDevice(camera_module_t *camera_module, int cam
     memset(&_camera3_stream_config, 0, sizeof(camera3_stream_configuration_t));
 
     pthread_condattr_t attr;
-    pthread_mutex_init(&mPendingLock, NULL);
+    pthread_mutex_init(&_pending_lock, NULL);
     pthread_condattr_init(&attr);
     pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
-    pthread_cond_init(&mPendingCond, &attr);
+    pthread_cond_init(&_pending_cond, &attr);
     pthread_condattr_destroy(&attr);
 
     struct camera_info info;
@@ -57,8 +57,8 @@ QCamxHAL3TestDevice::QCamxHAL3TestDevice(camera_module_t *camera_module, int cam
 
 QCamxHAL3TestDevice::~QCamxHAL3TestDevice() {
     pthread_mutex_destroy(&_setting_metadata_lock);
-    pthread_mutex_destroy(&mPendingLock);
-    pthread_cond_destroy(&mPendingCond);
+    pthread_mutex_destroy(&_pending_lock);
+    pthread_cond_destroy(&_pending_cond);
 }
 
 /*************************public method*****************************/
@@ -232,24 +232,47 @@ void QCamxHAL3TestDevice::construct_default_request_settings(int index,
     }
 }
 
+void *do_capture_post_process(void *data);
+void *do_process_capture_request(void *data);
+
+int QCamxHAL3TestDevice::process_capture_request_on(CameraThreadData *request_thread,
+                                                    CameraThreadData *result_thread) {
+    // init result threads
+    pthread_condattr_t attr;
+    pthread_condattr_init(&attr);
+    pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
+    pthread_mutex_init(&result_thread->mutex, NULL);
+    pthread_mutex_init(&request_thread->mutex, NULL);
+    pthread_cond_init(&request_thread->cond, &attr);
+    pthread_cond_init(&result_thread->cond, &attr);
+    pthread_condattr_destroy(&attr);
+
+    pthread_attr_t result_attr;
+    pthread_attr_init(&result_attr);
+    pthread_attr_setdetachstate(&result_attr, PTHREAD_CREATE_JOINABLE);
+    result_thread->device = this;
+    pthread_create(&(result_thread->thread), &result_attr, do_capture_post_process, result_thread);
+    mResultThread = result_thread;
+    pthread_attr_destroy(&result_attr);
+
+    // init request thread
+    pthread_attr_t requestAttr;
+    pthread_attr_init(&requestAttr);
+    pthread_attr_setdetachstate(&requestAttr, PTHREAD_CREATE_JOINABLE);
+    request_thread->device = this;
+    pthread_create(&(request_thread->thread), &requestAttr, do_process_capture_request,
+                   request_thread);
+    mRequestThread = request_thread;
+    pthread_attr_destroy(&result_attr);
+    return 0;
+}
+
 /************************************************************************
 * name : setCallBack
 * function: set callback for upper layer.
 ************************************************************************/
 void QCamxHAL3TestDevice::set_callback(DeviceCallback *callback) {
     _callback = callback;
-}
-/************************************************************************
-* name : findStream
-* function: find stream index based on stream pointer.
-************************************************************************/
-int QCamxHAL3TestDevice::findStream(camera3_stream_t *stream) {
-    for (int i = 0; i < (int)_camera3_streams.size(); i++) {
-        if (_camera3_streams[i] == stream) {
-            return i;
-        }
-    }
-    return -1;
 }
 
 void QCamxHAL3TestDevice::set_current_meta(android::CameraMetadata *metadata) {
@@ -259,53 +282,102 @@ void QCamxHAL3TestDevice::set_current_meta(android::CameraMetadata *metadata) {
     pthread_mutex_unlock(&_setting_metadata_lock);
 }
 
-/************************************************************************
- * name : doCapturePostProcess
- * function: Thread for Post process capture result
- ************************************************************************/
-void *doCapturePostProcess(void *data) {
-    CameraThreadData *thData = (CameraThreadData *)data;
-    QCamxHAL3TestDevice *device = (QCamxHAL3TestDevice *)thData->device;
-    QCAMX_INFO("%s capture result handle thread start\n", __func__);
-    while (true) {
-        pthread_mutex_lock(&thData->mutex);
-        if (thData->msgQueue.empty()) {
-            struct timespec tv;
-            clock_gettime(CLOCK_MONOTONIC, &tv);
-            tv.tv_sec += 5;
-            if (pthread_cond_timedwait(&thData->cond, &thData->mutex, &tv) != 0) {
-                QCAMX_ERR("%s No Msg got in 5 sec in Result Process thread", __func__);
-                pthread_mutex_unlock(&thData->mutex);
-                continue;
-            }
+int QCamxHAL3TestDevice::process_one_capture_request(int *request_number_of_each_stream,
+                                                     int *frame_number) {
+    pthread_mutex_lock(&_pending_lock);
+    if (_pending_vector.size() >= (CAMX_LIVING_REQUEST_MAX + _living_request_ext_append)) {
+        struct timespec tv;
+        clock_gettime(CLOCK_MONOTONIC, &tv);
+        tv.tv_sec += 5;
+        if (pthread_cond_timedwait(&_pending_cond, &_pending_lock, &tv) != 0) {
+            QCAMX_INFO("timeout");
+            pthread_mutex_unlock(&_pending_lock);
+            return -1;
         }
-        CameraPostProcessMsg *msg = (CameraPostProcessMsg *)thData->msgQueue.front();
-        thData->msgQueue.pop_front();
-        // stop command
-        if (msg->stop == 1) {
-            delete msg;
-            msg = NULL;
-            pthread_mutex_unlock(&thData->mutex);
-            return nullptr;
-        }
-        pthread_mutex_unlock(&thData->mutex);
-        camera3_capture_result result = msg->result;
-        const camera3_stream_buffer_t *buffers = result.output_buffers = msg->streamBuffers.data();
-        device->_callback->CapturePostProcess(device->_callback, &result);
-        // return the buffer back
-        if (device->get_sync_buffer_mode() != SYNC_BUFFER_EXTERNAL) {
-            for (int i = 0; i < result.num_output_buffers; i++) {
-                int index = device->findStream(buffers[i].stream);
-                CameraStream *stream = device->_camera_streams[index];
-                stream->bufferManager->ReturnBuffer(buffers[i].buffer);
-            }
-        }
-        msg->streamBuffers.erase(msg->streamBuffers.begin(),
-                                 msg->streamBuffers.begin() + msg->streamBuffers.size());
-        delete msg;
-        msg = NULL;
     }
-    return nullptr;
+    pthread_mutex_unlock(&_pending_lock);
+
+    RequestPending *pend = new RequestPending();
+    // Try to get buffer from bufferManager
+    std::vector<camera3_stream_buffer_t> stream_buffers;
+    for (int i = 0; i < (int)_camera3_streams.size(); i++) {
+        if (request_number_of_each_stream[i] == 0) {
+            continue;
+        }
+        CameraStream *stream = _camera_streams[i];
+        camera3_stream_buffer_t stream_buffer;
+        stream_buffer.buffer = (const native_handle_t **)(stream->bufferManager->GetBuffer());
+        // make a capture request and send to HAL
+        stream_buffer.stream = _camera3_streams[i];
+        stream_buffer.status = 0;
+        stream_buffer.release_fence = -1;
+        stream_buffer.acquire_fence = -1;
+        pend->_request.num_output_buffers++;
+        stream_buffers.push_back(stream_buffer);
+        QCAMX_INFO("ProcessOneCaptureRequest for format:%d frameNumber %d.\n",
+                   stream_buffer.stream->format, *frame_number);
+    }
+    pend->_request.frame_number = *frame_number;
+    // using the new metadata if needed
+    pend->_request.settings = nullptr;
+    pthread_mutex_lock(&_setting_metadata_lock);
+    if (!_setting_metadata_list.empty()) {
+        setting = _setting_metadata_list.front();
+        _setting_metadata_list.pop_front();
+        pend->_request.settings = (camera_metadata *)setting.getAndLock();
+    } else {
+        pend->_request.settings = (camera_metadata *)setting.getAndLock();
+    }
+    pthread_mutex_unlock(&_setting_metadata_lock);
+    pend->_request.input_buffer = nullptr;
+    pend->_request.output_buffers = stream_buffers.data();
+
+    pthread_mutex_lock(&_pending_lock);
+    _pending_vector.add(*frame_number, pend);
+    pthread_mutex_unlock(&_pending_lock);
+    {  // Getting AE_EXPOSURE_COMPENSATION value
+        camera_metadata_ro_entry entry;
+        int res = find_camera_metadata_ro_entry(pend->_request.settings,
+                                                ANDROID_CONTROL_AE_EXPOSURE_COMPENSATION, &entry);
+        int ae_comp = 0;
+        if (res == 0 && entry.count > 0) {
+            ae_comp = entry.data.i32[0];
+        }
+        QCAMX_INFO("AECOMP frame:%d ae_comp value = %d\n", *frame_number, ae_comp);
+    }
+    int res = _camera3_device->ops->process_capture_request(_camera3_device, &(pend->_request));
+    if (res != 0) {
+        int index = 0;
+        QCAMX_ERR("process_capture_quest failed, frame:%d", *frame_number);
+        for (int i = 0; i < pend->_request.num_output_buffers; i++) {
+            index = find_stream_index(stream_buffers[i].stream);
+            CameraStream *stream = _camera_streams[index];
+            stream->bufferManager->ReturnBuffer(stream_buffers[i].buffer);
+        }
+        pthread_mutex_lock(&_pending_lock);
+        index = _pending_vector.indexOfKey(*frame_number);
+        _pending_vector.removeItemsAt(index, 1);
+        delete pend;
+        pend = NULL;
+        pthread_mutex_unlock(&_pending_lock);
+    } else {
+        (*frame_number)++;
+        if (pend->_request.settings != NULL) {
+            setting.unlock(pend->_request.settings);
+        }
+    }
+    //FIXME(anxs) why not free pend
+    return res;
+}
+
+int QCamxHAL3TestDevice::find_stream_index(camera3_stream_t *camera3_stream) {
+    int n = _camera3_streams.size();
+    for (int i = 0; i < n; i++) {
+        if (_camera3_streams[i] == camera3_stream) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 /************************************************************************
@@ -343,28 +415,28 @@ void QCamxHAL3TestDevice::CallbackOps::ProcessCaptureResult(const camera3_callba
             for (int i = 0; i < result->num_output_buffers; i++) {
                 msg->streamBuffers.push_back(result->output_buffers[i]);
             }
-            cbOps->mParent->mResultThread->msgQueue.push_back(msg);
+            cbOps->mParent->mResultThread->message_queue.push_back(msg);
             pthread_cond_signal(&cbOps->mParent->mResultThread->cond);
         }
         pthread_mutex_unlock(&cbOps->mParent->mResultThread->mutex);
     }
-    pthread_mutex_lock(&cbOps->mParent->mPendingLock);
-    index = cbOps->mParent->mPendingVector.indexOfKey(result->frame_number);
+    pthread_mutex_lock(&cbOps->mParent->_pending_lock);
+    index = cbOps->mParent->_pending_vector.indexOfKey(result->frame_number);
     if (index < 0) {
-        pthread_mutex_unlock(&cbOps->mParent->mPendingLock);
+        pthread_mutex_unlock(&cbOps->mParent->_pending_lock);
         QCAMX_ERR("%s: Get indexOfKey failed. Get index value:%d.\n", __func__, index);
         return;
     }
-    RequestPending *pend = cbOps->mParent->mPendingVector.editValueAt(index);
-    pend->mNumOutputbuffer += result->num_output_buffers;
-    pend->mNumMetadata += result->partial_result;
-    if (pend->mNumOutputbuffer >= pend->mRequest.num_output_buffers && pend->mNumMetadata) {
-        cbOps->mParent->mPendingVector.removeItemsAt(index, 1);
-        pthread_cond_signal(&cbOps->mParent->mPendingCond);
+    RequestPending *pend = cbOps->mParent->_pending_vector.editValueAt(index);
+    pend->_num_output_buffer += result->num_output_buffers;
+    pend->_num_metadata += result->partial_result;
+    if (pend->_num_output_buffer >= pend->_request.num_output_buffers && pend->_num_metadata) {
+        cbOps->mParent->_pending_vector.removeItemsAt(index, 1);
+        pthread_cond_signal(&cbOps->mParent->_pending_cond);
         delete pend;
         pend = NULL;
     }
-    pthread_mutex_unlock(&cbOps->mParent->mPendingLock);
+    pthread_mutex_unlock(&cbOps->mParent->_pending_lock);
 }
 
 /************************************************************************
@@ -375,238 +447,9 @@ void QCamxHAL3TestDevice::CallbackOps::Notify(const struct camera3_callback_ops 
                                               const camera3_notify_msg_t *msg) {}
 
 RequestPending::RequestPending() {
-    mNumOutputbuffer = 0;
-    mNumMetadata = 0;
-    memset(&mRequest, 0, sizeof(camera3_capture_request_t));
-}
-
-/************************************************************************
-* name : ProcessOneCaptureRequest
-* function: populate one capture request.
-************************************************************************/
-int QCamxHAL3TestDevice::ProcessOneCaptureRequest(int *requestNumberOfEachStream,
-                                                  int *frameNumber) {
-    pthread_mutex_lock(&mPendingLock);
-    if (mPendingVector.size() >= (CAMX_LIVING_REQUEST_MAX + mLivingRequestExtAppend)) {
-        struct timespec tv;
-        clock_gettime(CLOCK_MONOTONIC, &tv);
-        tv.tv_sec += 5;
-        if (pthread_cond_timedwait(&mPendingCond, &mPendingLock, &tv) != 0) {
-            QCAMX_INFO("timeout");
-            pthread_mutex_unlock(&mPendingLock);
-            return -1;
-        }
-    }
-    pthread_mutex_unlock(&mPendingLock);
-    RequestPending *pend = new RequestPending();
-    CameraStream *stream = NULL;
-
-    // Try to get Buffer from bufferManager
-    std::vector<camera3_stream_buffer_t> streamBuffers;
-    for (int i = 0; i < (int)_camera3_streams.size(); i++) {
-        if (requestNumberOfEachStream[i] == 0) {
-            continue;
-        }
-        stream = _camera_streams[i];
-        camera3_stream_buffer_t streamBuffer;
-        streamBuffer.buffer = (const native_handle_t **)(stream->bufferManager->GetBuffer());
-        // make a capture request and send to HAL
-        streamBuffer.stream = _camera3_streams[i];
-        streamBuffer.status = 0;
-        streamBuffer.release_fence = -1;
-        streamBuffer.acquire_fence = -1;
-        pend->mRequest.num_output_buffers++;
-        streamBuffers.push_back(streamBuffer);
-        QCAMX_INFO("ProcessOneCaptureRequest for format:%d frameNumber %d.\n",
-                   streamBuffer.stream->format, *frameNumber);
-    }
-    pend->mRequest.frame_number = *frameNumber;
-    // using the new metadata if needed
-    pend->mRequest.settings = nullptr;
-    pthread_mutex_lock(&_setting_metadata_lock);
-    if (!_setting_metadata_list.empty()) {
-        setting = _setting_metadata_list.front();
-        _setting_metadata_list.pop_front();
-        pend->mRequest.settings = (camera_metadata *)setting.getAndLock();
-    } else {
-        pend->mRequest.settings = (camera_metadata *)setting.getAndLock();
-    }
-    pthread_mutex_unlock(&_setting_metadata_lock);
-    pend->mRequest.input_buffer = nullptr;
-    pend->mRequest.output_buffers = streamBuffers.data();
-
-    pthread_mutex_lock(&mPendingLock);
-    mPendingVector.add(*frameNumber, pend);
-    pthread_mutex_unlock(&mPendingLock);
-    {  // Getting AE_EXPOSURE_COMPENSATION value
-        camera_metadata_ro_entry entry;
-        int res = 0;
-        int ae_comp = 0;
-        res = find_camera_metadata_ro_entry(pend->mRequest.settings,
-                                            ANDROID_CONTROL_AE_EXPOSURE_COMPENSATION, &entry);
-        if ((0 == res) && (entry.count > 0)) {
-            ae_comp = entry.data.i32[0];
-        }
-        QCAMX_INFO("AECOMP frame:%d ae_comp value = %d\n", *frameNumber, ae_comp);
-    }
-    int res = _camera3_device->ops->process_capture_request(_camera3_device, &(pend->mRequest));
-    if (res != 0) {
-        int index = 0;
-        QCAMX_ERR("process_capture_quest failed, frame:%d", *frameNumber);
-        for (int i = 0; i < pend->mRequest.num_output_buffers; i++) {
-            index = findStream(streamBuffers[i].stream);
-            stream = _camera_streams[index];
-            stream->bufferManager->ReturnBuffer(streamBuffers[i].buffer);
-        }
-        pthread_mutex_lock(&mPendingLock);
-        index = mPendingVector.indexOfKey(*frameNumber);
-        mPendingVector.removeItemsAt(index, 1);
-        delete pend;
-        pend = NULL;
-        pthread_mutex_unlock(&mPendingLock);
-    } else {
-        (*frameNumber)++;
-        if (pend->mRequest.settings != NULL) {
-            setting.unlock(pend->mRequest.settings);
-        }
-    }
-    return res;
-}
-
-/************************************************************************
-* name : doprocessCaptureRequest
-* function: Thread for CaptureRequest ,handle the capture request from upper layer
-************************************************************************/
-void *doprocessCaptureRequest(void *data) {
-    CameraThreadData *thData = (CameraThreadData *)data;
-    QCamxHAL3TestDevice *device = (QCamxHAL3TestDevice *)thData->device;
-
-    while (!thData->stopped) {  //need repeat and has not trigger out until stopped
-        pthread_mutex_lock(&thData->mutex);
-        bool empty = thData->msgQueue.empty();
-        /* Send request till the requestNumber is 0;
-        ** Check the msgQueue for Message from other thread to
-        ** change setting or stop Capture Request
-        */
-        bool hasRequest = false;
-        for (int i = 0; i < (int)device->_camera3_streams.size(); i++) {
-            if (thData->requestNumber[i] != 0) {
-                hasRequest = true;
-                break;
-            }
-            QCAMX_INFO("has no Request :%d\n", i);
-        }
-
-        if (empty && !hasRequest) {
-            QCAMX_INFO("Waiting Msg :%lu or Buffer return at thread:%p\n", thData->msgQueue.size(),
-                       thData);
-            struct timespec tv;
-            clock_gettime(CLOCK_MONOTONIC, &tv);
-            tv.tv_sec += 5;
-            if (pthread_cond_timedwait(&thData->cond, &thData->mutex, &tv) != 0) {
-                QCAMX_INFO("No Msg Got!\n");
-            }
-            pthread_mutex_unlock(&thData->mutex);
-            continue;
-        } else if (!empty) {
-            CameraRequestMsg *msg = (CameraRequestMsg *)thData->msgQueue.front();
-            thData->msgQueue.pop_front();
-            switch (msg->msgType) {
-                case START_STOP: {
-                    // stop command
-                    QCAMX_INFO("Get Msg for stop request\n");
-                    if (msg->stop == 1) {
-                        thData->stopped = 1;
-                        pthread_mutex_unlock(&thData->mutex);
-                        delete msg;
-                        msg = NULL;
-                        continue;
-                    }
-                    break;
-                }
-                case REQUEST_CHANGE: {
-                    QCAMX_INFO("Get Msg for change request\n");
-                    for (int i = 0; i < device->_camera3_streams.size(); i++) {
-                        if (msg->mask & (1 << i)) {
-                            (thData->requestNumber[i] == REQUEST_NUMBER_UMLIMIT)
-                                ? thData->requestNumber[i] = msg->requestNumber[i]
-                                : thData->requestNumber[i] += msg->requestNumber[i];
-                        }
-                    }
-                    pthread_mutex_unlock(&thData->mutex);
-                    delete msg;
-                    msg = NULL;
-                    continue;
-                    break;
-                }
-                default:
-                    break;
-            }
-            delete msg;
-            msg = NULL;
-        }
-        pthread_mutex_unlock(&thData->mutex);
-
-        // request one each time
-        int requestNumberOfEachStream[MAXSTREAM] = {0};
-        for (int i = 0; i < MAXSTREAM; i++) {
-            if (thData->requestNumber[i] != 0) {
-                int skip = thData->skipPattern[i];
-                if ((thData->frameNumber % skip) == 0) {
-                    requestNumberOfEachStream[i] = 1;
-                }
-            }
-        }
-        int res =
-            device->ProcessOneCaptureRequest(requestNumberOfEachStream, &(thData->frameNumber));
-        if (res != 0) {
-            QCAMX_ERR("ProcessOneCaptureRequest Error res:%d\n", res);
-            return nullptr;
-        }
-        // reduce request number each time
-        pthread_mutex_lock(&thData->mutex);
-        for (int i = 0; i < (int)device->_camera3_streams.size(); i++) {
-            if (thData->requestNumber[i] > 0)
-                thData->requestNumber[i] = thData->requestNumber[i] - requestNumberOfEachStream[i];
-        }
-        pthread_mutex_unlock(&thData->mutex);
-    }
-    return nullptr;
-}
-
-/************************************************************************
-* name : processCaptureRequestOn
-* function: create request and result thread.
-************************************************************************/
-int QCamxHAL3TestDevice::processCaptureRequestOn(CameraThreadData *requestThread,
-                                                 CameraThreadData *resultThread) {
-    // init result threads
-    pthread_condattr_t attr;
-    pthread_condattr_init(&attr);
-    pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
-    pthread_mutex_init(&resultThread->mutex, NULL);
-    pthread_mutex_init(&requestThread->mutex, NULL);
-    pthread_cond_init(&requestThread->cond, &attr);
-    pthread_cond_init(&resultThread->cond, &attr);
-    pthread_condattr_destroy(&attr);
-
-    pthread_attr_t resultAttr;
-    pthread_attr_init(&resultAttr);
-    pthread_attr_setdetachstate(&resultAttr, PTHREAD_CREATE_JOINABLE);
-    resultThread->device = this;
-    pthread_create(&(resultThread->thread), &resultAttr, doCapturePostProcess, resultThread);
-    mResultThread = resultThread;
-    pthread_attr_destroy(&resultAttr);
-
-    // init request thread
-    pthread_attr_t requestAttr;
-    pthread_attr_init(&requestAttr);
-    pthread_attr_setdetachstate(&requestAttr, PTHREAD_CREATE_JOINABLE);
-    requestThread->device = this;
-    pthread_create(&(requestThread->thread), &requestAttr, doprocessCaptureRequest, requestThread);
-    mRequestThread = requestThread;
-    pthread_attr_destroy(&resultAttr);
-    return 0;
+    _num_output_buffer = 0;
+    _num_metadata = 0;
+    memset(&_request, 0, sizeof(camera3_capture_request_t));
 }
 
 /************************************************************************
@@ -625,10 +468,10 @@ void QCamxHAL3TestDevice::stopStreams() {
     // stop the request thread
     pthread_mutex_lock(&mRequestThread->mutex);
     CameraRequestMsg *rqMsg = new CameraRequestMsg();
-    rqMsg->msgType = START_STOP;
+    rqMsg->message_type = START_STOP;
     rqMsg->stop = 1;
-    mRequestThread->msgQueue.push_back(rqMsg);
-    QCAMX_INFO("Msg for stop request queue size:%zu\n", mRequestThread->msgQueue.size());
+    mRequestThread->message_queue.push_back(rqMsg);
+    QCAMX_INFO("Msg for stop request queue size:%zu\n", mRequestThread->message_queue.size());
     pthread_cond_signal(&mRequestThread->cond);
     pthread_mutex_unlock(&mRequestThread->mutex);
     pthread_join(mRequestThread->thread, NULL);
@@ -643,30 +486,30 @@ void QCamxHAL3TestDevice::stopStreams() {
     CameraPostProcessMsg *msg = new CameraPostProcessMsg();
     msg->stop = 1;
     mResultThread->stopped = 1;
-    mResultThread->msgQueue.push_back(msg);
-    QCAMX_INFO("Msg for stop result queue size:%zu\n", mResultThread->msgQueue.size());
+    mResultThread->message_queue.push_back(msg);
+    QCAMX_INFO("Msg for stop result queue size:%zu\n", mResultThread->message_queue.size());
     pthread_cond_signal(&mResultThread->cond);
     pthread_mutex_unlock(&mResultThread->mutex);
     pthread_join(mResultThread->thread, NULL);
     // wait for all request back
-    pthread_mutex_lock(&mPendingLock);
+    pthread_mutex_lock(&_pending_lock);
     int tryCount = 5;
-    while (!mPendingVector.isEmpty() && tryCount > 0) {
-        QCAMX_INFO("wait for pending vector empty:%zu\n", mPendingVector.size());
+    while (!_pending_vector.isEmpty() && tryCount > 0) {
+        QCAMX_INFO("wait for pending vector empty:%zu\n", _pending_vector.size());
         struct timespec tv;
         clock_gettime(CLOCK_MONOTONIC, &tv);
         tv.tv_sec += 1;
-        if (pthread_cond_timedwait(&mPendingCond, &mPendingLock, &tv) != 0) {
+        if (pthread_cond_timedwait(&_pending_cond, &_pending_lock, &tv) != 0) {
             tryCount--;
         }
         continue;
     }
-    if (!mPendingVector.isEmpty()) {
+    if (!_pending_vector.isEmpty()) {
         QCAMX_ERR("ERROR: request pending vector not empty after stop frame:%d !!\n",
-                  mPendingVector.keyAt(0));
-        mPendingVector.clear();
+                  _pending_vector.keyAt(0));
+        _pending_vector.clear();
     }
-    pthread_mutex_unlock(&mPendingLock);
+    pthread_mutex_unlock(&_pending_lock);
 
     pthread_mutex_destroy(&mResultThread->mutex);
     pthread_cond_destroy(&mResultThread->cond);
@@ -762,4 +605,156 @@ int QCamxHAL3TestDevice::get_valid_output_streams(std::vector<AvailableStream> &
         return -1;
     }
     return 0;
+}
+
+/****************************global function********************************/
+
+/**
+* @brief Thread for CaptureRequest ,handle the capture request from upper layer
+*/
+void *do_process_capture_request(void *data) {
+    CameraThreadData *thread_data = (CameraThreadData *)data;
+    QCamxHAL3TestDevice *device = (QCamxHAL3TestDevice *)thread_data->device;
+
+    while (!thread_data->stopped) {  //need repeat and has not trigger out until stopped
+        pthread_mutex_lock(&thread_data->mutex);
+        bool empty = thread_data->message_queue.empty();
+        /* Send request till the request_number is 0;
+        ** Check the msgQueue for Message from other thread to
+        ** change setting or stop Capture Request
+        */
+        bool has_request = false;
+        for (int i = 0; i < (int)device->_camera3_streams.size(); i++) {
+            if (thread_data->request_number[i] != 0) {
+                has_request = true;
+                break;
+            }
+            QCAMX_INFO("has no request :%d\n", i);
+        }
+
+        if (empty && !has_request) {
+            QCAMX_INFO("Waiting message :%lu or buffer return at thread:%p\n",
+                       thread_data->message_queue.size(), thread_data);
+            struct timespec tv;
+            clock_gettime(CLOCK_MONOTONIC, &tv);
+            tv.tv_sec += 5;
+            if (pthread_cond_timedwait(&thread_data->cond, &thread_data->mutex, &tv) != 0) {
+                QCAMX_INFO("No message got!\n");
+            }
+            pthread_mutex_unlock(&thread_data->mutex);
+            continue;
+        } else if (!empty) {
+            CameraRequestMsg *msg = (CameraRequestMsg *)thread_data->message_queue.front();
+            thread_data->message_queue.pop_front();
+            switch (msg->message_type) {
+                case START_STOP: {
+                    // stop command
+                    QCAMX_INFO("Get message for stop request\n");
+                    if (msg->stop == 1) {
+                        thread_data->stopped = 1;
+                        pthread_mutex_unlock(&thread_data->mutex);
+                        delete msg;
+                        msg = NULL;
+                        continue;
+                    }
+                    break;
+                }
+                case REQUEST_CHANGE: {
+                    QCAMX_INFO("Get message for change request\n");
+                    for (int i = 0; i < device->_camera3_streams.size(); i++) {
+                        if (msg->mask & (1 << i)) {
+                            (thread_data->request_number[i] == REQUEST_NUMBER_UMLIMIT)
+                                ? thread_data->request_number[i] = msg->request_number[i]
+                                : thread_data->request_number[i] += msg->request_number[i];
+                        }
+                    }
+                    pthread_mutex_unlock(&thread_data->mutex);
+                    delete msg;
+                    msg = NULL;
+                    continue;
+                    break;
+                }
+                default:
+                    break;
+            }
+            delete msg;
+            msg = NULL;
+        }
+        pthread_mutex_unlock(&thread_data->mutex);
+
+        // request one each time
+        int request_number_of_each_stream[MAXSTREAM] = {0};
+        for (int i = 0; i < MAXSTREAM; i++) {
+            if (thread_data->request_number[i] != 0) {
+                int skip = thread_data->skip_pattern[i];  // default skip pattern is 1
+                if ((thread_data->frame_number % skip) == 0) {
+                    request_number_of_each_stream[i] = 1;
+                }
+            }
+        }
+        int res = device->process_one_capture_request(request_number_of_each_stream,
+                                                      &(thread_data->frame_number));
+        if (res != 0) {
+            QCAMX_ERR("ProcessOneCaptureRequest error res:%d\n", res);
+            return nullptr;
+        }
+
+        // reduce request number -1 each time
+        pthread_mutex_lock(&thread_data->mutex);
+        for (int i = 0; i < (int)device->_camera3_streams.size(); i++) {
+            if (thread_data->request_number[i] > 0)
+                thread_data->request_number[i] =
+                    thread_data->request_number[i] - request_number_of_each_stream[i];
+        }
+        pthread_mutex_unlock(&thread_data->mutex);
+    }
+    return nullptr;
+}
+
+/**
+ * @brief Thread for Post process capture result
+ */
+void *do_capture_post_process(void *data) {
+    CameraThreadData *thread_data = (CameraThreadData *)data;
+    QCamxHAL3TestDevice *device = (QCamxHAL3TestDevice *)thread_data->device;
+    QCAMX_PRINT("%s capture result handle thread start\n", __func__);
+    while (true) {
+        pthread_mutex_lock(&thread_data->mutex);
+        if (thread_data->message_queue.empty()) {
+            struct timespec tv;
+            clock_gettime(CLOCK_MONOTONIC, &tv);
+            tv.tv_sec += 5;
+            if (pthread_cond_timedwait(&thread_data->cond, &thread_data->mutex, &tv) != 0) {
+                QCAMX_ERR("%s No Msg got in 5 sec in Result Process thread", __func__);
+                pthread_mutex_unlock(&thread_data->mutex);
+                continue;
+            }
+        }
+        CameraPostProcessMsg *msg = (CameraPostProcessMsg *)thread_data->message_queue.front();
+        thread_data->message_queue.pop_front();
+        // stop command
+        if (msg->stop == 1) {
+            delete msg;
+            msg = NULL;
+            pthread_mutex_unlock(&thread_data->mutex);
+            return nullptr;
+        }
+        pthread_mutex_unlock(&thread_data->mutex);
+        camera3_capture_result result = msg->result;
+        const camera3_stream_buffer_t *buffers = result.output_buffers = msg->streamBuffers.data();
+        device->_callback->CapturePostProcess(device->_callback, &result);
+        // return the buffer back
+        if (device->get_sync_buffer_mode() != SYNC_BUFFER_EXTERNAL) {
+            for (int i = 0; i < result.num_output_buffers; i++) {
+                int index = device->find_stream_index(buffers[i].stream);
+                CameraStream *stream = device->_camera_streams[index];
+                stream->bufferManager->ReturnBuffer(buffers[i].buffer);
+            }
+        }
+        msg->streamBuffers.erase(msg->streamBuffers.begin(),
+                                 msg->streamBuffers.begin() + msg->streamBuffers.size());
+        delete msg;
+        msg = NULL;
+    }
+    return nullptr;
 }

@@ -59,8 +59,8 @@ void QCamxHAL3TestPreviewOnly::run() {
     init_preview_stream();
     CameraThreadData *resultThreadPreview = new CameraThreadData();
     CameraThreadData *requestThreadPreview = new CameraThreadData();
-    requestThreadPreview->requestNumber[kPreviewIndex] = REQUEST_NUMBER_UMLIMIT;
-    _device->processCaptureRequestOn(requestThreadPreview, resultThreadPreview);
+    requestThreadPreview->request_number[kPreviewIndex] = REQUEST_NUMBER_UMLIMIT;
+    _device->process_capture_request_on(requestThreadPreview, resultThreadPreview);
 }
 
 /************************************************************************
@@ -83,7 +83,7 @@ void QCamxHAL3TestPreviewOnly::CapturePostProcess(DeviceCallback *cb,
     buffers = result->output_buffers;
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
-        int index = device->findStream(buffers[i].stream);
+        int index = device->find_stream_index(buffers[i].stream);
         CameraStream *stream = device->_camera_streams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
         if (stream->stream_type == CAMERA3_TEMPLATE_PREVIEW) {
@@ -160,10 +160,11 @@ int QCamxHAL3TestPreviewOnly::init_preview_stream() {
     _device->config_streams(_streams);
     if (_metadata_ext != NULL) {
         _device->set_current_meta(_metadata_ext);
-        _device->construct_default_request_settings(kPreviewIndex, CAMERA3_TEMPLATE_PREVIEW);
+        _device->construct_default_request_settings(kPreviewIndex, CAMERA3_TEMPLATE_PREVIEW, false);
     } else {
         _device->construct_default_request_settings(kPreviewIndex, CAMERA3_TEMPLATE_PREVIEW, true);
     }
+    //FIXME(anxs) clear streams?
     output_preview_streams.erase(output_preview_streams.begin(),
                                  output_preview_streams.begin() + output_preview_streams.size());
     return res;

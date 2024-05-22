@@ -41,9 +41,9 @@
 #include "qcamx_config.h"
 #include "qcamx_log.h"
 
-#define REQUEST_NUMBER_UMLIMIT (-1)
+#define REQUEST_NUMBER_UMLIMIT (-1)  // useless for now default request_number is 0
 #define MAXSTREAM (4)
-#define CAMX_LIVING_REQUEST_MAX (5)
+#define CAMX_LIVING_REQUEST_MAX (5)  // _pending_vector support living request max value
 
 class QCamxHAL3TestDevice;
 
@@ -62,9 +62,10 @@ struct AvailableStream {
 class RequestPending {
 public:
     RequestPending();
-    camera3_capture_request_t mRequest;
-    int mNumOutputbuffer;
-    int mNumMetadata;
+public:
+    camera3_capture_request_t _request;
+    int _num_output_buffer;
+    int _num_metadata;
 };
 
 // Callback for QCamxHAL3TestDevice to upper layer
@@ -89,34 +90,36 @@ typedef enum {
 
 // Message data for Request Thread
 typedef struct _CameraRequestMsg {
-    int msgType;
+    int message_type;
     int mask;  //0x1 for stream0,0x10 for stream 1,0x11 for stream0 and 1
-    int requestNumber[MAXSTREAM];
+    int request_number[MAXSTREAM];
     int stop;
 } CameraRequestMsg;
 
 // Thread Data for camera Request and Result thread
-typedef struct _CameraThreadData {
+struct CameraThreadData {
     pthread_t thread;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
-    std::list<void *> msgQueue;
-    int requestNumber[MAXSTREAM];
-    int skipPattern[MAXSTREAM];
-    int frameNumber;
+    std::list<void *> message_queue;
+    int request_number[MAXSTREAM];
+    //skip requeast for frame_number % skip_pattern != 0
+    int skip_pattern[MAXSTREAM];
+    int frame_number;
     int stopped;
     QCamxHAL3TestDevice *device;
     void *priv;
-    _CameraThreadData() {
+public:
+    CameraThreadData() {
         priv = NULL;
         stopped = 0;
-        frameNumber = 0;
+        frame_number = 0;
         for (int i = 0; i < MAXSTREAM; i++) {
-            requestNumber[i] = 0;
-            skipPattern[i] = 1;
+            request_number[i] = 0;
+            skip_pattern[i] = 1;
         }
     }
-} CameraThreadData;
+};
 
 // Stream info of CameraDevice
 typedef struct _Stream {
@@ -164,7 +167,11 @@ public:
     */
     void construct_default_request_settings(int index, camera3_request_template_t type,
                                             bool use_default_metadata = false);
-    int processCaptureRequestOn(CameraThreadData *requestThread, CameraThreadData *resultThread);
+    /**
+     * @brief create request and result thread
+    */
+    int process_capture_request_on(CameraThreadData *request_thread,
+                                   CameraThreadData *result_thread);
     void flush();
     void set_callback(DeviceCallback *callback);
     /**
@@ -175,18 +182,26 @@ public:
     */
     int get_valid_output_streams(std::vector<AvailableStream> &output_streams,
                                  const AvailableStream *valid_stream);
-    int findStream(camera3_stream_t *stream);
     int get_sync_buffer_mode() { return _sync_buffer_mode; }
     void set_sync_buffer_mode(SyncBufferMode sync_buffer_mode) {
         _sync_buffer_mode = sync_buffer_mode;
     }
     int updateMetadataForNextRequest(android::CameraMetadata *meta);
-    int ProcessOneCaptureRequest(int *requestNumberOfEachStream, int *frameNumber);
     void stopStreams();
     /**
      * @brief set a external metadata as current metadata
     */
     void set_current_meta(android::CameraMetadata *metadata);
+    /**
+     * @brief process one capture request.
+     * @param request_number_of_each_stream each stream request capture number
+    */
+    int process_one_capture_request(int *request_number_of_each_stream, int *frame_number);
+    /**
+     * @brief find camera3 stream index in _camera3_streams
+     * @return index of _camera3_streams -1 means not found
+    */
+    int find_stream_index(camera3_stream_t *stream);
 private:
     /**
      * @brief get jpeg buffer size
@@ -210,7 +225,8 @@ public:
     DeviceCallback *_callback;
     //current use metadata
     android::CameraMetadata _current_metadata;
-    int mLivingRequestExtAppend;
+    // living _pending_vector support ext append items
+    int _living_request_ext_append;
 private:
     camera_module_t *_camera_module;
     int _camera_id;
@@ -233,8 +249,9 @@ private:
     SyncBufferMode _sync_buffer_mode;
     pthread_mutex_t _setting_metadata_lock;
     std::list<android::CameraMetadata> _setting_metadata_list;
-    pthread_mutex_t mPendingLock;
-    pthread_cond_t mPendingCond;
-    android::KeyedVector<int, RequestPending *> mPendingVector;
     android::CameraMetadata setting;
+private:
+    pthread_mutex_t _pending_lock;
+    pthread_cond_t _pending_cond;
+    android::KeyedVector<int, RequestPending *> _pending_vector;
 };

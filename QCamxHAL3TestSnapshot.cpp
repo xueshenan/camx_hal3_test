@@ -49,7 +49,7 @@ void QCamxHAL3TestSnapshot::CapturePostProcess(DeviceCallback *cb, camera3_captu
     buffers = result->output_buffers;
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
-        int index = device->findStream(buffers[i].stream);
+        int index = device->find_stream_index(buffers[i].stream);
         CameraStream *stream = device->_camera_streams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
         if (stream->stream_type == CAMERA3_TEMPLATE_STILL_CAPTURE) {
@@ -240,14 +240,14 @@ void QCamxHAL3TestSnapshot::run() {
     CameraThreadData *resultThread = new CameraThreadData();
     CameraThreadData *requestThread = new CameraThreadData();
 
-    requestThread->requestNumber[PREVIEW_IDX] = REQUEST_NUMBER_UMLIMIT;
+    requestThread->request_number[PREVIEW_IDX] = REQUEST_NUMBER_UMLIMIT;
     if (_config->_snapshot_stream.format == HAL_PIXEL_FORMAT_BLOB) {
-        requestThread->requestNumber[SNAPSHOT_IDX] = 0;
+        requestThread->request_number[SNAPSHOT_IDX] = 0;
     } else {
-        requestThread->requestNumber[SNAPSHOT_IDX] = REQUEST_NUMBER_UMLIMIT;
+        requestThread->request_number[SNAPSHOT_IDX] = REQUEST_NUMBER_UMLIMIT;
     }
 
-    _device->processCaptureRequestOn(requestThread, resultThread);
+    _device->process_capture_request_on(requestThread, resultThread);
 }
 
 /************************************************************************
@@ -272,10 +272,10 @@ void QCamxHAL3TestSnapshot::RequestCaptures(StreamCapture request) {
     pthread_mutex_lock(&_device->mRequestThread->mutex);
     CameraRequestMsg *msg = new CameraRequestMsg();
     memset(msg, 0, sizeof(CameraRequestMsg));
-    msg->requestNumber[SNAPSHOT_IDX] = request.count;
+    msg->request_number[SNAPSHOT_IDX] = request.count;
     msg->mask = 1 << SNAPSHOT_IDX;
-    msg->msgType = REQUEST_CHANGE;
-    _device->mRequestThread->msgQueue.push_back(msg);
+    msg->message_type = REQUEST_CHANGE;
+    _device->mRequestThread->message_queue.push_back(msg);
     QCAMX_INFO("Msg for capture picture mask%x \n", msg->mask);
     pthread_cond_signal(&_device->mRequestThread->cond);
     pthread_mutex_unlock(&_device->mRequestThread->mutex);

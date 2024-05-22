@@ -49,7 +49,7 @@ void QCamxHAL3TestDepth::CapturePostProcess(DeviceCallback *cb, camera3_capture_
     buffers = result->output_buffers;
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
-        int index = _device->findStream(buffers[i].stream);
+        int index = _device->find_stream_index(buffers[i].stream);
         CameraStream *stream = _device->_camera_streams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
         if (stream->streamId == DEPTH_IDX) {
@@ -218,15 +218,15 @@ void QCamxHAL3TestDepth::run() {
     CameraThreadData *resultThreadPreview = new CameraThreadData();
     CameraThreadData *requestThreadPreview = new CameraThreadData();
 
-    requestThreadPreview->requestNumber[DEPTH_IDX] = REQUEST_NUMBER_UMLIMIT;
+    requestThreadPreview->request_number[DEPTH_IDX] = REQUEST_NUMBER_UMLIMIT;
 
     if (_config->_depth_IRBG_enabled) {
-        requestThreadPreview->requestNumber[DEPTH_IRBG_IDX] = REQUEST_NUMBER_UMLIMIT;
+        requestThreadPreview->request_number[DEPTH_IRBG_IDX] = REQUEST_NUMBER_UMLIMIT;
     }
 
     mIsStoped = false;
 
-    _device->processCaptureRequestOn(requestThreadPreview, resultThreadPreview);
+    _device->process_capture_request_on(requestThreadPreview, resultThreadPreview);
 }
 
 /************************************************************************

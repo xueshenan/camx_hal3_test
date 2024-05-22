@@ -50,7 +50,7 @@ void QCamxHAL3TestVideo::CapturePostProcess(DeviceCallback *cb, camera3_capture_
     buffers = result->output_buffers;
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
-        int index = _device->findStream(buffers[i].stream);
+        int index = _device->find_stream_index(buffers[i].stream);
         CameraStream *stream = _device->_camera_streams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
 
@@ -618,14 +618,14 @@ void QCamxHAL3TestVideo::RequestCaptures(StreamCapture request) {
     pthread_mutex_lock(&_device->mRequestThread->mutex);
     CameraRequestMsg *msg = new CameraRequestMsg();
     memset(msg, 0, sizeof(CameraRequestMsg));
-    msg->requestNumber[SNAPSHOT_IDX] = request.count;
+    msg->request_number[SNAPSHOT_IDX] = request.count;
     msg->mask |= 1 << SNAPSHOT_IDX;
     if (_config->_raw_stream_enable == TRUE) {
-        msg->requestNumber[RAW_SNAPSHOT_IDX] = request.count;
+        msg->request_number[RAW_SNAPSHOT_IDX] = request.count;
         msg->mask |= 1 << RAW_SNAPSHOT_IDX;
     }
-    msg->msgType = REQUEST_CHANGE;
-    _device->mRequestThread->msgQueue.push_back(msg);
+    msg->message_type = REQUEST_CHANGE;
+    _device->mRequestThread->message_queue.push_back(msg);
     QCAMX_INFO("Msg for capture picture mask %x \n", msg->mask);
     pthread_cond_signal(&_device->mRequestThread->cond);
     pthread_mutex_unlock(&_device->mRequestThread->mutex);
@@ -643,9 +643,9 @@ void QCamxHAL3TestVideo::run() {
     res = initVideoStreams();
 
     if (mVideoMode <= VIDEO_MODE_HFR60) {
-        _device->mLivingRequestExtAppend = LIVING_REQUEST_APPEND;
+        _device->_living_request_ext_append = LIVING_REQUEST_APPEND;
     } else {
-        _device->mLivingRequestExtAppend = HFR_LIVING_REQUEST_APPEND;
+        _device->_living_request_ext_append = HFR_LIVING_REQUEST_APPEND;
     }
 #ifdef ENABLE_VIDEO_ENCODER
     mVideoEncoder->run();
@@ -654,13 +654,14 @@ void QCamxHAL3TestVideo::run() {
     CameraThreadData *resultThreadVideo = new CameraThreadData();
 
     CameraThreadData *requestThreadVideo = new CameraThreadData();
-    requestThreadVideo->requestNumber[VIDEO_IDX] = REQUEST_NUMBER_UMLIMIT;
-    requestThreadVideo->requestNumber[PREVIEW_IDX] = REQUEST_NUMBER_UMLIMIT;
+    requestThreadVideo->request_number[VIDEO_IDX] = REQUEST_NUMBER_UMLIMIT;
+    requestThreadVideo->request_number[PREVIEW_IDX] = REQUEST_NUMBER_UMLIMIT;
 
     if (mVideoMode > VIDEO_MODE_HFR60) {
-        requestThreadVideo->skipPattern[PREVIEW_IDX] = ceil(((float)mVideoMode) / VIDEO_MODE_HFR60);
+        requestThreadVideo->skip_pattern[PREVIEW_IDX] =
+            ceil(((float)mVideoMode) / VIDEO_MODE_HFR60);
     }
-    QCAMX_INFO("skipPattern[PREVIEW_IDX] = %d", requestThreadVideo->skipPattern[PREVIEW_IDX]);
+    QCAMX_INFO("skipPattern[PREVIEW_IDX] = %d", requestThreadVideo->skip_pattern[PREVIEW_IDX]);
 
-    _device->processCaptureRequestOn(requestThreadVideo, resultThreadVideo);
+    _device->process_capture_request_on(requestThreadVideo, resultThreadVideo);
 }

@@ -68,7 +68,7 @@ void QCamxHAL3TestVideoOnly::CapturePostProcess(DeviceCallback *cb,
     buffers = result->output_buffers;
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
-        int index = device->findStream(buffers[i].stream);
+        int index = device->find_stream_index(buffers[i].stream);
         CameraStream *stream = device->_camera_streams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
         if (stream->stream_type == CAMERA3_TEMPLATE_VIDEO_RECORD) {
@@ -346,9 +346,9 @@ void QCamxHAL3TestVideoOnly::run() {
     initVideoOnlyStream();
 
     if (mVideoMode <= VIDEO_ONLY_MODE_HFR60) {
-        _device->mLivingRequestExtAppend = LIVING_REQUEST_APPEND;
+        _device->_living_request_ext_append = LIVING_REQUEST_APPEND;
     } else {
-        _device->mLivingRequestExtAppend = HFR_LIVING_REQUEST_APPEND;
+        _device->_living_request_ext_append = HFR_LIVING_REQUEST_APPEND;
     }
 #ifdef ENABLE_VIDEO_ENCODER
     QCAMX_PRINT("QCamxHAL3TestVideoOnly::run before\n");
@@ -358,8 +358,8 @@ void QCamxHAL3TestVideoOnly::run() {
 
     CameraThreadData *resultThreadVideo = new CameraThreadData();
     CameraThreadData *requestThreadVideo = new CameraThreadData();
-    requestThreadVideo->requestNumber[0] = REQUEST_NUMBER_UMLIMIT;
-    _device->processCaptureRequestOn(requestThreadVideo, resultThreadVideo);
+    requestThreadVideo->request_number[0] = REQUEST_NUMBER_UMLIMIT;
+    _device->process_capture_request_on(requestThreadVideo, resultThreadVideo);
 }
 
 /************************************************************************

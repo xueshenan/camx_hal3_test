@@ -22,6 +22,7 @@
 #define QCAMX_DBG(fmt, args...)                          \
     do {                                                 \
         ALOGD("%s %d:" fmt, __func__, __LINE__, ##args); \
+        printf(fmt, ##args);                             \
     } while (0)
 
 #define QCAMX_PRINT(fmt, args...)                        \
