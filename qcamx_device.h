@@ -62,7 +62,7 @@ public:
     }
 public:
     camera3_capture_request_t _request;
-    int _num_output_buffer;
+    uint32_t _num_output_buffer;
     int _num_metadata;
 };
 

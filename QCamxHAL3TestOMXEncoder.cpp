@@ -247,8 +247,6 @@ OMX_ERRORTYPE QCamxHAL3TestOMXEncoder::setConfig(omx_config_t *config,
 
     OMX_INIT_STRUCT(&videoPortFmt, OMX_VIDEO_PARAM_PORTFORMATTYPE);
     OMX_INIT_STRUCT(&profileLevel, OMX_VIDEO_PARAM_PROFILELEVELTYPE);
-    OMX_INDEXTYPE index;
-    OMX_STRING name;
 
     QCAMX_PRINT("QCamxHAL3TestOMXEncoder entry set config\n");
     if (!m_IsInit) {
@@ -723,8 +721,6 @@ int QCamxHAL3TestOMXEncoder::toWait(pthread_cond_t *cond, pthread_mutex_t *mutex
 ************************************************************************/
 void QCamxHAL3TestOMXEncoder::stop() {
     OMX_ERRORTYPE omxresult = OMX_ErrorNone;
-    struct timespec tv;
-    int ret = 0;
     int sec_to_wait = 5;
     flush();
     OmxMsgQ *data = new OmxMsgQ();

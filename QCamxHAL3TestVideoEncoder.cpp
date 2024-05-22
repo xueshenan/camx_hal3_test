@@ -24,10 +24,9 @@
 * name : QCamxTestVideoEncoder
 * function: init default setting
 ************************************************************************/
-QCamxTestVideoEncoder::QCamxTestVideoEncoder(QCamxConfig *config)
-    : mCoder(NULL), mConfig({}), mBufferQueue(NULL) {
+QCamxTestVideoEncoder::QCamxTestVideoEncoder(QCamxConfig *config) {
     QCAMX_PRINT("new instance for QCamxTestVideoEncoder\n");
-    OMX_U32 inputColorFormat;
+    [[maybe_unused]] OMX_U32 inputColorFormat;
     if (config->_video_stream.subformat == UBWCTP10)
         inputColorFormat = HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS;  //TO CHANGE
     else
@@ -140,7 +139,7 @@ void QCamxTestVideoEncoder::stop() {
     buffer_handle_t *buf_handle;
     while (true) {
         pthread_mutex_lock(&mLock);
-        QCAMX_INFO("QCamxTestVideoEncoder::stop: mBufferQueue:%d\n", mBufferQueue->size());
+        QCAMX_INFO("QCamxTestVideoEncoder::stop: mBufferQueue:%ld\n", mBufferQueue->size());
         if (mBufferQueue->size() > 0) {
             buf_handle = mBufferQueue->front();
             mBufferQueue->pop_front();

@@ -67,7 +67,7 @@ void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_captur
                 _callbacks->snapshot_cb(info, result->frame_number);
             }
             QCamxCase::dump_frame(info, result->frame_number, SNAPSHOT_TYPE,
-                                          _config->_snapshot_stream.subformat);
+                                  _config->_snapshot_stream.subformat);
             stream->bufferManager->ReturnBuffer(buffers[i].buffer);
         } else if (stream->streamId == VIDEO_IDX) {
             if (_callbacks && _callbacks->video_cb) {
@@ -77,7 +77,7 @@ void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_captur
                 (_dump_interval == 0 ||
                  (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
                 QCamxCase::dump_frame(info, result->frame_number, VIDEO_TYPE,
-                                              _config->_video_stream.subformat);
+                                      _config->_video_stream.subformat);
                 if (_dump_interval == 0) {
                     _dump_video_num--;
                 }
@@ -98,7 +98,7 @@ void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_captur
                 (_dump_interval == 0 ||
                  (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
                 QCamxCase::dump_frame(info, result->frame_number, PREVIEW_TYPE,
-                                              _config->_preview_stream.subformat);
+                                      _config->_preview_stream.subformat);
                 if (_dump_interval == 0) {
                     _dump_preview_num--;
                 }
@@ -117,9 +117,6 @@ void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_captur
 * function: analysis meta info from capture result.
 *************************************************************************/
 void QCamxHAL3TestVideo::handle_metadata(DeviceCallback *cb, camera3_capture_result *result) {
-    const camera3_stream_buffer_t *buffers = NULL;
-    QCamxHAL3TestVideo *testpre = (QCamxHAL3TestVideo *)cb;
-    QCamxDevice *device = testpre->_device;
     android::sp<android::VendorTagDescriptor> vTags =
         android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
@@ -264,7 +261,7 @@ int QCamxHAL3TestVideo::initVideoStreams() {
 
     //init stream configure
     //check preview stream
-    bool supportsPartialResults;
+    [[maybe_unused]] bool supportsPartialResults = false;
     uint32_t partialResultCount;
     std::vector<AvailableStream> outputPreviewStreams;
 
@@ -362,7 +359,7 @@ int QCamxHAL3TestVideo::initVideoStreams() {
     uint32_t operation_mode = CAMERA3_STREAM_CONFIGURATION_NORMAL_MODE;
     if (mVideoMode >= VIDEO_MODE_HFR60) {
         // for HFR case
-        int stream_size = 0;
+        uint32_t stream_size = 0;
         int stream_index = 0;
         for (int i = 0; i < (int)_streams.size(); i++) {
             if ((_streams[i]->pstream->width * _streams[i]->pstream->height) > stream_size) {
@@ -643,10 +640,8 @@ void QCamxHAL3TestVideo::request_capture(StreamCapture request) {
 ************************************************************************/
 void QCamxHAL3TestVideo::run() {
     //open camera
-    int res = 0;
-
     _device->set_callback(this);
-    res = initVideoStreams();
+    [[maybe_unused]] int res = initVideoStreams();
 
     if (mVideoMode <= VIDEO_MODE_HFR60) {
         _device->_living_request_ext_append = LIVING_REQUEST_APPEND;

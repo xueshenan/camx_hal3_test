@@ -70,7 +70,7 @@ typedef struct _meta_dump {
 
 // Saving the Metadata Value status
 typedef struct _meta_stat {
-    int expTime;
+    uint64_t exposure_time;
     int isoValue;
     int aeMode;
     int awbMode;
@@ -80,7 +80,7 @@ typedef struct _meta_stat {
     int colorCorrectMode;
     float colorCorrectValue;
     int controlMode;
-    uint32_t asdresults[10];
+    int32_t asdresults[10];
     int hdrMode;
     int32_t cropregion[4];
     int zslMode;

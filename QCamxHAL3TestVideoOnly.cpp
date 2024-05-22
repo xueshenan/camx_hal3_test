@@ -108,7 +108,7 @@ void QCamxHAL3TestVideoOnly::selectOpMode(uint32_t *operation_mode, int width, i
     const int32_t *sensorModeTable = NULL;
     int res = 0;
 
-    QCAMX_INFO(" video only: operation mode %d, fps: %d", operation_mode, fps);
+    QCAMX_INFO(" video only: operation mode %u, fps: %d", *operation_mode, fps);
     android::sp<android::VendorTagDescriptor> vTags =
         android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
     camera_metadata_ro_entry entry;
@@ -142,7 +142,7 @@ void QCamxHAL3TestVideoOnly::selectOpMode(uint32_t *operation_mode, int width, i
     if (sensorMode > 0) {
         // use StreamConfigModeSensorMode in camx
         *operation_mode = (*operation_mode) | ((sensorMode + 1) << 16) | (0x1 << 24);
-        QCAMX_INFO(" operation mode %x, sensorMode: %d", operation_mode, sensorMode);
+        QCAMX_INFO(" operation mode %u, sensorMode: %d", *operation_mode, sensorMode);
     }
 }
 
@@ -156,7 +156,6 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     Stream vStream;
     std::vector<Stream *> streams;
     streams.resize(0);
-    int stream_num = 1;
 
     uint32_t operation_mode = CAMERA3_STREAM_CONFIGURATION_NORMAL_MODE;
     if (_config->_fps_range[1] > 30 && _config->_fps_range[1] <= 60) {
@@ -181,7 +180,7 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     }
 
     //init stream configure
-    bool supportsPartialResults;
+    [[maybe_unused]] bool supportsPartialResults = false;
     uint32_t partialResultCount;
 
     /*add video stream*/
@@ -237,7 +236,7 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     _device->set_sync_buffer_mode(SYNC_BUFFER_EXTERNAL);
     if (mVideoMode >= VIDEO_ONLY_MODE_HFR60) {
         // for HFR case
-        int stream_size = 0;
+        uint32_t stream_size = 0;
         int stream_index = 0;
         for (int i = 0; i < (int)streams.size(); i++) {
             if ((streams[i]->pstream->width * streams[i]->pstream->height) > stream_size) {

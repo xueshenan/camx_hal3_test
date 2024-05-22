@@ -92,7 +92,7 @@ int QCamxHAL3TestSnapshot::initSnapshotStreams() {
     int res = 0;
     int32_t SensorOrientation = 0;
     //init stream configure
-    bool supportsPartialResults;
+    [[maybe_unused]] bool supportsPartialResults;
     uint32_t partialResultCount;
     std::vector<AvailableStream> outputPreviewStreams;
     AvailableStream previewThreshold = {_config->_preview_stream.width,

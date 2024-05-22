@@ -44,8 +44,6 @@ QCamxHAL3TestDepth::~QCamxHAL3TestDepth() {
 ************************************************************************/
 void QCamxHAL3TestDepth::capture_post_process(DeviceCallback *cb, camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
-    QCamxHAL3TestDepth *testpre = (QCamxHAL3TestDepth *)cb;
-    QCamxDevice *device = testpre->_device;
     buffers = result->output_buffers;
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
@@ -104,7 +102,7 @@ int QCamxHAL3TestDepth::initDepthStream() {
     int res = 0;
 
     //init stream configure
-    bool supportsPartialResults;
+    [[maybe_unused]] bool supportsPartialResults = false;
     uint32_t partialResultCount;
     std::vector<AvailableStream> outputDepthStreams;
     QCAMX_PRINT("depth:%dx%d %d\n", _config->_depth_stream.width, _config->_depth_stream.height,

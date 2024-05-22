@@ -50,24 +50,22 @@ void QCamxCase::capture_post_process(DeviceCallback *cb, camera3_capture_result 
 ************************************************************************/
 void QCamxCase::handle_metadata(DeviceCallback *cb, camera3_capture_result *result) {
     int res = 0;
-    QCamxCase *testcase = (QCamxCase *)cb;
-    QCamxDevice *device = testcase->_device;
     android::sp<android::VendorTagDescriptor> vTags =
         android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
     if (result->partial_result >= 1) {
         if (_config->_meta_dump.exposureValue) {
             camera_metadata_ro_entry entry;
-            uint64_t exptime = 0;
+            uint64_t exposure_time = 0;
             res =
                 find_camera_metadata_ro_entry(result->result, ANDROID_SENSOR_EXPOSURE_TIME, &entry);
             if ((res == 0) && (entry.count > 0)) {
-                exptime = entry.data.i64[0];
+                exposure_time = entry.data.i64[0];
             }
-            if (exptime != _config->_meta_stat.expTime) {
-                _config->_meta_stat.expTime = exptime;
+            if (exposure_time != _config->_meta_stat.exposure_time) {
+                _config->_meta_stat.exposure_time = exposure_time;
                 _config->_dump_log->print("frame:%d exposure value = %llu\n", result->frame_number,
-                                          exptime);
+                                          exposure_time);
             }
         }
         if (_config->_meta_dump.isoValue) {
@@ -755,6 +753,7 @@ static inline const char *get_stream_type_string(StreamType type) {
             return "irbg";
             break;
     }
+    return "";
 }
 
 static inline const char *get_file_type_string(uint32_t format) {
