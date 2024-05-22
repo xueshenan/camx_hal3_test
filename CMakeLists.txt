@@ -4,10 +4,11 @@ project(camx_hal3_test)
 
 set(CMAKE_CXX_STANDARD 17)
 # User Variables
-set (SUPPORT_FUNCTION_CALL_TRACE 1)
+option(SUPPORT_FUNCTION_CALL_TRACE "support function call trace" ON)
+option(ENABLE_VIDEO_ENCODER "support video encoder" OFF)
 
 # Common Include
-include (${CMAKE_CURRENT_LIST_DIR}/../../core/build/linuxembedded/common.cmake)
+include (${CMAKE_CURRENT_LIST_DIR}/cmake/common.cmake)
 
 add_definitions (${CAMX_CFLAGS})
 add_definitions (${CAMX_CPPFLAGS})
@@ -15,7 +16,7 @@ add_definitions ( -DLINUX_ENABLED )
 add_definitions ( -DUSE_GBM )
 add_definitions ( -DDISABLE_META_MODE=1 )
 add_definitions ( -DCAMERA_STORAGE_DIR="/data/misc/camera/" )
-if (DEFINED ENABLE_VIDEO_ENCODER)
+if (ENABLE_VIDEO_ENCODER)
 message(STATUS "enable video encoder")
 add_definitions ( -DENABLE_VIDEO_ENCODER)
 endif ()
@@ -37,7 +38,7 @@ include_directories (${SYSTEM_INC_PATH}/mm-core)
 set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Bdynamic")
 
 #########################################libomx_encoder#########################################################
-if (DEFINED ENABLE_VIDEO_ENCODER)
+if (ENABLE_VIDEO_ENCODER)
 add_library( libomx_encoder SHARED
     QCamxHAL3TestOMXEncoder.cpp
     QCamxHAL3TestVideoEncoder.cpp
