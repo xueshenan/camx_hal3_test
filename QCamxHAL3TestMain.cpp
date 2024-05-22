@@ -30,7 +30,6 @@
 #define LOG_TAG "QCamxHAL3Test"
 
 using namespace std;
-using namespace android;
 
 static camera_module_t *s_camera_module;
 static int current_camera_id;
@@ -170,8 +169,9 @@ int initialize() {
         vendor_tag_ops_t vendor_tag_ops;
         s_camera_module->get_vendor_tag_ops(&vendor_tag_ops);
 
-        sp<VendorTagDescriptor> vendor_tag_desc;
-        result = VendorTagDescriptor::createDescriptorFromOps(&vendor_tag_ops, vendor_tag_desc);
+        android::sp<android::VendorTagDescriptor> vendor_tag_desc;
+        result =
+            android::VendorTagDescriptor::createDescriptorFromOps(&vendor_tag_ops, vendor_tag_desc);
         if (result != 0) {
             QCAMX_ERR("Could not generate descriptor from vendor tag operations, received error %s "
                       "(%d). Camera clients will not be able to use vendor tags",
@@ -180,7 +180,7 @@ int initialize() {
         }
 
         // Set the global descriptor to use with camera metadata
-        result = VendorTagDescriptor::setAsGlobalVendorTagDescriptor(vendor_tag_desc);
+        result = android::VendorTagDescriptor::setAsGlobalVendorTagDescriptor(vendor_tag_desc);
 
         if (result != 0) {
             QCAMX_ERR("Could not set vendor tag descriptor, received error %s (%d).",

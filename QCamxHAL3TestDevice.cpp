@@ -164,11 +164,12 @@ bool QCamxHAL3TestDevice::config_streams(std::vector<Stream *> streams, int op_m
     int32_t stream_mapdata[8] = {0};
     stream_mapdata[5] = 0;  // TODO(anxs) camera id need use camera id ?
     stream_mapdata[4] = ANDROID_CONTROL_CAPTURE_INTENT_CUSTOM;  // capture intent
-    sp<VendorTagDescriptor> vendor_tag_descriptor =
+    android::sp<android::VendorTagDescriptor> vendor_tag_descriptor =
         android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
     uint32_t tag = 0;
-    CameraMetadata::getTagFromName("org.codeaurora.qcamera3.sessionParameters.availableStreamMap",
-                                   vendor_tag_descriptor.get(), &tag);
+    android::CameraMetadata::getTagFromName(
+        "org.codeaurora.qcamera3.sessionParameters.availableStreamMap", vendor_tag_descriptor.get(),
+        &tag);
     _init_metadata.update(tag, stream_mapdata, 8);
 
     _camera3_stream_config.session_parameters = (camera_metadata *)_init_metadata.getAndLock();
@@ -221,10 +222,10 @@ void QCamxHAL3TestDevice::construct_default_request_settings(int index,
         }
         uint32_t tag;
         uint8_t pcr = 0;
-        sp<VendorTagDescriptor> vendor_tag_descriptor =
+        android::sp<android::VendorTagDescriptor> vendor_tag_descriptor =
             android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
-        CameraMetadata::getTagFromName("org.quic.camera.EarlyPCRenable.EarlyPCRenable",
-                                       vendor_tag_descriptor.get(), &tag);
+        android::CameraMetadata::getTagFromName("org.quic.camera.EarlyPCRenable.EarlyPCRenable",
+                                                vendor_tag_descriptor.get(), &tag);
         _current_metadata.update(tag, &(pcr), 1);
         _setting_metadata_list.push_back(_current_metadata);
 

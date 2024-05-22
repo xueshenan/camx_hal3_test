@@ -109,10 +109,11 @@ void QCamxHAL3TestVideoOnly::selectOpMode(uint32_t *operation_mode, int width, i
     int res = 0;
 
     QCAMX_INFO(" video only: operation mode %d, fps: %d", operation_mode, fps);
-    sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
+    android::sp<android::VendorTagDescriptor> vTags =
+        android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
     camera_metadata_ro_entry entry;
-    CameraMetadata::getTagFromName("org.quic.camera2.sensormode.info.SensorModeTable", vTags.get(),
-                                   &tags);
+    android::CameraMetadata::getTagFromName("org.quic.camera2.sensormode.info.SensorModeTable",
+                                            vTags.get(), &tags);
 
     res = find_camera_metadata_ro_entry(_device->_camera_characteristics, tags, &entry);
     if ((res == 0) && (entry.count > 0)) {
@@ -259,7 +260,8 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
     }
 
     android::CameraMetadata *metaUpdate = get_current_meta();
-    sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
+    android::sp<android::VendorTagDescriptor> vTags =
+        android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
     uint8_t antibanding = ANDROID_CONTROL_AE_ANTIBANDING_MODE_AUTO;
     metaUpdate->update(ANDROID_CONTROL_AE_ANTIBANDING_MODE, &(antibanding), sizeof(antibanding));
@@ -288,15 +290,16 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
         uint8_t antibanding = ANDROID_CONTROL_AE_ANTIBANDING_MODE_50HZ;
         metaUpdate->update(ANDROID_CONTROL_AE_ANTIBANDING_MODE, &antibanding, 1);
 
-        CameraMetadata::getTagFromName("org.quic.camera2.streamconfigs.HDRVideoMode", vTags.get(),
-                                       &tag);
+        android::CameraMetadata::getTagFromName("org.quic.camera2.streamconfigs.HDRVideoMode",
+                                                vTags.get(), &tag);
         metaUpdate->update(tag, &(videohdr), 1);
 
-        CameraMetadata::getTagFromName("org.quic.camera.EarlyPCRenable.EarlyPCRenable", vTags.get(),
-                                       &tag);
+        android::CameraMetadata::getTagFromName("org.quic.camera.EarlyPCRenable.EarlyPCRenable",
+                                                vTags.get(), &tag);
         metaUpdate->update(tag, &(PCREnable), 1);
 
-        CameraMetadata::getTagFromName("org.quic.camera.eis3enable.EISV3Enable", vTags.get(), &tag);
+        android::CameraMetadata::getTagFromName("org.quic.camera.eis3enable.EISV3Enable",
+                                                vTags.get(), &tag);
         metaUpdate->update(tag, &(EISEnable), 1);
     }
 

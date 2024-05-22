@@ -21,7 +21,6 @@
 #include "qcamx_log.h"
 
 using namespace qcamx;
-using namespace android;
 
 #define TESTMODE_PREVIEW 0
 #define TESTMODE_SNAPSHOT 1
@@ -146,7 +145,7 @@ public:
     bool _heic_snapshot;
 
     meta_stat_t _meta_stat;
-    CameraMetadata _static_meta;
+    android::CameraMetadata _static_meta;
 public:
     int parse_commandline_add(int ordersize, char *order);
     int parse_commandline_meta_dump(int ordersize, char *order);

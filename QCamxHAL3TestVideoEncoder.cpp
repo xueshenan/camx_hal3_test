@@ -19,7 +19,7 @@
 #ifndef HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS
 #define HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS 0x7FA30C04
 #endif
-using namespace android;
+
 /************************************************************************
 * name : QCamxTestVideoEncoder
 * function: init default setting
@@ -161,8 +161,8 @@ void QCamxTestVideoEncoder::stop() {
 * function: handler to fill a buffer of handle to omx input port
 ************************************************************************/
 int QCamxTestVideoEncoder::Read(OMX_BUFFERHEADERTYPE *buf) {
-    encoder_media_buffer_type *meta_buffer;
-    meta_buffer = (encoder_media_buffer_type *)(buf->pBuffer);  //8 Byte;
+    android::encoder_media_buffer_type *meta_buffer;
+    meta_buffer = (android::encoder_media_buffer_type *)(buf->pBuffer);  //8 Byte;
     int ret = 0;
     int readLen = 0;
     if (!meta_buffer) {
@@ -231,8 +231,8 @@ OMX_ERRORTYPE QCamxTestVideoEncoder::Write(OMX_BUFFERHEADERTYPE *buf) {
 ************************************************************************/
 OMX_ERRORTYPE QCamxTestVideoEncoder::EmptyDone(OMX_BUFFERHEADERTYPE *buf) {
 #if (!DISABLE_META_MODE)
-    encoder_media_buffer_type *meta_buffer;
-    meta_buffer = (encoder_media_buffer_type *)(buf->pBuffer);  //8 Byte;
+    android::encoder_media_buffer_type *meta_buffer;
+    meta_buffer = (android::encoder_media_buffer_type *)(buf->pBuffer);  //8 Byte;
     if (!meta_buffer) {
         QCAMX_ERR("meta_buffer is empty");
         return OMX_ErrorNone;

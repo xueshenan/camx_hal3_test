@@ -31,7 +31,6 @@
 
 #include "qcamx_log.h"
 
-using namespace android;
 using namespace std;
 
 enum OmxMsgType {

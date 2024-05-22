@@ -29,8 +29,6 @@
 #include "qcamx_config.h"
 #include "qcamx_define.h"
 
-using namespace android;
-
 #define JPEG_QUALITY_DEFAULT (85)
 #define PREVIEW_STREAM_BUFFER_MAX (12)
 #define HFR_PREVIEW_STREAM_BUFFER_MAX (15)
@@ -102,9 +100,9 @@ public:
     void close_camera();
     void set_callbacks(qcamx_hal3_test_cbs_t *callbacks);
     void trigger_dump(int count, int interval = 0);
-    void set_current_meta(CameraMetadata *meta);
-    CameraMetadata *get_current_meta();
-    void updata_meta_data(CameraMetadata *meta);
+    void set_current_meta(android::CameraMetadata *meta);
+    android::CameraMetadata *get_current_meta();
+    void updata_meta_data(android::CameraMetadata *meta);
 public:
     /**
      * @brief dump one frame to file
@@ -138,7 +136,7 @@ protected:
     QCamxHAL3TestDevice *_device;
     int _camera_id;
 
-    CameraMetadata *_metadata_ext;
+    android::CameraMetadata *_metadata_ext;
 
     unsigned int _dump_preview_num;
     unsigned int _dump_video_num;

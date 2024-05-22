@@ -373,8 +373,8 @@ OMX_ERRORTYPE QCamxHAL3TestOMXEncoder::setConfig(omx_config_t *config,
         return omxresult;
     }
 
-    DescribeColorAspectsParams desColorAs;
-    OMX_INIT_STRUCT(&desColorAs, DescribeColorAspectsParams);
+    android::DescribeColorAspectsParams desColorAs;
+    OMX_INIT_STRUCT(&desColorAs, android::DescribeColorAspectsParams);
     desColorAs.nPortIndex = (OMX_U32)PORT_INDEX_IN;
 
     omxresult = OMX_GetConfig(m_OmxHandle, (OMX_INDEXTYPE)OMX_QTIIndexConfigDescribeColorAspects,
@@ -383,11 +383,11 @@ OMX_ERRORTYPE QCamxHAL3TestOMXEncoder::setConfig(omx_config_t *config,
         QCAMX_ERR("OMX_GetConfig failed");
         return omxresult;
     }
-    desColorAs.sAspects.mPrimaries = (android::ColorAspects::PrimariesBT709_5);
-    desColorAs.sAspects.mTransfer = ColorAspects::TransferSMPTE170M;
-    desColorAs.sAspects.mMatrixCoeffs = ColorAspects::MatrixBT709_5;
+    desColorAs.sAspects.mPrimaries = android::ColorAspects::PrimariesBT709_5;
+    desColorAs.sAspects.mTransfer = android::ColorAspects::TransferSMPTE170M;
+    desColorAs.sAspects.mMatrixCoeffs = android::ColorAspects::MatrixBT709_5;
 
-    OMX_INIT_STRUCT_SIZE(&desColorAs, DescribeColorAspectsParams);
+    OMX_INIT_STRUCT_SIZE(&desColorAs, android::DescribeColorAspectsParams);
     omxresult = OMX_SetConfig(m_OmxHandle, (OMX_INDEXTYPE)OMX_QTIIndexConfigDescribeColorAspects,
                               (OMX_PTR)&desColorAs);
     if (omxresult != OMX_ErrorNone) {
@@ -785,8 +785,8 @@ void QCamxHAL3TestOMXEncoder::stop() {
 ************************************************************************/
 OMX_ERRORTYPE QCamxHAL3TestOMXEncoder::enableMetaMode(OMX_U32 portidx) {
     OMX_ERRORTYPE result = OMX_ErrorNone;
-    StoreMetaDataInBuffersParams sMetadataMode;
-    OMX_INIT_STRUCT(&sMetadataMode, StoreMetaDataInBuffersParams);
+    android::StoreMetaDataInBuffersParams sMetadataMode;
+    OMX_INIT_STRUCT(&sMetadataMode, android::StoreMetaDataInBuffersParams);
     sMetadataMode.nPortIndex = portidx;
     sMetadataMode.bStoreMetaData = OMX_TRUE;
     result = OMX_SetParameter(m_OmxHandle, (OMX_INDEXTYPE)OMX_QcomIndexParamVideoMetaBufferMode,

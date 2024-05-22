@@ -215,15 +215,15 @@ void QCamxHAL3TestCase::trigger_dump(int count, int interval) {
     }
 }
 
-void QCamxHAL3TestCase::set_current_meta(CameraMetadata *meta) {
+void QCamxHAL3TestCase::set_current_meta(android::CameraMetadata *meta) {
     _metadata_ext = meta;
 }
 
-CameraMetadata *QCamxHAL3TestCase::get_current_meta() {
+android::CameraMetadata *QCamxHAL3TestCase::get_current_meta() {
     return &(_device->_current_metadata);
 }
 
-void QCamxHAL3TestCase::updata_meta_data(CameraMetadata *meta) {
+void QCamxHAL3TestCase::updata_meta_data(android::CameraMetadata *meta) {
     _device->updateMetadataForNextRequest(meta);
 }
 
@@ -235,7 +235,8 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
     int res = 0;
     QCamxHAL3TestCase *testcase = (QCamxHAL3TestCase *)cb;
     QCamxHAL3TestDevice *device = testcase->_device;
-    sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
+    android::sp<android::VendorTagDescriptor> vTags =
+        android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
     if (result->partial_result >= 1) {
         if (_config->_meta_dump.exposureValue) {
@@ -466,8 +467,8 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             int32_t asdresults[10] = {0};
             uint32_t tag = 0;
             int i = 0;
-            CameraMetadata::getTagFromName("org.quic.camera2.asdresults.ASDResults", vTags.get(),
-                                           &tag);
+            android::CameraMetadata::getTagFromName("org.quic.camera2.asdresults.ASDResults",
+                                                    vTags.get(), &tag);
             res = find_camera_metadata_ro_entry(result->result, tag, &entry);
             if ((res == 0) && (entry.count > 0)) {
                 memcpy(asdresults, &(entry.data.i32[0]), sizeof(asdresults));
@@ -489,8 +490,8 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             camera_metadata_ro_entry entry;
             int hdrmode = 0;
             uint32_t tag = 0;
-            CameraMetadata::getTagFromName("org.codeaurora.qcamera3.stats.is_hdr_scene",
-                                           vTags.get(), &tag);
+            android::CameraMetadata::getTagFromName("org.codeaurora.qcamera3.stats.is_hdr_scene",
+                                                    vTags.get(), &tag);
             res = find_camera_metadata_ro_entry(result->result, tag, &entry);
             if ((res == 0) && (entry.count > 0)) {
                 hdrmode = entry.data.u8[0];
@@ -539,8 +540,8 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             camera_metadata_ro_entry entry;
             uint32_t tag = 0;
             int32_t numFrames = -1;
-            CameraMetadata::getTagFromName("org.quic.camera2.mfnrconfigs.MFNRTotalNumFrames",
-                                           vTags.get(), &tag);
+            android::CameraMetadata::getTagFromName(
+                "org.quic.camera2.mfnrconfigs.MFNRTotalNumFrames", vTags.get(), &tag);
             res = find_camera_metadata_ro_entry(result->result, tag, &entry);
             if ((res == 0) && (entry.count > 0)) {
                 numFrames = entry.data.i32[0];
@@ -556,7 +557,7 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             camera_metadata_ro_entry entry;
             uint32_t tag = 0;
             int32_t metering = -1;
-            CameraMetadata::getTagFromName(
+            android::CameraMetadata::getTagFromName(
                 "org.codeaurora.qcamera3.exposure_metering.exposure_metering_mode", vTags.get(),
                 &tag);
             res = find_camera_metadata_ro_entry(result->result, tag, &entry);
@@ -574,7 +575,7 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             camera_metadata_ro_entry entry;
             uint32_t tag = 0;
             int32_t priority = -1;
-            CameraMetadata::getTagFromName(
+            android::CameraMetadata::getTagFromName(
                 "org.codeaurora.qcamera3.iso_exp_priority.select_priority", vTags.get(), &tag);
             res = find_camera_metadata_ro_entry(result->result, tag, &entry);
             if ((res == 0) && (entry.count > 0)) {
@@ -591,7 +592,7 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
             camera_metadata_ro_entry entry;
             uint32_t tag = 0;
             int64_t priority = -1;
-            CameraMetadata::getTagFromName(
+            android::CameraMetadata::getTagFromName(
                 "org.codeaurora.qcamera3.iso_exp_priority.use_iso_exp_priority", vTags.get(), &tag);
             res = find_camera_metadata_ro_entry(result->result, tag, &entry);
             if ((res == 0) && (entry.count > 0)) {
@@ -686,12 +687,14 @@ bool QCamxHAL3TestCase::init(camera_module_t *module, QCamxConfig *config) {
     }
 
     _tag_id_temperature = 0;
-    sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
-    CameraMetadata::getTagFromName("com.qti.chi.temperature.temperature", vTags.get(),
-                                   &_tag_id_temperature);
+    android::sp<android::VendorTagDescriptor> vTags =
+        android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
+    android::CameraMetadata::getTagFromName("com.qti.chi.temperature.temperature", vTags.get(),
+                                            &_tag_id_temperature);
 
     camera_metadata_ro_entry active_array_size =
-        ((const CameraMetadata)_config->_static_meta).find(ANDROID_SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+        ((const android::CameraMetadata)_config->_static_meta)
+            .find(ANDROID_SENSOR_INFO_ACTIVE_ARRAY_SIZE);
     if (active_array_size.count == 2) {
         _config->_active_sensor_width = active_array_size.data.i32[0];
         _config->_active_sensor_height = active_array_size.data.i32[1];

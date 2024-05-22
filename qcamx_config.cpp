@@ -132,7 +132,8 @@ int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetad
     int errfnd = 0;
     int res = 0;
 
-    sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
+    android::sp<android::VendorTagDescriptor> vTags =
+        android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
     while (*order != '\0' && !errfnd) {
         switch (getsubopt(&order, token, &value)) {
@@ -213,8 +214,8 @@ int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetad
                 uint32_t tag = 0;
                 int32_t mwbmode;
                 sscanf(value, "%d", &mwbmode);
-                CameraMetadata::getTagFromName("org.codeaurora.qcamera3.manualWB.partial_mwb_mode",
-                                               vTags.get(), &tag);
+                android::CameraMetadata::getTagFromName(
+                    "org.codeaurora.qcamera3.manualWB.partial_mwb_mode", vTags.get(), &tag);
                 (*meta_update).update(tag, &mwbmode, 1);
                 break;
             }
@@ -223,8 +224,8 @@ int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetad
                 uint32_t tag = 0;
                 int32_t mwb_cct;
                 sscanf(value, "%d", &mwb_cct);
-                CameraMetadata::getTagFromName("org.codeaurora.qcamera3.manualWB.color_temperature",
-                                               vTags.get(), &tag);
+                android::CameraMetadata::getTagFromName(
+                    "org.codeaurora.qcamera3.manualWB.color_temperature", vTags.get(), &tag);
                 (*meta_update).update(tag, &mwb_cct, 1);
                 break;
             }
@@ -233,8 +234,8 @@ int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetad
                 uint32_t tag = 0;
                 float mwb_gains[3];
                 sscanf(value, "%f-%f-%f", &mwb_gains[0], &mwb_gains[1], &mwb_gains[2]);
-                CameraMetadata::getTagFromName("org.codeaurora.qcamera3.manualWB.gains",
-                                               vTags.get(), &tag);
+                android::CameraMetadata::getTagFromName("org.codeaurora.qcamera3.manualWB.gains",
+                                                        vTags.get(), &tag);
                 (*meta_update).update(tag, mwb_gains, 3);
                 break;
             }
@@ -287,7 +288,7 @@ int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetad
                 sscanf(value, "%d", &zoom);
 
                 camera_metadata_ro_entry activeArraySize =
-                    ((const CameraMetadata)_static_meta)
+                    ((const android::CameraMetadata)_static_meta)
                         .find(ANDROID_SENSOR_INFO_ACTIVE_ARRAY_SIZE);
                 int32_t activeWidth;
                 int32_t activeHeight;
@@ -320,8 +321,8 @@ int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetad
                 uint32_t tag = 0;
                 int32_t numFrames = 0;
                 sscanf(value, "%d", &numFrames);
-                CameraMetadata::getTagFromName("org.quic.camera2.mfnrconfigs.MFNRTotalNumFrames",
-                                               vTags.get(), &tag);
+                android::CameraMetadata::getTagFromName(
+                    "org.quic.camera2.mfnrconfigs.MFNRTotalNumFrames", vTags.get(), &tag);
                 (*meta_update).update(tag, &numFrames, 1);
                 break;
             }
@@ -329,7 +330,7 @@ int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetad
                 uint32_t tag = 0;
                 int32_t metering = 0;
                 sscanf(value, "%d", &metering);
-                CameraMetadata::getTagFromName(
+                android::CameraMetadata::getTagFromName(
                     "org.codeaurora.qcamera3.exposure_metering.exposure_metering_mode", vTags.get(),
                     &tag);
                 (*meta_update).update(tag, &metering, 1);
@@ -339,7 +340,7 @@ int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetad
                 uint32_t tag = 0;
                 int32_t selPriority = 0;
                 sscanf(value, "%d", &selPriority);
-                CameraMetadata::getTagFromName(
+                android::CameraMetadata::getTagFromName(
                     "org.codeaurora.qcamera3.iso_exp_priority.select_priority", vTags.get(), &tag);
                 (*meta_update).update(tag, &selPriority, 1);
                 break;
@@ -348,7 +349,7 @@ int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetad
                 uint32_t tag = 0;
                 int64_t expPriority = 0;
                 sscanf(value, "%ld", &expPriority);
-                CameraMetadata::getTagFromName(
+                android::CameraMetadata::getTagFromName(
                     "org.codeaurora.qcamera3.iso_exp_priority.use_iso_exp_priority", vTags.get(),
                     &tag);
                 (*meta_update).update(tag, &expPriority, 1);
@@ -371,7 +372,7 @@ int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetad
                 sscanf(value, "%dx%dx%dx%d", &x, &y, &width, &height);
 
                 camera_metadata_ro_entry activeArraySize =
-                    ((const CameraMetadata)_static_meta)
+                    ((const android::CameraMetadata)_static_meta)
                         .find(ANDROID_SENSOR_INFO_ACTIVE_ARRAY_SIZE);
                 int32_t activeWidth;
                 int32_t activeHeight;
@@ -409,8 +410,8 @@ int QCamxConfig::parse_commandline_meta_update(char *order, android::CameraMetad
                 uint32_t tag = 0;
                 float compRatio = 0;
                 sscanf(value, "%f", &compRatio);
-                CameraMetadata::getTagFromName("org.codeaurora.qcamera3.compensation_ratio.ratio",
-                                               vTags.get(), &tag);
+                android::CameraMetadata::getTagFromName(
+                    "org.codeaurora.qcamera3.compensation_ratio.ratio", vTags.get(), &tag);
                 (*meta_update).update(tag, &compRatio, 1);
                 break;
             }

@@ -29,7 +29,7 @@
 #include "qcamx_config.h"
 
 using namespace std;
-using namespace android;
+
 class QCamxTestVideoEncoder : public QCamxHAL3TestBufferHolder {
 public:
     QCamxTestVideoEncoder(QCamxConfig *);

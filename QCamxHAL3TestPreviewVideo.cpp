@@ -105,7 +105,8 @@ void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_captu
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestPreviewVideo *testpre = (QCamxHAL3TestPreviewVideo *)cb;
     QCamxHAL3TestDevice *device = testpre->_device;
-    sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
+    android::sp<android::VendorTagDescriptor> vTags =
+        android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
     if (result->partial_result >= 1) {
         if ((_config->_meta_dump.SatCamId) >= 0) {
@@ -113,8 +114,8 @@ void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_captu
             int camid = 0;
             int res = 0;
             uint32_t cam_tag = 0;
-            CameraMetadata::getTagFromName("org.quic.camera2.sensormode.info.SATCameraId",
-                                           vTags.get(), &cam_tag);
+            android::CameraMetadata::getTagFromName("org.quic.camera2.sensormode.info.SATCameraId",
+                                                    vTags.get(), &cam_tag);
             res = find_camera_metadata_ro_entry(result->result, cam_tag, &entry);
             if ((0 == res) && (entry.count > 0)) {
                 camid = entry.data.i32[0];
@@ -130,8 +131,8 @@ void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_captu
             int res = 0;
             int str = 0, str1 = 0;
             uint32_t active_tag = 0;
-            CameraMetadata::getTagFromName("org.quic.camera2.sensormode.info.SATActiveSensorArray",
-                                           vTags.get(), &active_tag);
+            android::CameraMetadata::getTagFromName(
+                "org.quic.camera2.sensormode.info.SATActiveSensorArray", vTags.get(), &active_tag);
             res = find_camera_metadata_ro_entry(result->result, active_tag, &entry);
             if ((0 == res) && (entry.count > 0)) {
                 for (str = 0; str < 4; str++) {
@@ -154,8 +155,8 @@ void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_captu
             int res = 0;
             int str = 0, str1 = 0;
             uint32_t crop_tag = 0;
-            CameraMetadata::getTagFromName("org.quic.camera2.sensormode.info.SATScalerCropRegion",
-                                           vTags.get(), &crop_tag);
+            android::CameraMetadata::getTagFromName(
+                "org.quic.camera2.sensormode.info.SATScalerCropRegion", vTags.get(), &crop_tag);
             res = find_camera_metadata_ro_entry(result->result, crop_tag, &entry);
             if ((0 == res) && (entry.count > 0)) {
                 for (str = 0; str < 4; str++) {
@@ -184,10 +185,11 @@ void QCamxHAL3TestPreviewVideo::selectOpMode(uint32_t *operation_mode, int width
     const int32_t *sensorModeTable = NULL;
     int res = 0;
 
-    sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
+    android::sp<android::VendorTagDescriptor> vTags =
+        android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
     camera_metadata_ro_entry entry;
-    CameraMetadata::getTagFromName("org.quic.camera2.sensormode.info.SensorModeTable", vTags.get(),
-                                   &tags);
+    android::CameraMetadata::getTagFromName("org.quic.camera2.sensormode.info.SensorModeTable",
+                                            vTags.get(), &tags);
 
     res = find_camera_metadata_ro_entry(_device->_camera_characteristics, tags, &entry);
     if ((res == 0) && (entry.count > 0)) {
@@ -316,7 +318,8 @@ int QCamxHAL3TestPreviewVideo::initVideoStreams() {
     }
 
     android::CameraMetadata *metaUpdate = get_current_meta();
-    sp<VendorTagDescriptor> vTags = android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
+    android::sp<android::VendorTagDescriptor> vTags =
+        android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
     uint8_t antibanding = ANDROID_CONTROL_AE_ANTIBANDING_MODE_AUTO;
     metaUpdate->update(ANDROID_CONTROL_AE_ANTIBANDING_MODE, &(antibanding), sizeof(antibanding));
@@ -340,15 +343,16 @@ int QCamxHAL3TestPreviewVideo::initVideoStreams() {
         uint8_t antibanding = ANDROID_CONTROL_AE_ANTIBANDING_MODE_50HZ;
         metaUpdate->update(ANDROID_CONTROL_AE_ANTIBANDING_MODE, &antibanding, 1);
 
-        CameraMetadata::getTagFromName("org.quic.camera2.streamconfigs.HDRVideoMode", vTags.get(),
-                                       &tag);
+        android::CameraMetadata::getTagFromName("org.quic.camera2.streamconfigs.HDRVideoMode",
+                                                vTags.get(), &tag);
         metaUpdate->update(tag, &(videohdr), 1);
 
-        CameraMetadata::getTagFromName("org.quic.camera.EarlyPCRenable.EarlyPCRenable", vTags.get(),
-                                       &tag);
+        android::CameraMetadata::getTagFromName("org.quic.camera.EarlyPCRenable.EarlyPCRenable",
+                                                vTags.get(), &tag);
         metaUpdate->update(tag, &(PCREnable), 1);
 
-        CameraMetadata::getTagFromName("org.quic.camera.eis3enable.EISV3Enable", vTags.get(), &tag);
+        android::CameraMetadata::getTagFromName("org.quic.camera.eis3enable.EISV3Enable",
+                                                vTags.get(), &tag);
         metaUpdate->update(tag, &(EISEnable), 1);
     }
 
