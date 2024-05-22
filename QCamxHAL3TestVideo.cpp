@@ -11,6 +11,8 @@
 
 #include "QCamxHAL3TestVideo.h"
 
+#include <math.h>  // ceil
+
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
@@ -45,7 +47,7 @@ QCamxHAL3TestVideo::~QCamxHAL3TestVideo() {
 * name : CapturePostProcess
 * function: Do post process
 ************************************************************************/
-void QCamxHAL3TestVideo::CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) {
+void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     buffers = result->output_buffers;
 
@@ -89,7 +91,7 @@ void QCamxHAL3TestVideo::CapturePostProcess(DeviceCallback *cb, camera3_capture_
                 show_fps(VIDEO_TYPE);
             }
         } else if (stream->streamId == PREVIEW_IDX) {
-            if (_callbacks && _callbacks->preview_cb) {
+            if (_callbacks != NULL && _callbacks->preview_cb != NULL) {
                 _callbacks->preview_cb(info, result->frame_number);
             }
             if (_dump_preview_num > 0 &&
@@ -111,10 +113,10 @@ void QCamxHAL3TestVideo::CapturePostProcess(DeviceCallback *cb, camera3_capture_
 }
 
 /*************************************************************************
-* name : HandleMetaData
+* name : handle_metadata
 * function: analysis meta info from capture result.
 *************************************************************************/
-void QCamxHAL3TestVideo::HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) {
+void QCamxHAL3TestVideo::handle_metadata(DeviceCallback *cb, camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestVideo *testpre = (QCamxHAL3TestVideo *)cb;
     QCamxDevice *device = testpre->_device;
@@ -432,7 +434,7 @@ int QCamxHAL3TestVideo::initVideoStreams() {
         metaUpdate->update(tag, &(EISEnable), 1);
     }
 
-    updata_meta_data(metaUpdate);
+    updata_metadata(metaUpdate);
     return res;
 }
 
@@ -617,7 +619,7 @@ void QCamxHAL3TestVideo::stop() {
 * name : RequestCaptures
 * function: impliment "s" command
 ************************************************************************/
-void QCamxHAL3TestVideo::RequestCaptures(StreamCapture request) {
+void QCamxHAL3TestVideo::request_capture(StreamCapture request) {
     // send a message to request thread
     pthread_mutex_lock(&_device->_request_thread->mutex);
     CameraRequestMsg *msg = new CameraRequestMsg();

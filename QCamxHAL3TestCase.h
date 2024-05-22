@@ -1,29 +1,14 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright (c) 2018-2020 Qualcomm Technologies, Inc.
-// All Rights Reserved.
-// Confidential and Proprietary - Qualcomm Technologies, Inc.
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file  QCamxHAL3TestCase.h
-/// @brief base class
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _QCAMX_HAL3_TEST_CASE_
-#define _QCAMX_HAL3_TEST_CASE_
-#include <dlfcn.h>
-#include <errno.h>
-#include <inttypes.h>
-#include <log/log.h>
-#include <math.h>
-#include <pthread.h>
+/**
+* @file  qcamx_case.h
+* @brief base class for qcamx case
+*/
+
+#pragma once
+
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 
-#include <fstream>
-#include <iostream>
-#include <mutex>
+#include <vector>
 
 #include "qcamx_config.h"
 #include "qcamx_define.h"
@@ -86,23 +71,42 @@ struct YUVFormat {
 };
 
 class QCamxHAL3TestCase : public DeviceCallback {
-public:
-    // virtual functions
+public:  // DeviceCallback function
+    /**
+     * @brief empty implementation
+    */
+    virtual void capture_post_process(DeviceCallback *cb, camera3_capture_result *result) override;
+    /**
+     * @brief analysis meta info from capture result.
+    */
+    virtual void handle_metadata(DeviceCallback *cb, camera3_capture_result *result) override;
+public:  // virtual functions
     virtual int pre_init_stream() = 0;
     virtual void run() = 0;
     virtual void stop() = 0;
-    virtual void RequestCaptures(StreamCapture requst) {};
-    // DeviceCallback functions
-    virtual void CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) override {};
-    virtual void HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) override;
+    virtual void request_capture(StreamCapture requst) = 0;
 public:
+    /**
+     * @brief open camera device
+    */
     int open_camera();
+    /**
+     * @breif close camera device
+    */
     void close_camera();
+    /**
+     * @brief callback function for case
+    */
     void set_callbacks(qcamx_hal3_test_cbs_t *callbacks);
+    /**
+     * @brief trigger dump image
+     * @param count image count 
+    */
     void trigger_dump(int count, int interval = 0);
-    void set_current_meta(android::CameraMetadata *meta);
+public:  //metadata operation
+    void set_current_metadata(android::CameraMetadata *metadata);
     android::CameraMetadata *get_current_meta();
-    void updata_meta_data(android::CameraMetadata *meta);
+    void updata_metadata(android::CameraMetadata *metadata);
 public:
     /**
      * @brief dump one frame to file
@@ -111,11 +115,9 @@ public:
     */
     static void dump_frame(BufferInfo *info, unsigned int frame_num, StreamType dump_type,
                            Implsubformat subformat);
-    static inline uint32_t ALIGN(uint32_t operand, uint32_t alignment) {
-        uint32_t remainder = (operand % alignment);
-
-        return (0 == remainder) ? operand : operand - remainder + alignment;
-    }
+public:
+    QCamxHAL3TestCase() {}
+    virtual ~QCamxHAL3TestCase() {}
 protected:
     /**
      * @brief initialization of variables
@@ -155,5 +157,3 @@ protected:
     qcamx_hal3_test_cbs_t *_callbacks;
     uint32_t _tag_id_temperature;
 };
-
-#endif

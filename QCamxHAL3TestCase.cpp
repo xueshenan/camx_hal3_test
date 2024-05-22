@@ -11,6 +11,8 @@
 
 #include "QCamxHAL3TestCase.h"
 
+#include <math.h>  // ceil
+
 #include "qcamx_log.h"
 
 #ifdef LOG_TAG
@@ -32,206 +34,21 @@ static const UBWCYUVTileInfo SupportedUBWCYUVTileInfo[] = {
 /**
 * @brief get stream type string
 */
-static inline const char *get_stream_type_string(StreamType type) {
-    switch (type) {
-        case PREVIEW_TYPE:
-            return "preview";
-            break;
-        case VIDEO_TYPE:
-            return "video";
-            break;
-        case SNAPSHOT_TYPE:
-            return "snapshot";
-            break;
-        case RAW_SNAPSHOT_TYPE:
-            return "raw";
-            break;
-        case DEPTH_TYPE:
-            return "depth";
-            break;
-        case IRBG_TYPE:
-            return "irbg";
-            break;
-    }
-}
+static inline const char *get_stream_type_string(StreamType type);
 
 /**
 * @brief get string of file type
 */
-static inline const char *get_file_type_string(uint32_t format) {
-    if (format == HAL_PIXEL_FORMAT_Y16) {
-        return "y16";
-    } else if (format == HAL_PIXEL_FORMAT_RAW10 || format == HAL_PIXEL_FORMAT_RAW16 ||
-               format == HAL_PIXEL_FORMAT_RAW12) {
-        return "raw";
-    } else if (format == HAL_PIXEL_FORMAT_BLOB) {
-        return "jpg";
-    } else if (format == HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED) {
-        return "ubwc";
-    } else {
-        return "yuv";
-    }
-}
+static inline const char *get_file_type_string(uint32_t format);
 
-void QCamxHAL3TestCase::dump_frame(BufferInfo *info, unsigned int frame_num, StreamType dump_type,
-                                   Implsubformat subformat) {
-    uint8_t *data = (uint8_t *)info->vaddr;
-    int size = info->size;
-    int width = info->width;
-    int height = info->height;
-    int stride = info->stride;
-    int slice = info->slice;
-    uint32_t format = info->format;
-    int plane_cnt = 1;
-    int pixel_byte = 1;
+/******************************** DeviceCallback function *****************************/
 
-    if ((static_cast<uint32_t>(HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED) == format) &&
-        ((YUV420NV12 == subformat) || (YUV420NV21 == subformat))) {
-        format = HAL_PIXEL_FORMAT_YCBCR_420_888;
-    }
-
-    char fname[256];
-    time_t timer;
-    time(&timer);
-    struct tm *t = localtime(&timer);
-    snprintf(fname, sizeof(fname), "%s/%s_w[%d]_h[%d]_id[%d]_%4d%02d%02d_%02d%02d%02d.%s",
-             "/data/misc/camera/", get_stream_type_string(dump_type), width, height, frame_num,
-             t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec,
-             get_file_type_string(format));
-
-    FILE *fd = fopen(fname, "wb");
-
-    switch (format) {
-        case HAL_PIXEL_FORMAT_RAW10:
-        case HAL_PIXEL_FORMAT_RAW12: {
-            fwrite(data, size, 1, fd);
-            break;
-        }
-        case HAL_PIXEL_FORMAT_BLOB: {
-            struct Camera3JPEGBlob jpegBlob;
-            size_t jpeg_eof_offset = (size_t)(size - (size_t)sizeof(jpegBlob));
-            uint8_t *jpeg_eof = &data[jpeg_eof_offset];
-            memcpy(&jpegBlob, jpeg_eof, sizeof(Camera3JPEGBlob));
-
-            if (jpegBlob.JPEGBlobId == JPEG_BLOB_ID) {
-                fwrite(data, jpegBlob.JPEGBlobSize, 1, fd);
-            } else {
-                QCAMX_ERR("Failed to Get Picture size:%d\n", size);
-                fwrite(data, size, 1, fd);
-            }
-            break;
-        }
-        case HAL_PIXEL_FORMAT_YCBCR_420_888:
-        case HAL_PIXEL_FORMAT_Y16: {
-            if (format == HAL_PIXEL_FORMAT_Y16) {
-                plane_cnt = 1;
-                pixel_byte = 2;
-            } else {
-                plane_cnt = 2;
-                pixel_byte = 1;
-            }
-
-            for (int idx = 1; idx <= plane_cnt; idx++) {
-                for (int h = 0; h < height / idx; h++) {
-                    fwrite(data, (width * pixel_byte), 1, fd);
-                    data += stride;
-                }
-                data += stride * (slice - height);
-            }
-            break;
-        }
-        case HAL_PIXEL_FORMAT_RAW16: {
-            // RAW16, 2 Bytes hold 1 pixel data
-            plane_cnt = 1;
-            pixel_byte = 2;
-            for (int idx = 1; idx <= plane_cnt; idx++) {
-                for (int h = 0; h < height / idx; h++) {
-                    fwrite(data, (width * pixel_byte), 1, fd);
-                    data += stride * pixel_byte;
-                }
-            }
-            break;
-        }
-        case HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED: {
-            const UBWCYUVTileInfo *pTileInfo = &SupportedUBWCYUVTileInfo[0];
-            YUVFormat Plane[2];
-            plane_cnt = 2;
-            memset(Plane, 0, sizeof(Plane));
-
-            for (int idx = 0; idx < plane_cnt; idx++) {
-                // calculate plane size
-                Plane[idx].width = width;
-                Plane[idx].height = height >> idx;
-                unsigned int localWidth = ALIGN(Plane[idx].width, pTileInfo->widthPixels);
-                Plane[idx].width =
-                    (localWidth / pTileInfo->BPPDenominator) * pTileInfo->BPPNumerator;
-                float local1 = static_cast<float>(static_cast<float>(Plane[idx].width) /
-                                                  pTileInfo->widthBytes) /
-                               64;
-                Plane[idx].metadataStride = static_cast<uint32_t>(ceil(local1)) * 1024;
-                float local2 =
-                    static_cast<float>(static_cast<float>(Plane[idx].height) / pTileInfo->height) /
-                    16;
-                unsigned int localMetaSize =
-                    static_cast<uint32_t>(ceil(local2)) * Plane[idx].metadataStride;
-                Plane[idx].metadataSize = ALIGN(localMetaSize, 4096);
-                Plane[idx].metadataHeight = Plane[idx].metadataSize / Plane[idx].metadataStride;
-                Plane[idx].planeStride = ALIGN(Plane[idx].width, pTileInfo->widthMacroTile);
-                Plane[idx].sliceHeight = ALIGN(Plane[idx].height, pTileInfo->heightMacroTile);
-                Plane[idx].pixelPlaneSize =
-                    ALIGN((Plane[idx].planeStride * Plane[idx].sliceHeight), 4096);
-                Plane[idx].planeSize = Plane[idx].metadataSize + Plane[idx].pixelPlaneSize;
-                // write data
-                fwrite(data, Plane[idx].planeSize, 1, fd);
-                data += Plane[idx].planeSize;
-            }
-            break;
-        }
-        default: {
-            QCAMX_ERR("No matched formats!");
-            break;
-        }
-    }
-    fclose(fd);
-}
-
-int QCamxHAL3TestCase::open_camera() {
-    return _device->open_camera();
-}
-
-void QCamxHAL3TestCase::close_camera() {
-    return _device->close_camera();
-}
-
-void QCamxHAL3TestCase::set_callbacks(qcamx_hal3_test_cbs_t *callbacks) {
-    _callbacks = callbacks;
-}
-
-void QCamxHAL3TestCase::trigger_dump(int count, int interval) {
-    _dump_preview_num = count;
-    _dump_video_num = count;
-    if (interval >= 0) {
-        _dump_interval = interval;
-    }
-}
-
-void QCamxHAL3TestCase::set_current_meta(android::CameraMetadata *meta) {
-    _metadata_ext = meta;
-}
-
-android::CameraMetadata *QCamxHAL3TestCase::get_current_meta() {
-    return &(_device->_current_metadata);
-}
-
-void QCamxHAL3TestCase::updata_meta_data(android::CameraMetadata *meta) {
-    _device->update_metadata_for_next_request(meta);
-}
-
+void QCamxHAL3TestCase::capture_post_process(DeviceCallback *cb, camera3_capture_result *result) {}
 /************************************************************************
-* name : HandleMetaData
+* name : handle_metadata
 * function: analysis meta info from capture result.
 ************************************************************************/
-void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) {
+void QCamxHAL3TestCase::handle_metadata(DeviceCallback *cb, camera3_capture_result *result) {
     int res = 0;
     QCamxHAL3TestCase *testcase = (QCamxHAL3TestCase *)cb;
     QCamxDevice *device = testcase->_device;
@@ -658,6 +475,167 @@ void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_resul
     }
 }
 
+/************************ public method ******************************/
+int QCamxHAL3TestCase::open_camera() {
+    return _device->open_camera();
+}
+
+void QCamxHAL3TestCase::close_camera() {
+    return _device->close_camera();
+}
+
+void QCamxHAL3TestCase::set_callbacks(qcamx_hal3_test_cbs_t *callbacks) {
+    _callbacks = callbacks;
+}
+
+void QCamxHAL3TestCase::trigger_dump(int count, int interval) {
+    _dump_preview_num = count;
+    _dump_video_num = count;
+    if (interval >= 0) {
+        _dump_interval = interval;
+    }
+}
+
+void QCamxHAL3TestCase::set_current_metadata(android::CameraMetadata *meta) {
+    _metadata_ext = meta;
+}
+
+android::CameraMetadata *QCamxHAL3TestCase::get_current_meta() {
+    return &(_device->_current_metadata);
+}
+
+void QCamxHAL3TestCase::updata_metadata(android::CameraMetadata *meta) {
+    _device->update_metadata_for_next_request(meta);
+}
+
+static inline uint32_t ALIGN(uint32_t operand, uint32_t alignment) {
+    uint32_t remainder = (operand % alignment);
+    return (0 == remainder) ? operand : operand - remainder + alignment;
+}
+
+void QCamxHAL3TestCase::dump_frame(BufferInfo *info, unsigned int frame_num, StreamType dump_type,
+                                   Implsubformat subformat) {
+    uint8_t *data = (uint8_t *)info->vaddr;
+    int size = info->size;
+    int width = info->width;
+    int height = info->height;
+    int stride = info->stride;
+    int slice = info->slice;
+    uint32_t format = info->format;
+    int plane_cnt = 1;
+    int pixel_byte = 1;
+
+    if ((static_cast<uint32_t>(HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED) == format) &&
+        ((YUV420NV12 == subformat) || (YUV420NV21 == subformat))) {
+        format = HAL_PIXEL_FORMAT_YCBCR_420_888;
+    }
+
+    char fname[256];
+    time_t timer;
+    time(&timer);
+    struct tm *t = localtime(&timer);
+    snprintf(fname, sizeof(fname), "%s/%s_w[%d]_h[%d]_id[%d]_%4d%02d%02d_%02d%02d%02d.%s",
+             "/data/misc/camera/", get_stream_type_string(dump_type), width, height, frame_num,
+             t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec,
+             get_file_type_string(format));
+
+    FILE *fd = fopen(fname, "wb");
+
+    switch (format) {
+        case HAL_PIXEL_FORMAT_RAW10:
+        case HAL_PIXEL_FORMAT_RAW12: {
+            fwrite(data, size, 1, fd);
+            break;
+        }
+        case HAL_PIXEL_FORMAT_BLOB: {
+            struct Camera3JPEGBlob jpegBlob;
+            size_t jpeg_eof_offset = (size_t)(size - (size_t)sizeof(jpegBlob));
+            uint8_t *jpeg_eof = &data[jpeg_eof_offset];
+            memcpy(&jpegBlob, jpeg_eof, sizeof(Camera3JPEGBlob));
+
+            if (jpegBlob.JPEGBlobId == JPEG_BLOB_ID) {
+                fwrite(data, jpegBlob.JPEGBlobSize, 1, fd);
+            } else {
+                QCAMX_ERR("Failed to Get Picture size:%d\n", size);
+                fwrite(data, size, 1, fd);
+            }
+            break;
+        }
+        case HAL_PIXEL_FORMAT_YCBCR_420_888:
+        case HAL_PIXEL_FORMAT_Y16: {
+            if (format == HAL_PIXEL_FORMAT_Y16) {
+                plane_cnt = 1;
+                pixel_byte = 2;
+            } else {
+                plane_cnt = 2;
+                pixel_byte = 1;
+            }
+
+            for (int idx = 1; idx <= plane_cnt; idx++) {
+                for (int h = 0; h < height / idx; h++) {
+                    fwrite(data, (width * pixel_byte), 1, fd);
+                    data += stride;
+                }
+                data += stride * (slice - height);
+            }
+            break;
+        }
+        case HAL_PIXEL_FORMAT_RAW16: {
+            // RAW16, 2 Bytes hold 1 pixel data
+            plane_cnt = 1;
+            pixel_byte = 2;
+            for (int idx = 1; idx <= plane_cnt; idx++) {
+                for (int h = 0; h < height / idx; h++) {
+                    fwrite(data, (width * pixel_byte), 1, fd);
+                    data += stride * pixel_byte;
+                }
+            }
+            break;
+        }
+        case HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED: {
+            const UBWCYUVTileInfo *pTileInfo = &SupportedUBWCYUVTileInfo[0];
+            YUVFormat Plane[2];
+            plane_cnt = 2;
+            memset(Plane, 0, sizeof(Plane));
+
+            for (int idx = 0; idx < plane_cnt; idx++) {
+                // calculate plane size
+                Plane[idx].width = width;
+                Plane[idx].height = height >> idx;
+                unsigned int localWidth = ALIGN(Plane[idx].width, pTileInfo->widthPixels);
+                Plane[idx].width =
+                    (localWidth / pTileInfo->BPPDenominator) * pTileInfo->BPPNumerator;
+                float local1 = static_cast<float>(static_cast<float>(Plane[idx].width) /
+                                                  pTileInfo->widthBytes) /
+                               64;
+                Plane[idx].metadataStride = static_cast<uint32_t>(ceil(local1)) * 1024;
+                float local2 =
+                    static_cast<float>(static_cast<float>(Plane[idx].height) / pTileInfo->height) /
+                    16;
+                unsigned int localMetaSize =
+                    static_cast<uint32_t>(ceil(local2)) * Plane[idx].metadataStride;
+                Plane[idx].metadataSize = ALIGN(localMetaSize, 4096);
+                Plane[idx].metadataHeight = Plane[idx].metadataSize / Plane[idx].metadataStride;
+                Plane[idx].planeStride = ALIGN(Plane[idx].width, pTileInfo->widthMacroTile);
+                Plane[idx].sliceHeight = ALIGN(Plane[idx].height, pTileInfo->heightMacroTile);
+                Plane[idx].pixelPlaneSize =
+                    ALIGN((Plane[idx].planeStride * Plane[idx].sliceHeight), 4096);
+                Plane[idx].planeSize = Plane[idx].metadataSize + Plane[idx].pixelPlaneSize;
+                // write data
+                fwrite(data, Plane[idx].planeSize, 1, fd);
+                data += Plane[idx].planeSize;
+            }
+            break;
+        }
+        default: {
+            QCAMX_ERR("No matched formats!");
+            break;
+        }
+    }
+    fclose(fd);
+}
+
+/**************************** protected method *************************************/
 bool QCamxHAL3TestCase::init(camera_module_t *module, QCamxConfig *config) {
     _metadata_ext = NULL;
 
@@ -754,4 +732,42 @@ void QCamxHAL3TestCase::show_fps(StreamType stream_type) {
 
     // increate current frame count
     *frame_count = (*frame_count) + 1;
+}
+
+static inline const char *get_stream_type_string(StreamType type) {
+    switch (type) {
+        case PREVIEW_TYPE:
+            return "preview";
+            break;
+        case VIDEO_TYPE:
+            return "video";
+            break;
+        case SNAPSHOT_TYPE:
+            return "snapshot";
+            break;
+        case RAW_SNAPSHOT_TYPE:
+            return "raw";
+            break;
+        case DEPTH_TYPE:
+            return "depth";
+            break;
+        case IRBG_TYPE:
+            return "irbg";
+            break;
+    }
+}
+
+static inline const char *get_file_type_string(uint32_t format) {
+    if (format == HAL_PIXEL_FORMAT_Y16) {
+        return "y16";
+    } else if (format == HAL_PIXEL_FORMAT_RAW10 || format == HAL_PIXEL_FORMAT_RAW16 ||
+               format == HAL_PIXEL_FORMAT_RAW12) {
+        return "raw";
+    } else if (format == HAL_PIXEL_FORMAT_BLOB) {
+        return "jpg";
+    } else if (format == HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED) {
+        return "ubwc";
+    } else {
+        return "yuv";
+    }
 }

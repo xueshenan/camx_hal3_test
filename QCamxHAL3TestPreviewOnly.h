@@ -18,7 +18,8 @@ public:
     virtual int pre_init_stream() override;
     virtual void run() override;
     virtual void stop() override;
-    virtual void CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) override;
+    virtual void capture_post_process(DeviceCallback *cb, camera3_capture_result *result) override;
+    virtual void request_capture(StreamCapture requst) override {}
 public:
     QCamxHAL3TestPreviewOnly(camera_module_t *module, QCamxConfig *config);
     ~QCamxHAL3TestPreviewOnly();

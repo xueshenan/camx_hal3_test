@@ -448,7 +448,7 @@ int main(int argc, char *argv[]) {
                 QCAMX_PRINT("snapshot request:%d for cameraid %d\n", num, RequestCameraId);
                 QCamxHAL3TestCase *testCase = s_HAL3_test[RequestCameraId];
                 StreamCapture request = {SNAPSHOT_TYPE, num};
-                testCase->RequestCaptures(request);
+                testCase->request_capture(request);
 
                 if (ops[0] == 'S') {
                     testCase->trigger_dump(num);
@@ -507,7 +507,7 @@ int main(int argc, char *argv[]) {
                 QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
                 android::CameraMetadata *metadata = testCase->get_current_meta();
                 testCase->_config->parse_commandline_meta_update((char *)param.c_str(), metadata);
-                testCase->updata_meta_data(metadata);
+                testCase->updata_metadata(metadata);
 
                 break;
             }
@@ -515,7 +515,7 @@ int main(int argc, char *argv[]) {
                 QCamxHAL3TestCase *testCase = s_HAL3_test[current_camera_id];
                 android::CameraMetadata *metadata = testCase->get_current_meta();
                 testCase->_config->parse_commandline_meta_update((char *)param.c_str(), metadata);
-                testCase->updata_meta_data(metadata);
+                testCase->updata_metadata(metadata);
 
                 int num = 1;
                 int RequestCameraId = current_camera_id;
@@ -526,7 +526,7 @@ int main(int argc, char *argv[]) {
 
                 QCAMX_PRINT("snapshot request:%d for cameraid %d\n", num, RequestCameraId);
                 StreamCapture request = {SNAPSHOT_TYPE, num};
-                testCase->RequestCaptures(request);
+                testCase->request_capture(request);
                 testCase->trigger_dump(num);
 
                 break;

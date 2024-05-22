@@ -72,10 +72,10 @@ void QCamxHAL3TestPreviewOnly::stop() {
 }
 
 /************************************************************************
-* name : CapturePostProcess
+* name : capture_post_process
 * function: handle capture result.
 ************************************************************************/
-void QCamxHAL3TestPreviewOnly::CapturePostProcess(DeviceCallback *cb,
+void QCamxHAL3TestPreviewOnly::capture_post_process(DeviceCallback *cb,
                                                   camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestPreviewOnly *testpre = (QCamxHAL3TestPreviewOnly *)cb;
@@ -87,7 +87,7 @@ void QCamxHAL3TestPreviewOnly::CapturePostProcess(DeviceCallback *cb,
         CameraStream *stream = device->_camera_streams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
         if (stream->stream_type == CAMERA3_TEMPLATE_PREVIEW) {
-            if (_callbacks && _callbacks->preview_cb) {
+            if (_callbacks != NULL && _callbacks->preview_cb != NULL) {
                 _callbacks->preview_cb(info, result->frame_number);
             }
             if (testpre->_dump_preview_num > 0 &&

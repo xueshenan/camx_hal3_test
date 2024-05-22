@@ -69,9 +69,18 @@ public:
 // Callback for QCamxDevice to upper layer
 class DeviceCallback {
 public:
-    virtual void CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) = 0;
-    virtual void HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) = 0;
-    virtual ~DeviceCallback() {}
+    /**
+     * @brief handle capture result and dump capture frame
+     * @param callback callback class pointer
+     * @param result the result of a single capture/reprocess by the camera HAL device
+    */
+    virtual void capture_post_process(DeviceCallback *callback, camera3_capture_result *result) = 0;
+    /**
+     * @brief handle the metadata callback
+     * @param callback callback class pointer
+     * @param result the result of a single capture/reprocess by the camera HAL device
+    */
+    virtual void handle_metadata(DeviceCallback *callback, camera3_capture_result *result) = 0;
 };
 
 // Message data for PostProcess thread

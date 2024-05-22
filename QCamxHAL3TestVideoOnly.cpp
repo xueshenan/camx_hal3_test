@@ -60,8 +60,8 @@ QCamxHAL3TestVideoOnly::~QCamxHAL3TestVideoOnly() {
 * name : CapturePostProcess
 * function: handle capture result.
 ************************************************************************/
-void QCamxHAL3TestVideoOnly::CapturePostProcess(DeviceCallback *cb,
-                                                camera3_capture_result *result) {
+void QCamxHAL3TestVideoOnly::capture_post_process(DeviceCallback *cb,
+                                                  camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestVideoOnly *testpre = (QCamxHAL3TestVideoOnly *)cb;
     QCamxDevice *device = testpre->_device;
@@ -303,7 +303,7 @@ int QCamxHAL3TestVideoOnly::initVideoOnlyStream() {
         metaUpdate->update(tag, &(EISEnable), 1);
     }
 
-    updata_meta_data(metaUpdate);
+    updata_metadata(metaUpdate);
     return res;
 }
 

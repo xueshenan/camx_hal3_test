@@ -42,7 +42,8 @@ QCamxHAL3TestSnapshot::~QCamxHAL3TestSnapshot() {
 * name : CapturePostProcess
 * function: callback for postprocess capture result.
 ************************************************************************/
-void QCamxHAL3TestSnapshot::CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) {
+void QCamxHAL3TestSnapshot::capture_post_process(DeviceCallback *cb,
+                                                 camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestSnapshot *testsnap = (QCamxHAL3TestSnapshot *)cb;
     QCamxDevice *device = testsnap->_device;
@@ -64,7 +65,7 @@ void QCamxHAL3TestSnapshot::CapturePostProcess(DeviceCallback *cb, camera3_captu
             }
         }
         if (stream->stream_type == CAMERA3_TEMPLATE_PREVIEW) {
-            if (_callbacks && _callbacks->preview_cb) {
+            if (_callbacks != NULL && _callbacks->preview_cb != NULL) {
                 _callbacks->preview_cb(info, result->frame_number);
             }
             if (testsnap->_dump_preview_num > 0 &&
@@ -172,7 +173,7 @@ int QCamxHAL3TestSnapshot::initSnapshotStreams() {
     }
     (*metaUpdate).update(ANDROID_CONTROL_ENABLE_ZSL, &(ZslEnable), 1);
 
-    updata_meta_data(metaUpdate);
+    updata_metadata(metaUpdate);
 
     return res;
 }
@@ -262,7 +263,7 @@ void QCamxHAL3TestSnapshot::stop() {
 * name : RequestCaptures
 * function: populate capture request.
 ************************************************************************/
-void QCamxHAL3TestSnapshot::RequestCaptures(StreamCapture request) {
+void QCamxHAL3TestSnapshot::request_capture(StreamCapture request) {
     mSnapshotNum = request.count;
     if (_config->_snapshot_stream.format != HAL_PIXEL_FORMAT_BLOB) {
         return;

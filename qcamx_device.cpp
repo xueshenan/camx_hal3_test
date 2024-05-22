@@ -506,7 +506,7 @@ void QCamxDevice::CallbackOps::ProcessCaptureResult(
 
     if (result->partial_result >= 1) {
         // handle the metadata callback
-        callback_ops->_parent->_callback->HandleMetaData(callback_ops->_parent->_callback,
+        callback_ops->_parent->_callback->handle_metadata(callback_ops->_parent->_callback,
                                                          (camera3_capture_result *)result);
     }
 
@@ -691,7 +691,7 @@ void *do_capture_post_process(void *data) {
         pthread_mutex_unlock(&thread_data->mutex);
         camera3_capture_result result = msg->result;
         const camera3_stream_buffer_t *buffers = result.output_buffers = msg->streamBuffers.data();
-        device->_callback->CapturePostProcess(device->_callback, &result);
+        device->_callback->capture_post_process(device->_callback, &result);
         // return the buffer back
         if (device->get_sync_buffer_mode() != SYNC_BUFFER_EXTERNAL) {
             for (int i = 0; i < result.num_output_buffers; i++) {

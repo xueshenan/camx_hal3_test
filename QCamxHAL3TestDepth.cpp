@@ -39,10 +39,10 @@ QCamxHAL3TestDepth::~QCamxHAL3TestDepth() {
 }
 
 /************************************************************************
-* name : CapturePostProcess
+* name : capture_post_process
 * function: handle capture result.
 ************************************************************************/
-void QCamxHAL3TestDepth::CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) {
+void QCamxHAL3TestDepth::capture_post_process(DeviceCallback *cb, camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestDepth *testpre = (QCamxHAL3TestDepth *)cb;
     QCamxDevice *device = testpre->_device;
@@ -72,7 +72,7 @@ void QCamxHAL3TestDepth::CapturePostProcess(DeviceCallback *cb, camera3_capture_
                 show_fps(DEPTH_TYPE);
             }
         } else if (stream->streamId == DEPTH_IRBG_IDX) {
-            if (_callbacks && _callbacks->preview_cb) {
+            if (_callbacks != NULL && _callbacks->preview_cb != NULL) {
                 _callbacks->preview_cb(info, result->frame_number);
             }
             if (_dump_preview_num > 0 &&

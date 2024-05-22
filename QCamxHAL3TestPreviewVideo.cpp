@@ -11,6 +11,8 @@
 
 #include "QCamxHAL3TestPreviewVideo.h"
 
+#include <math.h>  // ceil
+
 #include "QCamxHAL3TestVideo.h"
 
 #ifdef LOG_TAG
@@ -45,8 +47,8 @@ QCamxHAL3TestPreviewVideo::~QCamxHAL3TestPreviewVideo() {
 * name : CapturePostProcess
 * function: Do post process
 ************************************************************************/
-void QCamxHAL3TestPreviewVideo::CapturePostProcess(DeviceCallback *cb,
-                                                   camera3_capture_result *result) {
+void QCamxHAL3TestPreviewVideo::capture_post_process(DeviceCallback *cb,
+                                                     camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     buffers = result->output_buffers;
 
@@ -76,7 +78,7 @@ void QCamxHAL3TestPreviewVideo::CapturePostProcess(DeviceCallback *cb,
                 show_fps(VIDEO_TYPE);
             }
         } else if (stream->streamId == PREVIEW_IDX) {
-            if (_callbacks && _callbacks->preview_cb) {
+            if (_callbacks != NULL && _callbacks->preview_cb != NULL) {
                 _callbacks->preview_cb(info, result->frame_number);
             }
             if (_dump_preview_num > 0 &&
@@ -98,10 +100,11 @@ void QCamxHAL3TestPreviewVideo::CapturePostProcess(DeviceCallback *cb,
 }
 
 /************************************************************************
-* name : HandleMetaData
+* name : handle_metadata
 * function: analysis meta info from capture result.
 *************************************************************************/
-void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) {
+void QCamxHAL3TestPreviewVideo::handle_metadata(DeviceCallback *cb,
+                                                camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestPreviewVideo *testpre = (QCamxHAL3TestPreviewVideo *)cb;
     QCamxDevice *device = testpre->_device;
@@ -356,7 +359,7 @@ int QCamxHAL3TestPreviewVideo::initVideoStreams() {
         metaUpdate->update(tag, &(EISEnable), 1);
     }
 
-    updata_meta_data(metaUpdate);
+    updata_metadata(metaUpdate);
     return res;
 }
 

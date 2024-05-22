@@ -35,11 +35,11 @@ public:
     ~QCamxHAL3TestVideo();
     virtual void run() override;
     virtual void stop() override;
-    virtual void CapturePostProcess(DeviceCallback *cb,
-                                    camera3_capture_result *hal_result) override;
-    virtual void HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) override;
+    virtual void capture_post_process(DeviceCallback *cb,
+                                      camera3_capture_result *hal_result) override;
+    virtual void handle_metadata(DeviceCallback *cb, camera3_capture_result *result) override;
     virtual int pre_init_stream() override;
-    virtual void RequestCaptures(StreamCapture requst) override;
+    virtual void request_capture(StreamCapture requst) override;
 private:
 #ifdef ENABLE_VIDEO_ENCODER
     QCamxTestVideoEncoder *mVideoEncoder;
