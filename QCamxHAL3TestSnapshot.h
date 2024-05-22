@@ -10,7 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef _QCAMX_HAL3_TEST_SNAPSHOT_
 #define _QCAMX_HAL3_TEST_SNAPSHOT_
-#include "QCamxHAL3TestCase.h"
+#include "qcamx_case.h"
 
 class QCamxHAL3TestSnapshot : public QCamxCase {
 public:

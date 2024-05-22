@@ -11,7 +11,7 @@
 #ifndef _QCAMX_HAL3_TEST_PREVIEW_ONLY_
 #define _QCAMX_HAL3_TEST_PREVIEW_ONLY_
 
-#include "QCamxHAL3TestCase.h"
+#include "qcamx_case.h"
 
 class QCamxHAL3TestPreviewOnly : public QCamxCase {
 public:

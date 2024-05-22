@@ -10,7 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef _QCAMX_HAL3_TEST_VIDEO_ONLY_
 #define _QCAMX_HAL3_TEST_VIDEO_ONLY_
-#include "QCamxHAL3TestCase.h"
+#include "qcamx_case.h"
 #ifdef ENABLE_VIDEO_ENCODER
 #include "QCamxHAL3TestVideoEncoder.h"
 #endif

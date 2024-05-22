@@ -70,7 +70,7 @@ add_executable( camx-hal3-test
     qcamx_signal_monitor.cpp
     qcamx_config.cpp
     qcamx_device.cpp
-     QCamxHAL3TestCase.cpp
+    qcamx_case.cpp
      QCamxHAL3TestBufferManager.cpp
      QCamxHAL3TestSnapshot.cpp
      QCamxHAL3TestMain.cpp
@@ -96,7 +96,8 @@ if (DEFINED ENABLE_VIDEO_ENCODER)
 target_link_libraries (camx-hal3-test libomx_encoder)
 endif ()
 
-install (TARGETS camx-hal3-test RUNTIME DESTINATION /usr/bin/ )
+install (TARGETS camx-hal3-test RUNTIME DESTINATION /usr/bin/)
+
 #########################################libcamxffbm_utils#########################################################
 #add_library( libcamxffbm_utils SHARED
 #     QCamxHAL3TestBufferManager.cpp

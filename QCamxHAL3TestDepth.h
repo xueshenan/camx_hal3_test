@@ -10,7 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef _QCAMX_HAL3_TEST_DEPTH_
 #define _QCAMX_HAL3_TEST_DEPTH_
-#include "QCamxHAL3TestCase.h"
+#include "qcamx_case.h"
 
 class QCamxHAL3TestDepth : public QCamxCase {
 public:
