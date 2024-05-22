@@ -68,7 +68,7 @@ void QCamxHAL3TestPreviewOnly::run() {
 * function: interface for stop snapshot thread.
 ************************************************************************/
 void QCamxHAL3TestPreviewOnly::stop() {
-    _device->stopStreams();
+    _device->stop_streams();
 }
 
 /************************************************************************
@@ -79,7 +79,7 @@ void QCamxHAL3TestPreviewOnly::CapturePostProcess(DeviceCallback *cb,
                                                   camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestPreviewOnly *testpre = (QCamxHAL3TestPreviewOnly *)cb;
-    QCamxHAL3TestDevice *device = testpre->_device;
+    QCamxDevice *device = testpre->_device;
     buffers = result->output_buffers;
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {

@@ -45,7 +45,7 @@ QCamxHAL3TestDepth::~QCamxHAL3TestDepth() {
 void QCamxHAL3TestDepth::CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestDepth *testpre = (QCamxHAL3TestDepth *)cb;
-    QCamxHAL3TestDevice *device = testpre->_device;
+    QCamxDevice *device = testpre->_device;
     buffers = result->output_buffers;
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
@@ -235,5 +235,5 @@ void QCamxHAL3TestDepth::run() {
 ************************************************************************/
 void QCamxHAL3TestDepth::stop() {
     mIsStoped = true;
-    _device->stopStreams();
+    _device->stop_streams();
 }

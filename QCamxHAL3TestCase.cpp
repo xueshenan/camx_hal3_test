@@ -224,7 +224,7 @@ android::CameraMetadata *QCamxHAL3TestCase::get_current_meta() {
 }
 
 void QCamxHAL3TestCase::updata_meta_data(android::CameraMetadata *meta) {
-    _device->updateMetadataForNextRequest(meta);
+    _device->update_metadata_for_next_request(meta);
 }
 
 /************************************************************************
@@ -234,7 +234,7 @@ void QCamxHAL3TestCase::updata_meta_data(android::CameraMetadata *meta) {
 void QCamxHAL3TestCase::HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) {
     int res = 0;
     QCamxHAL3TestCase *testcase = (QCamxHAL3TestCase *)cb;
-    QCamxHAL3TestDevice *device = testcase->_device;
+    QCamxDevice *device = testcase->_device;
     android::sp<android::VendorTagDescriptor> vTags =
         android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
@@ -679,7 +679,7 @@ bool QCamxHAL3TestCase::init(camera_module_t *module, QCamxConfig *config) {
         _module = module;
         _config = config;
         _camera_id = _config->_camera_id;
-        _device = new QCamxHAL3TestDevice(_module, _camera_id, config);
+        _device = new QCamxDevice(_module, _camera_id, config);
         _config->_static_meta = _device->_camera_characteristics;
     } else {
         QCAMX_ERR("invalid parameters!");

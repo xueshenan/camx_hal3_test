@@ -117,7 +117,7 @@ void QCamxHAL3TestVideo::CapturePostProcess(DeviceCallback *cb, camera3_capture_
 void QCamxHAL3TestVideo::HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestVideo *testpre = (QCamxHAL3TestVideo *)cb;
-    QCamxHAL3TestDevice *device = testpre->_device;
+    QCamxDevice *device = testpre->_device;
     android::sp<android::VendorTagDescriptor> vTags =
         android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
@@ -605,7 +605,7 @@ void QCamxHAL3TestVideo::stop() {
 #ifdef ENABLE_VIDEO_ENCODER
     mVideoEncoder->stop();
 #endif
-    _device->stopStreams();
+    _device->stop_streams();
 #ifdef ENABLE_VIDEO_ENCODER
     delete mVideoEncoder;
     mVideoEncoder = NULL;
@@ -619,7 +619,7 @@ void QCamxHAL3TestVideo::stop() {
 ************************************************************************/
 void QCamxHAL3TestVideo::RequestCaptures(StreamCapture request) {
     // send a message to request thread
-    pthread_mutex_lock(&_device->mRequestThread->mutex);
+    pthread_mutex_lock(&_device->_request_thread->mutex);
     CameraRequestMsg *msg = new CameraRequestMsg();
     memset(msg, 0, sizeof(CameraRequestMsg));
     msg->request_number[SNAPSHOT_IDX] = request.count;
@@ -629,10 +629,10 @@ void QCamxHAL3TestVideo::RequestCaptures(StreamCapture request) {
         msg->mask |= 1 << RAW_SNAPSHOT_IDX;
     }
     msg->message_type = REQUEST_CHANGE;
-    _device->mRequestThread->message_queue.push_back(msg);
+    _device->_request_thread->message_queue.push_back(msg);
     QCAMX_INFO("Msg for capture picture mask %x \n", msg->mask);
-    pthread_cond_signal(&_device->mRequestThread->cond);
-    pthread_mutex_unlock(&_device->mRequestThread->mutex);
+    pthread_cond_signal(&_device->_request_thread->cond);
+    pthread_mutex_unlock(&_device->_request_thread->mutex);
 }
 
 /************************************************************************

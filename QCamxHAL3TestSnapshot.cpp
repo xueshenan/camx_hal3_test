@@ -45,7 +45,7 @@ QCamxHAL3TestSnapshot::~QCamxHAL3TestSnapshot() {
 void QCamxHAL3TestSnapshot::CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestSnapshot *testsnap = (QCamxHAL3TestSnapshot *)cb;
-    QCamxHAL3TestDevice *device = testsnap->_device;
+    QCamxDevice *device = testsnap->_device;
     buffers = result->output_buffers;
 
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
@@ -255,7 +255,7 @@ void QCamxHAL3TestSnapshot::run() {
 * function:  stop all the thread and release the device object.
 ************************************************************************/
 void QCamxHAL3TestSnapshot::stop() {
-    _device->stopStreams();
+    _device->stop_streams();
 }
 
 /************************************************************************
@@ -269,14 +269,14 @@ void QCamxHAL3TestSnapshot::RequestCaptures(StreamCapture request) {
     }
 
     // send a message to request thread
-    pthread_mutex_lock(&_device->mRequestThread->mutex);
+    pthread_mutex_lock(&_device->_request_thread->mutex);
     CameraRequestMsg *msg = new CameraRequestMsg();
     memset(msg, 0, sizeof(CameraRequestMsg));
     msg->request_number[SNAPSHOT_IDX] = request.count;
     msg->mask = 1 << SNAPSHOT_IDX;
     msg->message_type = REQUEST_CHANGE;
-    _device->mRequestThread->message_queue.push_back(msg);
+    _device->_request_thread->message_queue.push_back(msg);
     QCAMX_INFO("Msg for capture picture mask%x \n", msg->mask);
-    pthread_cond_signal(&_device->mRequestThread->cond);
-    pthread_mutex_unlock(&_device->mRequestThread->mutex);
+    pthread_cond_signal(&_device->_request_thread->cond);
+    pthread_mutex_unlock(&_device->_request_thread->mutex);
 }

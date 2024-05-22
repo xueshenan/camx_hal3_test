@@ -1,14 +1,8 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright (c) 2018-2020, 2022 Qualcomm Technologies, Inc.
-// All Rights Reserved.
-// Confidential and Proprietary - Qualcomm Technologies, Inc.
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file  QCamxHAL3TestDevice.h
-/// @brief camera devices layer to control camera hardware ,camera3_device implementation
-///        provide camera device to QCamxHAL3TestCase
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+* @file  qcamx_device.h
+* @brief camera devices layer to control camera hardware ,camera3_device implementation
+*        provide camera device to QCamxHAL3TestCase
+*/
 
 #pragma once
 
@@ -45,7 +39,7 @@
 #define MAXSTREAM (4)
 #define CAMX_LIVING_REQUEST_MAX (5)  // _pending_vector support living request max value
 
-class QCamxHAL3TestDevice;
+class QCamxDevice;
 
 typedef enum {
     SYNC_BUFFER_INTERNAL = 0,
@@ -61,14 +55,18 @@ struct AvailableStream {
 // Request and Result Pending
 class RequestPending {
 public:
-    RequestPending();
+    RequestPending() {
+        _num_output_buffer = 0;
+        _num_metadata = 0;
+        memset(&_request, 0, sizeof(camera3_capture_request_t));
+    }
 public:
     camera3_capture_request_t _request;
     int _num_output_buffer;
     int _num_metadata;
 };
 
-// Callback for QCamxHAL3TestDevice to upper layer
+// Callback for QCamxDevice to upper layer
 class DeviceCallback {
 public:
     virtual void CapturePostProcess(DeviceCallback *cb, camera3_capture_result *result) = 0;
@@ -107,7 +105,7 @@ struct CameraThreadData {
     int skip_pattern[MAXSTREAM];
     int frame_number;
     int stopped;
-    QCamxHAL3TestDevice *device;
+    QCamxDevice *device;
     void *priv;
 public:
     CameraThreadData() {
@@ -134,11 +132,10 @@ typedef struct _Stream {
     camera3_stream_buffer_t streamBuffer;
 } CameraStream;
 
-class QCamxHAL3TestDevice {
+class QCamxDevice {
 public:
-    QCamxHAL3TestDevice(camera_module_t *camera_module, int camera_id, QCamxConfig *config,
-                        int mode = 0);
-    ~QCamxHAL3TestDevice();
+    QCamxDevice(camera_module_t *camera_module, int camera_id, QCamxConfig *config, int mode = 0);
+    ~QCamxDevice();
 public:
     /**
     * @brief open camera device
@@ -161,6 +158,10 @@ public:
     bool config_streams(std::vector<Stream *> streams,
                         int op_mode = CAMERA3_STREAM_CONFIGURATION_NORMAL_MODE);
     /**
+     * @brief stop streams
+    */
+    void stop_streams();
+    /**
      * @brief configure stream default paramaters
      * @param index camera stream index
      * @param type camera3 template CAMERA3_TEMPLATE_PREVIEW/CAMERA3_TEMPLATE_VIDEO_RECORD/CAMERA3_TEMPLATE_STILL_CAPTURE
@@ -172,8 +173,7 @@ public:
     */
     int process_capture_request_on(CameraThreadData *request_thread,
                                    CameraThreadData *result_thread);
-    void flush();
-    void set_callback(DeviceCallback *callback);
+
     /**
      * @brief Get all valid output streams
      * @param output_streams output streams
@@ -182,27 +182,39 @@ public:
     */
     int get_valid_output_streams(std::vector<AvailableStream> &output_streams,
                                  const AvailableStream *valid_stream);
-    int get_sync_buffer_mode() { return _sync_buffer_mode; }
-    void set_sync_buffer_mode(SyncBufferMode sync_buffer_mode) {
-        _sync_buffer_mode = sync_buffer_mode;
-    }
-    int updateMetadataForNextRequest(android::CameraMetadata *meta);
-    void stopStreams();
-    /**
-     * @brief set a external metadata as current metadata
-    */
-    void set_current_meta(android::CameraMetadata *metadata);
+
     /**
      * @brief process one capture request.
      * @param request_number_of_each_stream each stream request capture number
     */
     int process_one_capture_request(int *request_number_of_each_stream, int *frame_number);
+public:
+    /**
+     * @brief set a external metadata as current metadata
+    */
+    void set_current_meta(android::CameraMetadata *metadata);
+    /**
+     * @brief used for new metadata change request from user
+    */
+    int update_metadata_for_next_request(android::CameraMetadata *metadata);
+    /**
+    * @brief set callback for upper layer.
+    */
+    void set_callback(DeviceCallback *callback);
+    int get_sync_buffer_mode() { return _sync_buffer_mode; }
+    void set_sync_buffer_mode(SyncBufferMode sync_buffer_mode) {
+        _sync_buffer_mode = sync_buffer_mode;
+    }
     /**
      * @brief find camera3 stream index in _camera3_streams
      * @return index of _camera3_streams -1 means not found
     */
     int find_stream_index(camera3_stream_t *stream);
 private:
+    /**
+     * @brief flush when stop the stream
+    */
+    void flush();
     /**
      * @brief get jpeg buffer size
      * @param width,height jpeg image resoltuion
@@ -215,10 +227,12 @@ public:
     camera3_stream_configuration_t _camera3_stream_config;
     std::vector<camera3_stream_t *> _camera3_streams;
     camera3_device_t *_camera3_device;
-    //Threads
-    CameraThreadData *mRequestThread;
-    CameraThreadData *mResultThread;
 
+    //Thread for request and result
+    CameraThreadData *_request_thread;
+    CameraThreadData *_result_thread;
+
+    // Stream info of CameraDevice
     CameraStream *_camera_streams[MAXSTREAM];
 
     //capture result and notify to upper layer
@@ -232,15 +246,18 @@ private:
     int _camera_id;
     QCamxConfig *_config;
 private:
-    class CallbackOps : public camera3_callback_ops {
+    struct CallbackOps : public camera3_callback_ops {
     public:
-        CallbackOps(QCamxHAL3TestDevice *parent)
-            : camera3_callback_ops({&ProcessCaptureResult, &Notify}), mParent(parent) {}
+        CallbackOps(QCamxDevice *parent)
+            : camera3_callback_ops({&ProcessCaptureResult, &Notify}), _parent(parent) {}
+        /**
+         * @brief callback for process capture result.
+        */
         static void ProcessCaptureResult(const camera3_callback_ops *cb,
                                          const camera3_capture_result *hal_result);
         static void Notify(const struct camera3_callback_ops *cb, const camera3_notify_msg_t *msg);
     private:
-        QCamxHAL3TestDevice *mParent;
+        QCamxDevice *_parent;
     };
     CallbackOps *_callback_ops;
 private:

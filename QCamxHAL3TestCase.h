@@ -133,7 +133,7 @@ public:
     camera_module_t *_module;
     QCamxConfig *_config;
 protected:
-    QCamxHAL3TestDevice *_device;
+    QCamxDevice *_device;
     int _camera_id;
 
     android::CameraMetadata *_metadata_ext;

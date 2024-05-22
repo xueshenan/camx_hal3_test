@@ -104,7 +104,7 @@ void QCamxHAL3TestPreviewVideo::CapturePostProcess(DeviceCallback *cb,
 void QCamxHAL3TestPreviewVideo::HandleMetaData(DeviceCallback *cb, camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
     QCamxHAL3TestPreviewVideo *testpre = (QCamxHAL3TestPreviewVideo *)cb;
-    QCamxHAL3TestDevice *device = testpre->_device;
+    QCamxDevice *device = testpre->_device;
     android::sp<android::VendorTagDescriptor> vTags =
         android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
 
@@ -458,7 +458,7 @@ void QCamxHAL3TestPreviewVideo::stop() {
 #ifdef ENABLE_VIDEO_ENCODER
     mVideoEncoder->stop();
 #endif
-    _device->stopStreams();
+    _device->stop_streams();
 #ifdef ENABLE_VIDEO_ENCODER
     delete mVideoEncoder;
     mVideoEncoder = NULL;
