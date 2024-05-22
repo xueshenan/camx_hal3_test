@@ -24,9 +24,9 @@
 #include <map>
 #include <queue>
 
-#include "QCamxHAL3TestDevice.h"
 #include "QCamxHAL3TestOMXEncoder.h"
 #include "qcamx_config.h"
+#include "qcamx_device.h"
 
 using namespace std;
 

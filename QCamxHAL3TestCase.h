@@ -25,9 +25,9 @@
 #include <iostream>
 #include <mutex>
 
-#include "QCamxHAL3TestDevice.h"
 #include "qcamx_config.h"
 #include "qcamx_define.h"
+#include "qcamx_device.h"
 
 #define JPEG_QUALITY_DEFAULT (85)
 #define PREVIEW_STREAM_BUFFER_MAX (12)

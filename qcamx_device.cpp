@@ -1,5 +1,5 @@
 
-#include "QCamxHAL3TestDevice.h"
+#include "qcamx_device.h"
 
 #include "qcamx_define.h"
 
