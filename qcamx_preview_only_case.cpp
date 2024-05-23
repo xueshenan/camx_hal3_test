@@ -1,5 +1,5 @@
 
-#include "QCamxHAL3TestPreviewOnly.h"
+#include "qcamx_preview_only_case.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG

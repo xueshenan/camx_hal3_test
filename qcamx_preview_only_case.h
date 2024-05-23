@@ -2,6 +2,7 @@
 /**
 * @file  QCamxHAL3TestPreviewOnly.h
 * @brief preview only mode
+* @details just preview the yuv frame and don't do encoding
 */
 #pragma once
 
