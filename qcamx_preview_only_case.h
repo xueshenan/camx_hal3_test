@@ -9,6 +9,11 @@
 #include "qcamx_case.h"
 
 class QCamxPreviewOnlyCase : public QCamxCase {
+public:  // override DeviceCallback
+    /**
+     * @brief handle capture result
+    */
+    virtual void capture_post_process(DeviceCallback *cb, camera3_capture_result *result) override;
 public:
     virtual int pre_init_stream() override;
     /**
@@ -19,11 +24,8 @@ public:
      * @brief stop preview thread
     */
     virtual void stop() override;
-    /**
-     * @brief handle capture result
-    */
-    virtual void capture_post_process(DeviceCallback *cb, camera3_capture_result *result) override;
-    virtual void request_capture(StreamCapture requst) override {}
+
+    virtual void request_capture(StreamCapture requst) override;
 public:
     QCamxPreviewOnlyCase(camera_module_t *module, QCamxConfig *config);
     virtual ~QCamxPreviewOnlyCase();

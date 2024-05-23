@@ -21,7 +21,7 @@
 typedef enum {
     PREVIEW_INDEX = 0,
     VIDEO_INDEX = 1,
-    SNAPSHOT_IDX = 2,
+    SNAPSHOT_INDEX = 2,
     RAW_SNAPSHOT_IDX = 3,
 } StreamIndex;
 
@@ -62,7 +62,7 @@ void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_captur
             }
             //QCamxHAL3TestCase::DumpFrame(info, result->frame_number, SNAPSHOT_TYPE, mConfig->mSnapshotStream.subformat);
             stream->bufferManager->ReturnBuffer(buffers[i].buffer);
-        } else if (stream->streamId == SNAPSHOT_IDX) {
+        } else if (stream->streamId == SNAPSHOT_INDEX) {
             if (_callbacks && _callbacks->snapshot_cb) {
                 _callbacks->snapshot_cb(info, result->frame_number);
             }
@@ -322,9 +322,9 @@ int QCamxHAL3TestVideo::initVideoStreams() {
     }
 
     if (_streams.size() == 3) {
-        _streams[SNAPSHOT_IDX]->pstream = &mSnapshotStream;
-        _streams[SNAPSHOT_IDX]->type = SNAPSHOT_TYPE;
-        _streams[SNAPSHOT_IDX]->subformat = _config->_snapshot_stream.subformat;
+        _streams[SNAPSHOT_INDEX]->pstream = &mSnapshotStream;
+        _streams[SNAPSHOT_INDEX]->type = SNAPSHOT_TYPE;
+        _streams[SNAPSHOT_INDEX]->subformat = _config->_snapshot_stream.subformat;
     }
 
     //check snapshot stream
@@ -385,7 +385,8 @@ int QCamxHAL3TestVideo::initVideoStreams() {
     }
 
     if (mVideoMode <= VIDEO_MODE_HFR60) {
-        _device->construct_default_request_settings(SNAPSHOT_IDX, CAMERA3_TEMPLATE_VIDEO_SNAPSHOT);
+        _device->construct_default_request_settings(SNAPSHOT_INDEX,
+                                                    CAMERA3_TEMPLATE_VIDEO_SNAPSHOT);
     }
 
     android::CameraMetadata *metaUpdate = get_current_meta();
@@ -547,7 +548,7 @@ int QCamxHAL3TestVideo::pre_init_stream() {
         _streams.resize(stream_num);
         _streams[PREVIEW_INDEX] = &mPreviewStreaminfo;
         _streams[VIDEO_INDEX] = &mVideoStreaminfo;
-        _streams[SNAPSHOT_IDX] = &mSnapshotStreaminfo;
+        _streams[SNAPSHOT_INDEX] = &mSnapshotStreaminfo;
         if (_config->_raw_stream_enable == TRUE) {
             stream_num = 4;
             // add snapshot stream
@@ -622,15 +623,15 @@ void QCamxHAL3TestVideo::request_capture(StreamCapture request) {
     pthread_mutex_lock(&_device->_request_thread->mutex);
     CameraRequestMsg *msg = new CameraRequestMsg();
     memset(msg, 0, sizeof(CameraRequestMsg));
-    msg->request_number[SNAPSHOT_IDX] = request.count;
-    msg->mask |= 1 << SNAPSHOT_IDX;
+    msg->request_number[SNAPSHOT_INDEX] = request.count;
+    msg->mask |= 1 << SNAPSHOT_INDEX;
     if (_config->_raw_stream_enable == TRUE) {
         msg->request_number[RAW_SNAPSHOT_IDX] = request.count;
         msg->mask |= 1 << RAW_SNAPSHOT_IDX;
     }
     msg->message_type = REQUEST_CHANGE;
     _device->_request_thread->message_queue.push_back(msg);
-    QCAMX_INFO("Msg for capture picture mask %x \n", msg->mask);
+    // QCAMX_INFO("Msg for capture picture mask %x \n", msg->mask);
     pthread_cond_signal(&_device->_request_thread->cond);
     pthread_mutex_unlock(&_device->_request_thread->mutex);
 }

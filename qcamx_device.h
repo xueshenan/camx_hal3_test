@@ -258,13 +258,20 @@ private:
     struct CallbackOps : public camera3_callback_ops {
     public:
         CallbackOps(QCamxDevice *parent)
-            : camera3_callback_ops({&ProcessCaptureResult, &Notify}), _parent(parent) {}
+            : camera3_callback_ops({&process_capture_result, &notify}), _parent(parent) {}
         /**
          * @brief callback for process capture result.
+         * @detail Send results from a completed capture to the framework. 
+         * process_capture_result() may be invoked multiple times by the HAL in response to a single capture request. 
         */
-        static void ProcessCaptureResult(const camera3_callback_ops *cb,
-                                         const camera3_capture_result *hal_result);
-        static void Notify(const struct camera3_callback_ops *cb, const camera3_notify_msg_t *msg);
+        static void process_capture_result(const camera3_callback_ops *camera3_callback_ops,
+                                           const camera3_capture_result *hal_result);
+        /**
+        * @brief Asynchronous notification callback from the HAL, fired for various reasons.
+        * @detail Only for information independent of frame capture, or that require specific timing. 
+        */
+        static void notify(const struct camera3_callback_ops *camera3_callback_ops,
+                           const camera3_notify_msg_t *msg);
     private:
         QCamxDevice *_parent;
     };

@@ -45,7 +45,6 @@ QCamxConfig::QCamxConfig() {
     //disable IRBG
     _depth_IRBG_enabled = false;
 
-    // show fps statics by default
     _show_fps = 1;
 
     memset(&_meta_dump, 0, sizeof(meta_dump_t));

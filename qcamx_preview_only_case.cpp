@@ -8,6 +8,38 @@
 
 const int kPreviewIndex = 0;
 
+void QCamxPreviewOnlyCase::capture_post_process(DeviceCallback *callback,
+                                                camera3_capture_result *result) {
+    const camera3_stream_buffer_t *buffers = NULL;
+    QCamxPreviewOnlyCase *preview_only_case = (QCamxPreviewOnlyCase *)callback;
+    QCamxDevice *device = preview_only_case->_device;
+    buffers = result->output_buffers;
+
+    for (uint32_t i = 0; i < result->num_output_buffers; i++) {
+        int index = device->find_stream_index(buffers[i].stream);
+        CameraStream *stream = device->_camera_streams[index];
+        BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
+
+        if (stream->stream_type == CAMERA3_TEMPLATE_PREVIEW) {
+            if (_callbacks != NULL && _callbacks->preview_cb != NULL) {
+                _callbacks->preview_cb(info, result->frame_number);
+            }
+            if (preview_only_case->_dump_preview_num > 0 &&
+                (_dump_interval == 0 ||
+                 (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
+                QCamxCase::dump_frame(info, result->frame_number, PREVIEW_TYPE,
+                                      _config->_preview_stream.subformat);
+                if (_dump_interval == 0) {
+                    preview_only_case->_dump_preview_num--;
+                }
+            }
+            if (_config->_show_fps) {
+                show_fps(PREVIEW_TYPE);
+            }
+        }
+    }
+}
+
 int QCamxPreviewOnlyCase::pre_init_stream() {
     QCAMX_PRINT("init preview case : %dx%d %d\n", _config->_preview_stream.width,
                 _config->_preview_stream.height, _config->_preview_stream.format);
@@ -21,10 +53,12 @@ int QCamxPreviewOnlyCase::pre_init_stream() {
     } else {
         _preview_stream.data_space = HAL_DATASPACE_UNKNOWN;
     }
+
+    // not support zsl
     _preview_stream.usage = GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN |
                             GRALLOC_USAGE_HW_CAMERA_READ | GRALLOC_USAGE_HW_CAMERA_WRITE;
-    // no usage CAMERA3_STREAM_ROTATION_180
 
+    // no usage CAMERA3_STREAM_ROTATION_180
     _preview_stream.rotation = CAMERA3_STREAM_ROTATION_0;
     _preview_stream.max_buffers = PREVIEW_STREAM_BUFFER_MAX;
     _preview_stream.priv = 0;
@@ -44,8 +78,10 @@ int QCamxPreviewOnlyCase::pre_init_stream() {
 void QCamxPreviewOnlyCase::run() {
     _device->set_callback(this);
     init_preview_stream();
+
     CameraThreadData *resultThreadPreview = new CameraThreadData();
     CameraThreadData *requestThreadPreview = new CameraThreadData();
+
     requestThreadPreview->request_number[kPreviewIndex] = REQUEST_NUMBER_UMLIMIT;
     _device->process_capture_request_on(requestThreadPreview, resultThreadPreview);
 }
@@ -54,35 +90,8 @@ void QCamxPreviewOnlyCase::stop() {
     _device->stop_streams();
 }
 
-void QCamxPreviewOnlyCase::capture_post_process(DeviceCallback *cb,
-                                                camera3_capture_result *result) {
-    const camera3_stream_buffer_t *buffers = NULL;
-    QCamxPreviewOnlyCase *testpre = (QCamxPreviewOnlyCase *)cb;
-    QCamxDevice *device = testpre->_device;
-    buffers = result->output_buffers;
-
-    for (uint32_t i = 0; i < result->num_output_buffers; i++) {
-        int index = device->find_stream_index(buffers[i].stream);
-        CameraStream *stream = device->_camera_streams[index];
-        BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
-        if (stream->stream_type == CAMERA3_TEMPLATE_PREVIEW) {
-            if (_callbacks != NULL && _callbacks->preview_cb != NULL) {
-                _callbacks->preview_cb(info, result->frame_number);
-            }
-            if (testpre->_dump_preview_num > 0 &&
-                (_dump_interval == 0 ||
-                 (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
-                QCamxCase::dump_frame(info, result->frame_number, PREVIEW_TYPE,
-                                      _config->_preview_stream.subformat);
-                if (_dump_interval == 0) {
-                    testpre->_dump_preview_num--;
-                }
-            }
-            if (_config->_show_fps) {
-                show_fps(PREVIEW_TYPE);
-            }
-        }
-    }
+void QCamxPreviewOnlyCase::request_capture(StreamCapture requst) {
+    QCAMX_PRINT("request catpure\n");
 }
 
 QCamxPreviewOnlyCase::QCamxPreviewOnlyCase(camera_module_t *module, QCamxConfig *config) {
@@ -125,14 +134,13 @@ int QCamxPreviewOnlyCase::init_preview_stream() {
 
     _device->set_sync_buffer_mode(SYNC_BUFFER_INTERNAL);
     _device->config_streams(_streams);
+
     if (_metadata_ext != NULL) {
         _device->set_current_meta(_metadata_ext);
         _device->construct_default_request_settings(kPreviewIndex, CAMERA3_TEMPLATE_PREVIEW, false);
     } else {
         _device->construct_default_request_settings(kPreviewIndex, CAMERA3_TEMPLATE_PREVIEW, true);
     }
-    //FIXME(anxs) clear streams?
-    output_preview_streams.erase(output_preview_streams.begin(),
-                                 output_preview_streams.begin() + output_preview_streams.size());
+
     return res;
 }

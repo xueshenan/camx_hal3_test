@@ -8,7 +8,7 @@
 
 typedef enum {
     PREVIEW_INDEX = 0,
-    SNAPSHOT_IDX = 1,
+    SNAPSHOT_INDEX = 1,
 } StreamIndex;
 
 void QCamxPreviewSnapshotCase::capture_post_process(DeviceCallback *cb,
@@ -54,7 +54,7 @@ void QCamxPreviewSnapshotCase::capture_post_process(DeviceCallback *cb,
 }
 
 int QCamxPreviewSnapshotCase::pre_init_stream() {
-    QCAMX_DBG("init preview snapshot case with preview :%dx%d %d snapshot: %dx%d %d\n",
+    QCAMX_DBG("init preview snapshot case preview :%dx%d %d snapshot: %dx%d %d\n",
               _config->_preview_stream.width, _config->_preview_stream.height,
               _config->_preview_stream.format, _config->_snapshot_stream.width,
               _config->_snapshot_stream.height, _config->_snapshot_stream.format);
@@ -64,7 +64,8 @@ int QCamxPreviewSnapshotCase::pre_init_stream() {
     _preview_stream.height = _config->_preview_stream.height;
     _preview_stream.format = _config->_preview_stream.format;
     _preview_stream.data_space = HAL_DATASPACE_UNKNOWN;
-    // for Full Test UseCase
+    // for Full Test UseCaseHAL_PIXEL_FORMAT_Y16HAL_PIXEL_FORMAT_Y16
+
     if (_config->_zsl_enabled) {
         _preview_stream.usage = GRALLOC_USAGE_HW_COMPOSER | GRALLOC_USAGE_HW_TEXTURE |
                                 GRALLOC_USAGE_HW_CAMERA_READ | GRALLOC_USAGE_HW_CAMERA_WRITE;
@@ -94,18 +95,15 @@ int QCamxPreviewSnapshotCase::pre_init_stream() {
     _snapshot_streaminfo.subformat = _config->_snapshot_stream.subformat;
     _snapshot_streaminfo.type = SNAPSHOT_TYPE;
 
-    int stream_num = 2;
-    _streams.resize(stream_num);
+    _streams.resize(2);
     _streams[PREVIEW_INDEX] = &_preview_streaminfo;
-    _streams[SNAPSHOT_IDX] = &_snapshot_streaminfo;
+    _streams[SNAPSHOT_INDEX] = &_snapshot_streaminfo;
 
     _device->pre_allocate_streams(_streams);
     return 0;
 }
 
 void QCamxPreviewSnapshotCase::run() {
-    //open camera
-    QCAMX_PRINT("QCamxHAL3TestSnapshot CameraId:%d\n", _config->_camera_id);
     _device->set_callback(this);
     init_snapshot_streams();
 
@@ -114,9 +112,9 @@ void QCamxPreviewSnapshotCase::run() {
 
     requestThread->request_number[PREVIEW_INDEX] = REQUEST_NUMBER_UMLIMIT;
     if (_config->_snapshot_stream.format == HAL_PIXEL_FORMAT_BLOB) {
-        requestThread->request_number[SNAPSHOT_IDX] = 0;
+        requestThread->request_number[SNAPSHOT_INDEX] = 0;
     } else {
-        requestThread->request_number[SNAPSHOT_IDX] = REQUEST_NUMBER_UMLIMIT;
+        requestThread->request_number[SNAPSHOT_INDEX] = REQUEST_NUMBER_UMLIMIT;
     }
 
     _device->process_capture_request_on(requestThread, resultThread);
@@ -136,11 +134,11 @@ void QCamxPreviewSnapshotCase::request_capture(StreamCapture request) {
     pthread_mutex_lock(&_device->_request_thread->mutex);
     CameraRequestMsg *msg = new CameraRequestMsg();
     memset(msg, 0, sizeof(CameraRequestMsg));
-    msg->request_number[SNAPSHOT_IDX] = request.count;
-    msg->mask = 1 << SNAPSHOT_IDX;
+    msg->request_number[SNAPSHOT_INDEX] = request.count;
+    msg->mask = 1 << SNAPSHOT_INDEX;
     msg->message_type = REQUEST_CHANGE;
     _device->_request_thread->message_queue.push_back(msg);
-    QCAMX_INFO("Msg for capture picture mask%x \n", msg->mask);
+    // QCAMX_DBG("Msg for capture picture mask%x \n", msg->mask);
     pthread_cond_signal(&_device->_request_thread->cond);
     pthread_mutex_unlock(&_device->_request_thread->mutex);
 }
@@ -158,7 +156,6 @@ QCamxPreviewSnapshotCase::~QCamxPreviewSnapshotCase() {
 
 int QCamxPreviewSnapshotCase::init_snapshot_streams() {
     //init stream configure
-    std::vector<AvailableStream> output_preview_streams;
     AvailableStream preview_threshold = {_config->_preview_stream.width,
                                          _config->_preview_stream.height,
                                          _config->_preview_stream.format};
@@ -169,11 +166,13 @@ int QCamxPreviewSnapshotCase::init_snapshot_streams() {
         uint32_t partial_result_count = entry.data.i32[0];
         bool support_partial_result = (partial_result_count > 1);
         if (support_partial_result) {
-            QCAMX_PRINT("QCamxHAL3TestSnapshot support partical result\n");
+            QCAMX_PRINT("QCamxPreviewSnapshotCase support partical result\n");
         } else {
-            QCAMX_PRINT("QCamxHAL3TestSnapshot not support partical result\n");
+            QCAMX_PRINT("QCamxPreviewSnapshotCase not support partical result\n");
         }
     }
+
+    std::vector<AvailableStream> output_preview_streams;
     res = _device->get_valid_output_streams(output_preview_streams, &preview_threshold);
     if (res < 0 || output_preview_streams.size() == 0) {
         QCAMX_PRINT("Failed to find output stream for preview: w: %d, h: %d, fmt: %d",
@@ -200,11 +199,9 @@ int QCamxPreviewSnapshotCase::init_snapshot_streams() {
                                         ANDROID_SENSOR_ORIENTATION, &entry);
     if (res == 0 && entry.count > 0) {
         int32_t sensor_orientation = entry.data.i32[0];
-        QCAMX_DBG("successfully to get sensor orientation metadata, orientation: %d",
-                  sensor_orientation);
+        QCAMX_DBG("Get sensor orientation metadata, orientation: %d\n", sensor_orientation);
     } else {
         QCAMX_ERR("Failed to get sensor orientation metadata, return: %d", res);
-        res = 0;
     }
 
     _device->set_sync_buffer_mode(SYNC_BUFFER_INTERNAL);
@@ -212,12 +209,12 @@ int QCamxPreviewSnapshotCase::init_snapshot_streams() {
 
     if (_metadata_ext != NULL) {
         _device->set_current_meta(_metadata_ext);
-        _device->construct_default_request_settings(PREVIEW_INDEX, CAMERA3_TEMPLATE_PREVIEW);
+        _device->construct_default_request_settings(PREVIEW_INDEX, CAMERA3_TEMPLATE_PREVIEW, false);
     } else {
         _device->construct_default_request_settings(PREVIEW_INDEX, CAMERA3_TEMPLATE_PREVIEW, true);
     }
 
-    _device->construct_default_request_settings(SNAPSHOT_IDX, CAMERA3_TEMPLATE_STILL_CAPTURE);
+    _device->construct_default_request_settings(SNAPSHOT_INDEX, CAMERA3_TEMPLATE_STILL_CAPTURE);
 
     android::CameraMetadata *metadata = get_current_meta();
 

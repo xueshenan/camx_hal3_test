@@ -162,14 +162,16 @@ bool QCamxDevice::config_streams(std::vector<Stream *> streams, int op_mode) {
 void QCamxDevice::stop_streams() {
     ///<  stop the request thread
     pthread_mutex_lock(&_request_thread->mutex);
-    CameraRequestMsg *rqMsg = new CameraRequestMsg();
-    rqMsg->message_type = START_STOP;
-    rqMsg->stop = 1;
-    _request_thread->message_queue.push_back(rqMsg);
+
+    CameraRequestMsg *stop_request_msg = new CameraRequestMsg();
+    stop_request_msg->message_type = START_STOP;
+    stop_request_msg->stop = 1;
+    _request_thread->message_queue.push_back(stop_request_msg);
     QCAMX_DBG("Msg for stop request queue size:%zu\n", _request_thread->message_queue.size());
     pthread_cond_signal(&_request_thread->cond);
     pthread_mutex_unlock(&_request_thread->mutex);
     pthread_join(_request_thread->thread, NULL);
+
     pthread_mutex_destroy(&_request_thread->mutex);
     pthread_cond_destroy(&_request_thread->cond);
     delete _request_thread;
@@ -180,14 +182,20 @@ void QCamxDevice::stop_streams() {
 
     ///< stop the result process thread
     pthread_mutex_lock(&_result_thread->mutex);
-    CameraPostProcessMsg *msg = new CameraPostProcessMsg();
-    msg->stop = 1;
-    _result_thread->stopped = 1;
-    _result_thread->message_queue.push_back(msg);
+
+    CameraPostProcessMsg *stop_result_msg = new CameraPostProcessMsg();
+    stop_result_msg->stop = 1;
+
+    _result_thread->message_queue.push_back(stop_result_msg);
     QCAMX_DBG("Msg for stop result queue size:%zu\n", _result_thread->message_queue.size());
     pthread_cond_signal(&_result_thread->cond);
     pthread_mutex_unlock(&_result_thread->mutex);
     pthread_join(_result_thread->thread, NULL);
+
+    pthread_mutex_destroy(&_result_thread->mutex);
+    pthread_cond_destroy(&_result_thread->cond);
+    delete _result_thread;
+    _result_thread = NULL;
 
     ///< wait for all request back
     pthread_mutex_lock(&_pending_lock);
@@ -208,10 +216,6 @@ void QCamxDevice::stop_streams() {
         _pending_vector.clear();
     }
     pthread_mutex_unlock(&_pending_lock);
-    pthread_mutex_destroy(&_result_thread->mutex);
-    pthread_cond_destroy(&_result_thread->cond);
-    delete _result_thread;
-    _result_thread = NULL;
 
     ///< clear other resource
     int size = (int)_camera3_streams.size();
@@ -276,21 +280,32 @@ void QCamxDevice::construct_default_request_settings(int index, camera3_request_
     }
 }
 
-void *do_capture_post_process(void *data);
 void *do_process_capture_request(void *data);
+void *do_capture_post_process(void *data);
 
 int QCamxDevice::process_capture_request_on(CameraThreadData *request_thread,
                                             CameraThreadData *result_thread) {
-    // init result threads
+    // set cond attribute
     pthread_condattr_t attr;
     pthread_condattr_init(&attr);
     pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
-    pthread_mutex_init(&result_thread->mutex, NULL);
-    pthread_mutex_init(&request_thread->mutex, NULL);
     pthread_cond_init(&request_thread->cond, &attr);
     pthread_cond_init(&result_thread->cond, &attr);
     pthread_condattr_destroy(&attr);
 
+    // init request thread
+    pthread_mutex_init(&request_thread->mutex, NULL);
+    pthread_attr_t request_attr;
+    pthread_attr_init(&request_attr);
+    pthread_attr_setdetachstate(&request_attr, PTHREAD_CREATE_JOINABLE);
+    request_thread->device = this;
+    pthread_create(&(request_thread->thread), &request_attr, do_process_capture_request,
+                   request_thread);
+    _request_thread = request_thread;
+    pthread_attr_destroy(&request_attr);
+
+    // init result threads
+    pthread_mutex_init(&result_thread->mutex, NULL);
     pthread_attr_t result_attr;
     pthread_attr_init(&result_attr);
     pthread_attr_setdetachstate(&result_attr, PTHREAD_CREATE_JOINABLE);
@@ -299,15 +314,6 @@ int QCamxDevice::process_capture_request_on(CameraThreadData *request_thread,
     _result_thread = result_thread;
     pthread_attr_destroy(&result_attr);
 
-    // init request thread
-    pthread_attr_t requestAttr;
-    pthread_attr_init(&requestAttr);
-    pthread_attr_setdetachstate(&requestAttr, PTHREAD_CREATE_JOINABLE);
-    request_thread->device = this;
-    pthread_create(&(request_thread->thread), &requestAttr, do_process_capture_request,
-                   request_thread);
-    _request_thread = request_thread;
-    pthread_attr_destroy(&result_attr);
     return 0;
 }
 
@@ -477,8 +483,8 @@ int QCamxDevice::get_valid_output_streams(std::vector<AvailableStream> &output_s
                                           entry.data.i32[i]};
                 output_streams.push_back(stream);
 
-                QCAMX_PRINT("device valid format:%d %dx%d\n", entry.data.i32[i],
-                            entry.data.i32[i + 1], entry.data.i32[i + 2]);
+                QCAMX_PRINT("device valid format: %dx%d %d\n", entry.data.i32[i + 1],
+                            entry.data.i32[i + 2], entry.data.i32[i]);
             } else if ((valid_stream->format == entry.data.i32[i]) &&
                        (valid_stream->width == entry.data.i32[i + 1]) &&
                        (valid_stream->height == entry.data.i32[i + 2])) {
@@ -486,8 +492,8 @@ int QCamxDevice::get_valid_output_streams(std::vector<AvailableStream> &output_s
                                           valid_stream->format};
                 output_streams.push_back(stream);
 
-                QCAMX_PRINT("device valid format:%d %dx%d\n", entry.data.i32[i],
-                            entry.data.i32[i + 1], entry.data.i32[i + 2]);
+                QCAMX_PRINT("device valid format: %dx%d %d\n", entry.data.i32[i + 1],
+                            entry.data.i32[i + 2], entry.data.i32[i]);
             }
         }
     }
@@ -500,11 +506,12 @@ int QCamxDevice::get_valid_output_streams(std::vector<AvailableStream> &output_s
 
 /**************************** QCamxDevice::CallbackOps ***********************************/
 
-void QCamxDevice::CallbackOps::ProcessCaptureResult(
+void QCamxDevice::CallbackOps::process_capture_result(
     const camera3_callback_ops *camera3_callback_ops, const camera3_capture_result *result) {
     // convert to subclass
     const CallbackOps *callback_ops = (CallbackOps *)camera3_callback_ops;
 
+    QCAMX_DBG("QCamxDevice::CallbackOps::process_capture_result\n");
     if (result->partial_result >= 1) {
         // handle the metadata callback
         callback_ops->_parent->_callback->handle_metadata(callback_ops->_parent->_callback,
@@ -554,7 +561,7 @@ void QCamxDevice::CallbackOps::ProcessCaptureResult(
     pthread_mutex_unlock(&callback_ops->_parent->_pending_lock);
 }
 
-void QCamxDevice::CallbackOps::Notify(const struct camera3_callback_ops *cb,
+void QCamxDevice::CallbackOps::notify(const struct camera3_callback_ops *cb,
                                       const camera3_notify_msg_t *msg) {}
 
 /**************************** global callback function ********************************/
@@ -569,7 +576,7 @@ void *do_process_capture_request(void *data) {
     while (!thread_data->stopped) {  //need repeat and has not trigger out until stopped
         pthread_mutex_lock(&thread_data->mutex);
         bool empty = thread_data->message_queue.empty();
-        /* Send request till the request_number is 0;
+        /* Send request till the request_number is 0
         ** Check the msgQueue for Message from other thread to
         ** change setting or stop Capture Request
         */
@@ -675,7 +682,7 @@ void *do_capture_post_process(void *data) {
             clock_gettime(CLOCK_MONOTONIC, &tv);
             tv.tv_sec += 5;
             if (pthread_cond_timedwait(&thread_data->cond, &thread_data->mutex, &tv) != 0) {
-                QCAMX_ERR("%s No Msg got in 5 sec in Result Process thread", __func__);
+                QCAMX_DBG("%s No msg got in 5 sec in result process thread\n", __func__);
                 pthread_mutex_unlock(&thread_data->mutex);
                 continue;
             }
@@ -687,11 +694,13 @@ void *do_capture_post_process(void *data) {
             delete msg;
             msg = NULL;
             pthread_mutex_unlock(&thread_data->mutex);
+            QCAMX_DBG("stop capture post process\n");
             return nullptr;
         }
         pthread_mutex_unlock(&thread_data->mutex);
         camera3_capture_result result = msg->result;
         const camera3_stream_buffer_t *buffers = result.output_buffers = msg->streamBuffers.data();
+        QCAMX_DBG("call capture_post_process\n");
         device->_callback->capture_post_process(device->_callback, &result);
         // return the buffer back
         if (device->get_sync_buffer_mode() != SYNC_BUFFER_EXTERNAL) {

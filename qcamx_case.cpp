@@ -44,6 +44,7 @@ static inline const char *get_file_type_string(uint32_t format);
 /******************************** DeviceCallback function *****************************/
 
 void QCamxCase::capture_post_process(DeviceCallback *cb, camera3_capture_result *result) {}
+
 /************************************************************************
 * name : handle_metadata
 * function: analysis meta info from capture result.
@@ -663,9 +664,9 @@ bool QCamxCase::init(camera_module_t *module, QCamxConfig *config) {
     }
 
     _tag_id_temperature = 0;
-    android::sp<android::VendorTagDescriptor> vTags =
+    android::sp<android::VendorTagDescriptor> vendor_tag =
         android::VendorTagDescriptor::getGlobalVendorTagDescriptor();
-    android::CameraMetadata::getTagFromName("com.qti.chi.temperature.temperature", vTags.get(),
+    android::CameraMetadata::getTagFromName("com.qti.chi.temperature.temperature", vendor_tag.get(),
                                             &_tag_id_temperature);
 
     camera_metadata_ro_entry active_array_size =
@@ -722,8 +723,8 @@ void QCamxCase::show_fps(StreamType stream_type) {
     if (diff > s2ns(1)) {
         double fps =
             (((double)((*frame_count) - (*last_frame_count))) * (double)(s2ns(1))) / (double)diff;
-        QCAMX_INFO("CAMERA %d, %s: %.4f, frameCount %d\n", _config->_camera_id, tag, fps,
-                   (*frame_count));
+        QCAMX_DBG("CAMERA %d, %s: %.4f, frameCount %d\n", _config->_camera_id, tag, fps,
+                  (*frame_count));
         (*last_fps_time) = now;
         (*last_frame_count) = (*frame_count);
     }
