@@ -1,13 +1,3 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright (c) 2018-2020 Qualcomm Technologies, Inc.
-// All Rights Reserved.
-// Confidential and Proprietary - Qualcomm Technologies, Inc.
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file  QCamxHAL3TestPreviewOnly.h
-/// @brief Preview only mode
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "QCamxHAL3TestPreviewOnly.h"
 
@@ -18,9 +8,9 @@
 
 const int kPreviewIndex = 0;
 
-int QCamxHAL3TestPreviewOnly::pre_init_stream() {
-    QCAMX_INFO("preview:%dx%d %d\n", _config->_preview_stream.width,
-               _config->_preview_stream.height, _config->_preview_stream.format);
+int QCamxPreviewOnlyCase::pre_init_stream() {
+    QCAMX_PRINT("init preview case : %dx%d %d\n", _config->_preview_stream.width,
+                _config->_preview_stream.height, _config->_preview_stream.format);
 
     _preview_stream.stream_type = CAMERA3_STREAM_OUTPUT;
     _preview_stream.width = _config->_preview_stream.width;
@@ -50,11 +40,7 @@ int QCamxHAL3TestPreviewOnly::pre_init_stream() {
     return 0;
 }
 
-/************************************************************************
-* name : run
-* function: interface for create snapshot thread.
-************************************************************************/
-void QCamxHAL3TestPreviewOnly::run() {
+void QCamxPreviewOnlyCase::run() {
     _device->set_callback(this);
     init_preview_stream();
     CameraThreadData *resultThreadPreview = new CameraThreadData();
@@ -63,22 +49,14 @@ void QCamxHAL3TestPreviewOnly::run() {
     _device->process_capture_request_on(requestThreadPreview, resultThreadPreview);
 }
 
-/************************************************************************
-* name : stop
-* function: interface for stop snapshot thread.
-************************************************************************/
-void QCamxHAL3TestPreviewOnly::stop() {
+void QCamxPreviewOnlyCase::stop() {
     _device->stop_streams();
 }
 
-/************************************************************************
-* name : capture_post_process
-* function: handle capture result.
-************************************************************************/
-void QCamxHAL3TestPreviewOnly::capture_post_process(DeviceCallback *cb,
-                                                    camera3_capture_result *result) {
+void QCamxPreviewOnlyCase::capture_post_process(DeviceCallback *cb,
+                                                camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
-    QCamxHAL3TestPreviewOnly *testpre = (QCamxHAL3TestPreviewOnly *)cb;
+    QCamxPreviewOnlyCase *testpre = (QCamxPreviewOnlyCase *)cb;
     QCamxDevice *device = testpre->_device;
     buffers = result->output_buffers;
 
@@ -104,35 +82,23 @@ void QCamxHAL3TestPreviewOnly::capture_post_process(DeviceCallback *cb,
             }
         }
     }
-
-    //QCAMX_INFO("camera %d frame_number %d", mCameraId, result->frame_number);
-    return;
 }
 
-/************************************************************************
-* name : QCamxHAL3TestPreviewOnly
-* function: construct object.
-************************************************************************/
-QCamxHAL3TestPreviewOnly::QCamxHAL3TestPreviewOnly(camera_module_t *module, QCamxConfig *config) {
+QCamxPreviewOnlyCase::QCamxPreviewOnlyCase(camera_module_t *module, QCamxConfig *config) {
+    // TODO(anxs) : need check init result and return error
     init(module, config);
 }
 
-/************************************************************************
-* name : ~QCamxHAL3TestPreviewOnly
-* function: destory object.
-************************************************************************/
-QCamxHAL3TestPreviewOnly::~QCamxHAL3TestPreviewOnly() {
+QCamxPreviewOnlyCase::~QCamxPreviewOnlyCase() {
     deinit();
 }
 
-int QCamxHAL3TestPreviewOnly::init_preview_stream() {
+/***************************** private method *************************************/
+int QCamxPreviewOnlyCase::init_preview_stream() {
     //init stream configure
     AvailableStream preview_threshold = {_config->_preview_stream.width,
                                          _config->_preview_stream.height,
                                          _config->_preview_stream.format};
-
-    QCAMX_PRINT("preview : %dx%d %d\n", _config->_preview_stream.width,
-                _config->_preview_stream.height, _config->_preview_stream.format);
 
     camera_metadata_ro_entry entry;
     int res = find_camera_metadata_ro_entry(_device->_camera_characteristics,
@@ -141,9 +107,9 @@ int QCamxHAL3TestPreviewOnly::init_preview_stream() {
         uint32_t partial_result_count = entry.data.i32[0];
         bool support_partial_result = (partial_result_count > 1);
         if (support_partial_result) {
-            QCAMX_PRINT("QCamxHAL3TestPreviewOnly support partical result\n");
+            QCAMX_PRINT("QCamxPreviewOnlyCase support partical result\n");
         } else {
-            QCAMX_PRINT("QCamxHAL3TestPreviewOnly not support partical result\n");
+            QCAMX_PRINT("QCamxPreviewOnlyCase not support partical result\n");
         }
     }
 

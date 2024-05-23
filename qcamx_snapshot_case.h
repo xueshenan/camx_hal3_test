@@ -1,7 +1,7 @@
 
 /**
 * @file  QCamxSnapshot.h
-* @brief snapshot case
+* @brief snapshot case with snapshot and preview stream
 */
 
 #pragma once

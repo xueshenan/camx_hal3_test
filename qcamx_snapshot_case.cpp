@@ -12,7 +12,10 @@ typedef enum {
 } StreamIdx;
 
 int QCamxSnapshotCase::pre_init_stream() {
-    QCAMX_DBG("preinit snapshot streams start\n");
+    QCAMX_DBG("init snapshot case with preview :%dx%d %d snapshot: %dx%d %d\n",
+              _config->_preview_stream.width, _config->_preview_stream.height,
+              _config->_preview_stream.format, _config->_snapshot_stream.width,
+              _config->_snapshot_stream.height, _config->_snapshot_stream.format);
 
     _preview_stream.stream_type = CAMERA3_STREAM_OUTPUT;
     _preview_stream.width = _config->_preview_stream.width;
@@ -55,7 +58,6 @@ int QCamxSnapshotCase::pre_init_stream() {
     _streams[SNAPSHOT_IDX] = &_snapshot_streaminfo;
 
     _device->pre_allocate_streams(_streams);
-    QCAMX_DBG("preinit snapshot streams end\n");
     return 0;
 }
 

@@ -1,28 +1,31 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright (c) 2018-2020 Qualcomm Technologies, Inc.
-// All Rights Reserved.
-// Confidential and Proprietary - Qualcomm Technologies, Inc.
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file  QCamxHAL3TestPreviewOnly.h
-/// @brief preview only mode
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _QCAMX_HAL3_TEST_PREVIEW_ONLY_
-#define _QCAMX_HAL3_TEST_PREVIEW_ONLY_
+/**
+* @file  QCamxHAL3TestPreviewOnly.h
+* @brief preview only mode
+*/
+#pragma once
 
 #include "qcamx_case.h"
 
-class QCamxHAL3TestPreviewOnly : public QCamxCase {
+class QCamxPreviewOnlyCase : public QCamxCase {
 public:
     virtual int pre_init_stream() override;
+    /**
+     * @brief create preview thread
+    */
     virtual void run() override;
+    /**
+     * @brief stop preview thread
+    */
     virtual void stop() override;
+    /**
+     * @brief handle capture result
+    */
     virtual void capture_post_process(DeviceCallback *cb, camera3_capture_result *result) override;
     virtual void request_capture(StreamCapture requst) override {}
 public:
-    QCamxHAL3TestPreviewOnly(camera_module_t *module, QCamxConfig *config);
-    ~QCamxHAL3TestPreviewOnly();
+    QCamxPreviewOnlyCase(camera_module_t *module, QCamxConfig *config);
+    ~QCamxPreviewOnlyCase();
 private:
     /**
      * @brief do prepare for preview stream.
@@ -32,5 +35,3 @@ private:
     camera3_stream_t _preview_stream;
     Stream _preview_streaminfo;
 };
-
-#endif

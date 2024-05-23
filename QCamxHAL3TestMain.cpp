@@ -363,7 +363,7 @@ int main(int argc, char *argv[]) {
 
                 switch (testConf->_test_mode) {
                     case TESTMODE_PREVIEW: {
-                        testCase = new QCamxHAL3TestPreviewOnly(s_camera_module, testConf);
+                        testCase = new QCamxPreviewOnlyCase(s_camera_module, testConf);
                         break;
                     }
                     case TESTMODE_DEPTH: {
@@ -412,8 +412,8 @@ int main(int argc, char *argv[]) {
                 QCAMX_PRINT("video request %s\n", param.c_str());
                 if (s_HAL3_test[current_camera_id]->_config->_test_mode == TESTMODE_PREVIEW) {
                     QCAMX_PRINT("video request in preview test mode\n");
-                    QCamxHAL3TestPreviewOnly *testPreview =
-                        (QCamxHAL3TestPreviewOnly *)s_HAL3_test[current_camera_id];
+                    QCamxPreviewOnlyCase *testPreview =
+                        (QCamxPreviewOnlyCase *)s_HAL3_test[current_camera_id];
 
                     QCamxConfig *testConf = testPreview->_config;
                     result = testConf->parse_commandline_add(size, (char *)param.c_str());
