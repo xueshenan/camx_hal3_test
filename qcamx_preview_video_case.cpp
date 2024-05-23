@@ -161,6 +161,24 @@ int QCamxPreviewVideoCase::pre_init_stream() {
     _preview_stream_info.type = PREVIEW_TYPE;
 
     // add video stream
+
+    if (_config->_fps_range[1] > 30 && _config->_fps_range[1] <= 60) {
+        // for HFR case such as 4K@60 and 1080p@60
+        _video_mode = VIDEO_MODE_HFR60;
+    } else if (_config->_fps_range[1] > 60 && _config->_fps_range[1] <= 90) {
+        // for HFR case such as 1080p@90
+        _video_mode = VIDEO_MODE_HFR90;
+    } else if (_config->_fps_range[1] > 90 && _config->_fps_range[1] <= 120) {
+        // for HFR case such as 1080p@120
+        _video_mode = VIDEO_MODE_HFR120;
+    } else if (_config->_fps_range[1] > 120 && _config->_fps_range[1] <= 240) {
+        // for HFR case such as 1080p@240
+        _video_mode = VIDEO_MODE_HFR240;
+    } else if (_config->_fps_range[1] > 240 && _config->_fps_range[1] <= 480) {
+        // for HFR case such as 720p@480
+        _video_mode = VIDEO_MODE_HFR480;
+    }
+
     _video_stream.stream_type = CAMERA3_STREAM_OUTPUT;
     _video_stream.width = _config->_video_stream.width;
     _video_stream.height = _config->_video_stream.height;
@@ -322,7 +340,7 @@ int QCamxPreviewVideoCase::init_video_stream() {
         // for HFR case
         uint32_t stream_size = 0;
         int stream_index = 0;
-        for (int i = 0; i < (int)_streams.size(); i++) {
+        for (uint32_t i = 0; i < _streams.size(); i++) {
             if ((_streams[i]->pstream->width * _streams[i]->pstream->height) > stream_size) {
                 stream_size = _streams[i]->pstream->width * _streams[i]->pstream->height;
                 stream_index = i;
@@ -337,7 +355,7 @@ int QCamxPreviewVideoCase::init_video_stream() {
 
     _device->construct_default_request_settings(PREVIEW_INDEX, _config->_preview_stream.type);
 
-    if (_metadata_ext) {
+    if (_metadata_ext != NULL) {
         _device->set_current_meta(_metadata_ext);
         _device->construct_default_request_settings(VIDEO_INDEX, CAMERA3_TEMPLATE_VIDEO_RECORD);
     } else {

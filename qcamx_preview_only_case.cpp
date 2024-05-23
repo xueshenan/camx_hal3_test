@@ -24,6 +24,7 @@ int QCamxPreviewOnlyCase::pre_init_stream() {
     _preview_stream.usage = GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN |
                             GRALLOC_USAGE_HW_CAMERA_READ | GRALLOC_USAGE_HW_CAMERA_WRITE;
     // no usage CAMERA3_STREAM_ROTATION_180
+
     _preview_stream.rotation = CAMERA3_STREAM_ROTATION_0;
     _preview_stream.max_buffers = PREVIEW_STREAM_BUFFER_MAX;
     _preview_stream.priv = 0;

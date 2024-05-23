@@ -74,11 +74,12 @@ add_executable( camx-hal3-test
     qcamx_preview_only_case.cpp
     qcamx_preview_snapshot_case.cpp
     qcamx_preview_video_case.cpp
+    qcamx_video_only_case.cpp
      QCamxHAL3TestBufferManager.cpp
      QCamxHAL3TestMain.cpp
      QCamxHAL3TestVideo.cpp
      QCamxHAL3TestDepth.cpp
-     QCamxHAL3TestVideoOnly.cpp
+
 )
 
 add_dependencies( camx-hal3-test

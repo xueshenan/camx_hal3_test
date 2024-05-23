@@ -14,7 +14,6 @@
 
 #include "QCamxHAL3TestDepth.h"
 #include "QCamxHAL3TestVideo.h"
-#include "QCamxHAL3TestVideoOnly.h"
 #include "g_version.h"
 #include "qcamx_case.h"
 #include "qcamx_config.h"
@@ -23,6 +22,7 @@
 #include "qcamx_preview_snapshot_case.h"
 #include "qcamx_preview_video_case.h"
 #include "qcamx_signal_monitor.h"
+#include "qcamx_video_only_case.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -372,7 +372,7 @@ int main(int argc, char *argv[]) {
                     }
                     case TESTMODE_VIDEO_ONLY: {
                         QCAMX_PRINT("camera id %d TESTMODE_VIDEO_ONLY\n", current_camera_id);
-                        testCase = new QCamxHAL3TestVideoOnly(s_camera_module, testConf);
+                        testCase = new QCamxVideoOnlyCase(s_camera_module, testConf);
                         break;
                     }
                     case TESTMODE_SNAPSHOT: {

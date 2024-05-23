@@ -36,7 +36,7 @@ typedef enum {
     VIDEO_MODE_MAX,
 } VideoMode;
 
-// sensor support max framerate
+// sensor max framerate
 #define MAX_SENSOR_FPS (480)
 #define LIVING_REQUEST_APPEND (7)
 #define HFR_LIVING_REQUEST_APPEND (35)
