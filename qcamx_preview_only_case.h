@@ -26,7 +26,7 @@ public:
     virtual void request_capture(StreamCapture requst) override {}
 public:
     QCamxPreviewOnlyCase(camera_module_t *module, QCamxConfig *config);
-    ~QCamxPreviewOnlyCase();
+    virtual ~QCamxPreviewOnlyCase();
 private:
     /**
      * @brief do prepare for preview stream.

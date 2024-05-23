@@ -7,12 +7,12 @@
 #define LOG_TAG "QCamxHAL3Test"
 
 typedef enum {
-    PREVIEW_IDX = 0,
+    PREVIEW_INDEX = 0,
     SNAPSHOT_IDX = 1,
-} StreamIdx;
+} StreamIndex;
 
 int QCamxPreviewSnapshotCase::pre_init_stream() {
-    QCAMX_DBG("init snapshot case with preview :%dx%d %d snapshot: %dx%d %d\n",
+    QCAMX_DBG("init preview snapshot case with preview :%dx%d %d snapshot: %dx%d %d\n",
               _config->_preview_stream.width, _config->_preview_stream.height,
               _config->_preview_stream.format, _config->_snapshot_stream.width,
               _config->_snapshot_stream.height, _config->_snapshot_stream.format);
@@ -54,7 +54,7 @@ int QCamxPreviewSnapshotCase::pre_init_stream() {
 
     int stream_num = 2;
     _streams.resize(stream_num);
-    _streams[PREVIEW_IDX] = &_preview_streaminfo;
+    _streams[PREVIEW_INDEX] = &_preview_streaminfo;
     _streams[SNAPSHOT_IDX] = &_snapshot_streaminfo;
 
     _device->pre_allocate_streams(_streams);
@@ -70,7 +70,7 @@ void QCamxPreviewSnapshotCase::run() {
     CameraThreadData *resultThread = new CameraThreadData();
     CameraThreadData *requestThread = new CameraThreadData();
 
-    requestThread->request_number[PREVIEW_IDX] = REQUEST_NUMBER_UMLIMIT;
+    requestThread->request_number[PREVIEW_INDEX] = REQUEST_NUMBER_UMLIMIT;
     if (_config->_snapshot_stream.format == HAL_PIXEL_FORMAT_BLOB) {
         requestThread->request_number[SNAPSHOT_IDX] = 0;
     } else {
@@ -212,9 +212,9 @@ int QCamxPreviewSnapshotCase::init_snapshot_streams() {
 
     if (_metadata_ext != NULL) {
         _device->set_current_meta(_metadata_ext);
-        _device->construct_default_request_settings(PREVIEW_IDX, CAMERA3_TEMPLATE_PREVIEW);
+        _device->construct_default_request_settings(PREVIEW_INDEX, CAMERA3_TEMPLATE_PREVIEW);
     } else {
-        _device->construct_default_request_settings(PREVIEW_IDX, CAMERA3_TEMPLATE_PREVIEW, true);
+        _device->construct_default_request_settings(PREVIEW_INDEX, CAMERA3_TEMPLATE_PREVIEW, true);
     }
 
     _device->construct_default_request_settings(SNAPSHOT_IDX, CAMERA3_TEMPLATE_STILL_CAPTURE);

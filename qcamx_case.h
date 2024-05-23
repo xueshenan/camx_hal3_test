@@ -75,11 +75,12 @@ public:  // DeviceCallback function
     /**
      * @brief empty implementation
     */
-    virtual void capture_post_process(DeviceCallback *cb, camera3_capture_result *result) override;
+    virtual void capture_post_process(DeviceCallback *callback,
+                                      camera3_capture_result *result) override;
     /**
      * @brief analysis meta info from capture result.
     */
-    virtual void handle_metadata(DeviceCallback *cb, camera3_capture_result *result) override;
+    virtual void handle_metadata(DeviceCallback *callback, camera3_capture_result *result) override;
 public:  // virtual functions
     virtual int pre_init_stream() = 0;
     virtual void run() = 0;

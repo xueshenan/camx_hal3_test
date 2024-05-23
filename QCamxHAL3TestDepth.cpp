@@ -19,7 +19,7 @@
 typedef enum {
     DEPTH_IDX = 0,
     DEPTH_IRBG_IDX = 1,
-} StreamIdx;
+} StreamIndex;
 
 /************************************************************************
 * name : QCamxHAL3TestPreviewOnly

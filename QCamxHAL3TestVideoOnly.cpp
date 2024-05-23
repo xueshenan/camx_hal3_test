@@ -30,8 +30,8 @@ typedef struct gbm_device GBM_DEVICE;
 #define LOG_TAG "QCamxHAL3Test"
 
 typedef enum {
-    VIDEO_IDX = 0,
-} StreamIdx;
+    VIDEO_INDEX = 0,
+} StreamIndex;
 
 /************************************************************************
 * name : QCamxHAL3TestPreviewOnly

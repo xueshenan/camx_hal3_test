@@ -13,7 +13,6 @@
 #include <sys/time.h>
 
 #include "QCamxHAL3TestDepth.h"
-#include "QCamxHAL3TestPreviewVideo.h"
 #include "QCamxHAL3TestVideo.h"
 #include "QCamxHAL3TestVideoOnly.h"
 #include "g_version.h"
@@ -22,6 +21,7 @@
 #include "qcamx_log.h"
 #include "qcamx_preview_only_case.h"
 #include "qcamx_preview_snapshot_case.h"
+#include "qcamx_preview_video_case.h"
 #include "qcamx_signal_monitor.h"
 
 #ifdef LOG_TAG
@@ -384,7 +384,7 @@ int main(int argc, char *argv[]) {
                         break;
                     }
                     case TESTMODE_PREVIEW_VIDEO_ONLY: {
-                        testCase = new QCamxHAL3TestPreviewVideo(s_camera_module, testConf);
+                        testCase = new QCamxPreviewVideoCase(s_camera_module, testConf);
                         break;
                     }
                     default: {
