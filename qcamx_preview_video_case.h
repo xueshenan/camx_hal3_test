@@ -5,8 +5,8 @@
 */
 #pragma once
 
-#include "QCamxHAL3TestVideo.h"
 #include "qcamx_case.h"
+#include "qcamx_define.h"
 #ifdef ENABLE_VIDEO_ENCODER
 #include "QCamxHAL3TestVideoEncoder.h"
 #endif

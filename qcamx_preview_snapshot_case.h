@@ -9,7 +9,12 @@
 #include "qcamx_case.h"
 
 class QCamxPreviewSnapshotCase : public QCamxCase {
-public:
+public:  // override DeviceCallback
+    /**
+     * @brief callback for post process capture result
+    */
+    virtual void capture_post_process(DeviceCallback *cb, camera3_capture_result *result) override;
+public:  // override DeviceCallback
     virtual int pre_init_stream() override;
     /**
      * @brief interface for create snapshot thread
@@ -23,10 +28,6 @@ public:
      * @brief populate capture request
     */
     virtual void request_capture(StreamCapture requst) override;
-    /**
-     * @brief callback for post process capture result
-    */
-    virtual void capture_post_process(DeviceCallback *cb, camera3_capture_result *result) override;
 public:
     QCamxPreviewSnapshotCase(camera_module_t *module, QCamxConfig *config);
     virtual ~QCamxPreviewSnapshotCase();

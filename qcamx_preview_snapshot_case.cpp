@@ -11,6 +11,48 @@ typedef enum {
     SNAPSHOT_IDX = 1,
 } StreamIndex;
 
+void QCamxPreviewSnapshotCase::capture_post_process(DeviceCallback *cb,
+                                                    camera3_capture_result *result) {
+    const camera3_stream_buffer_t *buffers = NULL;
+    QCamxPreviewSnapshotCase *testsnap = (QCamxPreviewSnapshotCase *)cb;
+    QCamxDevice *device = testsnap->_device;
+    buffers = result->output_buffers;
+
+    for (uint32_t i = 0; i < result->num_output_buffers; i++) {
+        int index = device->find_stream_index(buffers[i].stream);
+        CameraStream *stream = device->_camera_streams[index];
+        BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
+        if (stream->stream_type == CAMERA3_TEMPLATE_STILL_CAPTURE) {
+            if (_callbacks != NULL && _callbacks->snapshot_cb != NULL) {
+                _callbacks->snapshot_cb(info, result->frame_number);
+            }
+            if (_snapshot_num > 0) {
+                QCamxCase::dump_frame(info, result->frame_number, SNAPSHOT_TYPE,
+                                      _config->_snapshot_stream.subformat);
+                _snapshot_num--;
+                QCAMX_INFO("Get one picture %d last\n", _snapshot_num);
+            }
+        }
+        if (stream->stream_type == CAMERA3_TEMPLATE_PREVIEW) {
+            if (_callbacks != NULL && _callbacks->preview_cb != NULL) {
+                _callbacks->preview_cb(info, result->frame_number);
+            }
+            if (testsnap->_dump_preview_num > 0 &&
+                (_dump_interval == 0 ||
+                 (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
+                QCamxCase::dump_frame(info, result->frame_number, PREVIEW_TYPE,
+                                      _config->_preview_stream.subformat);
+                if (_dump_interval == 0) {
+                    testsnap->_dump_preview_num--;
+                }
+            }
+            if (_config->_show_fps) {
+                show_fps(PREVIEW_TYPE);
+            }
+        }
+    }
+}
+
 int QCamxPreviewSnapshotCase::pre_init_stream() {
     QCAMX_DBG("init preview snapshot case with preview :%dx%d %d snapshot: %dx%d %d\n",
               _config->_preview_stream.width, _config->_preview_stream.height,
@@ -101,48 +143,6 @@ void QCamxPreviewSnapshotCase::request_capture(StreamCapture request) {
     QCAMX_INFO("Msg for capture picture mask%x \n", msg->mask);
     pthread_cond_signal(&_device->_request_thread->cond);
     pthread_mutex_unlock(&_device->_request_thread->mutex);
-}
-
-void QCamxPreviewSnapshotCase::capture_post_process(DeviceCallback *cb,
-                                                    camera3_capture_result *result) {
-    const camera3_stream_buffer_t *buffers = NULL;
-    QCamxPreviewSnapshotCase *testsnap = (QCamxPreviewSnapshotCase *)cb;
-    QCamxDevice *device = testsnap->_device;
-    buffers = result->output_buffers;
-
-    for (uint32_t i = 0; i < result->num_output_buffers; i++) {
-        int index = device->find_stream_index(buffers[i].stream);
-        CameraStream *stream = device->_camera_streams[index];
-        BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
-        if (stream->stream_type == CAMERA3_TEMPLATE_STILL_CAPTURE) {
-            if (_callbacks != NULL && _callbacks->snapshot_cb != NULL) {
-                _callbacks->snapshot_cb(info, result->frame_number);
-            }
-            if (_snapshot_num > 0) {
-                QCamxCase::dump_frame(info, result->frame_number, SNAPSHOT_TYPE,
-                                      _config->_snapshot_stream.subformat);
-                _snapshot_num--;
-                QCAMX_INFO("Get one picture %d Last\n", _snapshot_num);
-            }
-        }
-        if (stream->stream_type == CAMERA3_TEMPLATE_PREVIEW) {
-            if (_callbacks != NULL && _callbacks->preview_cb != NULL) {
-                _callbacks->preview_cb(info, result->frame_number);
-            }
-            if (testsnap->_dump_preview_num > 0 &&
-                (_dump_interval == 0 ||
-                 (_dump_interval > 0 && result->frame_number % _dump_interval == 0))) {
-                QCamxCase::dump_frame(info, result->frame_number, PREVIEW_TYPE,
-                                      _config->_preview_stream.subformat);
-                if (_dump_interval == 0) {
-                    testsnap->_dump_preview_num--;
-                }
-            }
-            if (_config->_show_fps) {
-                show_fps(PREVIEW_TYPE);
-            }
-        }
-    }
 }
 
 QCamxPreviewSnapshotCase::QCamxPreviewSnapshotCase(camera_module_t *module, QCamxConfig *config) {
