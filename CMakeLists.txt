@@ -71,8 +71,8 @@ add_executable( camx-hal3-test
     qcamx_config.cpp
     qcamx_device.cpp
     qcamx_case.cpp
+    qcamx_snapshot_case.cpp
      QCamxHAL3TestBufferManager.cpp
-     QCamxHAL3TestSnapshot.cpp
      QCamxHAL3TestMain.cpp
      QCamxHAL3TestVideo.cpp
      QCamxHAL3TestPreviewOnly.cpp

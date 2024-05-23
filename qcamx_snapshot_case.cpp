@@ -1,15 +1,5 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright (c) 2018-2020 Qualcomm Technologies, Inc.
-// All Rights Reserved.
-// Confidential and Proprietary - Qualcomm Technologies, Inc.
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file  QCamxHAL3TestSnapshot.cpp
-/// @brief Test for snapshot
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#include "QCamxHAL3TestSnapshot.h"
+#include "qcamx_snapshot_case.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -21,7 +11,7 @@ typedef enum {
     SNAPSHOT_IDX = 1,
 } StreamIdx;
 
-int QCamxHAL3TestSnapshot::pre_init_stream() {
+int QCamxSnapshotCase::pre_init_stream() {
     QCAMX_DBG("preinit snapshot streams start\n");
 
     _preview_stream.stream_type = CAMERA3_STREAM_OUTPUT;
@@ -69,7 +59,7 @@ int QCamxHAL3TestSnapshot::pre_init_stream() {
     return 0;
 }
 
-void QCamxHAL3TestSnapshot::run() {
+void QCamxSnapshotCase::run() {
     //open camera
     QCAMX_PRINT("QCamxHAL3TestSnapshot CameraId:%d\n", _config->_camera_id);
     _device->set_callback(this);
@@ -88,11 +78,11 @@ void QCamxHAL3TestSnapshot::run() {
     _device->process_capture_request_on(requestThread, resultThread);
 }
 
-void QCamxHAL3TestSnapshot::stop() {
+void QCamxSnapshotCase::stop() {
     _device->stop_streams();
 }
 
-void QCamxHAL3TestSnapshot::request_capture(StreamCapture request) {
+void QCamxSnapshotCase::request_capture(StreamCapture request) {
     _snapshot_num = request.count;
     if (_config->_snapshot_stream.format != HAL_PIXEL_FORMAT_BLOB) {
         return;
@@ -111,10 +101,9 @@ void QCamxHAL3TestSnapshot::request_capture(StreamCapture request) {
     pthread_mutex_unlock(&_device->_request_thread->mutex);
 }
 
-void QCamxHAL3TestSnapshot::capture_post_process(DeviceCallback *cb,
-                                                 camera3_capture_result *result) {
+void QCamxSnapshotCase::capture_post_process(DeviceCallback *cb, camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
-    QCamxHAL3TestSnapshot *testsnap = (QCamxHAL3TestSnapshot *)cb;
+    QCamxSnapshotCase *testsnap = (QCamxSnapshotCase *)cb;
     QCamxDevice *device = testsnap->_device;
     buffers = result->output_buffers;
 
@@ -153,18 +142,18 @@ void QCamxHAL3TestSnapshot::capture_post_process(DeviceCallback *cb,
     }
 }
 
-QCamxHAL3TestSnapshot::QCamxHAL3TestSnapshot(camera_module_t *module, QCamxConfig *config) {
+QCamxSnapshotCase::QCamxSnapshotCase(camera_module_t *module, QCamxConfig *config) {
     init(module, config);
     _snapshot_num = 0;
 }
 
-QCamxHAL3TestSnapshot::~QCamxHAL3TestSnapshot() {
+QCamxSnapshotCase::~QCamxSnapshotCase() {
     deinit();
 }
 
 /******************************** private method ****************************************/
 
-int QCamxHAL3TestSnapshot::init_snapshot_streams() {
+int QCamxSnapshotCase::init_snapshot_streams() {
     //init stream configure
     std::vector<AvailableStream> output_preview_streams;
     AvailableStream preview_threshold = {_config->_preview_stream.width,

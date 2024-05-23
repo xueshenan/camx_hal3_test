@@ -1,14 +1,14 @@
 
 /**
-* @file  QCamxHAL3TestSnapshot.h
-* @brief test snapshot case
+* @file  QCamxSnapshot.h
+* @brief snapshot case
 */
 
 #pragma once
 
 #include "qcamx_case.h"
 
-class QCamxHAL3TestSnapshot : public QCamxCase {
+class QCamxSnapshotCase : public QCamxCase {
 public:
     virtual int pre_init_stream() override;
     /**
@@ -28,8 +28,8 @@ public:
     */
     virtual void capture_post_process(DeviceCallback *cb, camera3_capture_result *result) override;
 public:
-    QCamxHAL3TestSnapshot(camera_module_t *module, QCamxConfig *config);
-    virtual ~QCamxHAL3TestSnapshot();
+    QCamxSnapshotCase(camera_module_t *module, QCamxConfig *config);
+    virtual ~QCamxSnapshotCase();
 private:
     /**
      * @brief init streams for snapshot
