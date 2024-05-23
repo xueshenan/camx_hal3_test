@@ -21,8 +21,8 @@
 #include "qcamx_config.h"
 #include "qcamx_log.h"
 #include "qcamx_preview_only_case.h"
+#include "qcamx_preview_snapshot_case.h"
 #include "qcamx_signal_monitor.h"
-#include "qcamx_snapshot_case.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -376,7 +376,7 @@ int main(int argc, char *argv[]) {
                         break;
                     }
                     case TESTMODE_SNAPSHOT: {
-                        testCase = new QCamxSnapshotCase(s_camera_module, testConf);
+                        testCase = new QCamxPreviewSnapshotCase(s_camera_module, testConf);
                         break;
                     }
                     case TESTMODE_VIDEO: {

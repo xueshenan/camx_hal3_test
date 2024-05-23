@@ -1,5 +1,5 @@
 
-#include "qcamx_snapshot_case.h"
+#include "qcamx_preview_snapshot_case.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -11,7 +11,7 @@ typedef enum {
     SNAPSHOT_IDX = 1,
 } StreamIdx;
 
-int QCamxSnapshotCase::pre_init_stream() {
+int QCamxPreviewSnapshotCase::pre_init_stream() {
     QCAMX_DBG("init snapshot case with preview :%dx%d %d snapshot: %dx%d %d\n",
               _config->_preview_stream.width, _config->_preview_stream.height,
               _config->_preview_stream.format, _config->_snapshot_stream.width,
@@ -61,7 +61,7 @@ int QCamxSnapshotCase::pre_init_stream() {
     return 0;
 }
 
-void QCamxSnapshotCase::run() {
+void QCamxPreviewSnapshotCase::run() {
     //open camera
     QCAMX_PRINT("QCamxHAL3TestSnapshot CameraId:%d\n", _config->_camera_id);
     _device->set_callback(this);
@@ -80,11 +80,11 @@ void QCamxSnapshotCase::run() {
     _device->process_capture_request_on(requestThread, resultThread);
 }
 
-void QCamxSnapshotCase::stop() {
+void QCamxPreviewSnapshotCase::stop() {
     _device->stop_streams();
 }
 
-void QCamxSnapshotCase::request_capture(StreamCapture request) {
+void QCamxPreviewSnapshotCase::request_capture(StreamCapture request) {
     _snapshot_num = request.count;
     if (_config->_snapshot_stream.format != HAL_PIXEL_FORMAT_BLOB) {
         return;
@@ -103,9 +103,10 @@ void QCamxSnapshotCase::request_capture(StreamCapture request) {
     pthread_mutex_unlock(&_device->_request_thread->mutex);
 }
 
-void QCamxSnapshotCase::capture_post_process(DeviceCallback *cb, camera3_capture_result *result) {
+void QCamxPreviewSnapshotCase::capture_post_process(DeviceCallback *cb,
+                                                    camera3_capture_result *result) {
     const camera3_stream_buffer_t *buffers = NULL;
-    QCamxSnapshotCase *testsnap = (QCamxSnapshotCase *)cb;
+    QCamxPreviewSnapshotCase *testsnap = (QCamxPreviewSnapshotCase *)cb;
     QCamxDevice *device = testsnap->_device;
     buffers = result->output_buffers;
 
@@ -144,18 +145,18 @@ void QCamxSnapshotCase::capture_post_process(DeviceCallback *cb, camera3_capture
     }
 }
 
-QCamxSnapshotCase::QCamxSnapshotCase(camera_module_t *module, QCamxConfig *config) {
+QCamxPreviewSnapshotCase::QCamxPreviewSnapshotCase(camera_module_t *module, QCamxConfig *config) {
     init(module, config);
     _snapshot_num = 0;
 }
 
-QCamxSnapshotCase::~QCamxSnapshotCase() {
+QCamxPreviewSnapshotCase::~QCamxPreviewSnapshotCase() {
     deinit();
 }
 
 /******************************** private method ****************************************/
 
-int QCamxSnapshotCase::init_snapshot_streams() {
+int QCamxPreviewSnapshotCase::init_snapshot_streams() {
     //init stream configure
     std::vector<AvailableStream> output_preview_streams;
     AvailableStream preview_threshold = {_config->_preview_stream.width,
