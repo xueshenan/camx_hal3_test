@@ -1,7 +1,7 @@
 /**
-* @file  qcamx_device.h
-* @brief camera devices layer to control camera hardware ,camera3_device implementation
-*        provide camera device to QCamxCase
+ * @file  qcamx_device.h
+ * @brief camera devices layer to control camera hardware ,camera3_device implementation
+ *        provide camera device to QCamxCase
 */
 
 #pragma once
@@ -62,7 +62,7 @@ public:
     }
 public:
     camera3_capture_request_t _request;
-    uint32_t _num_output_buffer;
+    int _num_output_buffer;
     int _num_metadata;
 };
 
@@ -255,25 +255,15 @@ private:
     int _camera_id;
     QCamxConfig *_config;
 private:
-    struct CallbackOps : public camera3_callback_ops {
+    class CallbackOps : public camera3_callback_ops {
     public:
         CallbackOps(QCamxDevice *parent)
-            : camera3_callback_ops({&process_capture_result, &notify}), _parent(parent) {}
-        /**
-         * @brief callback for process capture result.
-         * @detail Send results from a completed capture to the framework. 
-         * process_capture_result() may be invoked multiple times by the HAL in response to a single capture request. 
-        */
-        static void process_capture_result(const camera3_callback_ops *camera3_callback_ops,
-                                           const camera3_capture_result *hal_result);
-        /**
-        * @brief Asynchronous notification callback from the HAL, fired for various reasons.
-        * @detail Only for information independent of frame capture, or that require specific timing. 
-        */
-        static void notify(const struct camera3_callback_ops *camera3_callback_ops,
-                           const camera3_notify_msg_t *msg);
+            : camera3_callback_ops({&ProcessCaptureResult, &Notify}), mParent(parent) {}
+        static void ProcessCaptureResult(const camera3_callback_ops *cb,
+                                         const camera3_capture_result *hal_result);
+        static void Notify(const struct camera3_callback_ops *cb, const camera3_notify_msg_t *msg);
     private:
-        QCamxDevice *_parent;
+        QCamxDevice *mParent;
     };
     CallbackOps *_callback_ops;
 private:

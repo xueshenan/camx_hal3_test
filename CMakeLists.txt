@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.12)
 
 project(camx_hal3_test)
 
@@ -42,7 +42,7 @@ if (ENABLE_VIDEO_ENCODER)
 add_library( libomx_encoder SHARED
     QCamxHAL3TestOMXEncoder.cpp
     QCamxHAL3TestVideoEncoder.cpp
-    qcamx_device.cpp
+    # qcamx_device.cpp
 )
 
 target_link_libraries (libomx_encoder cutils)

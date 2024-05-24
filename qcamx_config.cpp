@@ -45,7 +45,7 @@ QCamxConfig::QCamxConfig() {
     //disable IRBG
     _depth_IRBG_enabled = false;
 
-    _show_fps = 1;
+    _show_fps = 0;
 
     memset(&_meta_dump, 0, sizeof(meta_dump_t));
     _dump_log = new QCamxLog("/data/misc/camera/test1.log");
