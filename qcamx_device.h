@@ -130,15 +130,15 @@ public:
 
 // Stream info of CameraDevice
 typedef struct _Stream {
-    //Buffer
-    QCamxHAL3TestBufferManager *bufferManager;
-    //Metadata
+    //metadata
     camera_metadata *metadata;
-    //stream
+    //stream info
     int stream_id;
     int stream_type;  //camera3_request_template_t
-    //RunTime
-    camera3_stream_buffer_t streamBuffer;
+    //buffer
+    QCamxHAL3TestBufferManager *buffer_manager;
+    //runTime
+    camera3_stream_buffer_t stream_buffer;
 } CameraStream;
 
 class QCamxDevice {

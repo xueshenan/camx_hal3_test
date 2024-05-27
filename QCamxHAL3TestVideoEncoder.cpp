@@ -150,7 +150,7 @@ void QCamxTestVideoEncoder::stop() {
             break;
         }
         pthread_mutex_unlock(&mLock);
-        mStream->bufferManager->ReturnBuffer(buf_handle);
+        mStream->buffer_manager->ReturnBuffer(buf_handle);
         buf_handle = NULL;
     }
 }
@@ -198,9 +198,9 @@ int QCamxTestVideoEncoder::Read(OMX_BUFFERHEADERTYPE *buf) {
         return -1;
     } else {
 #if DISABLE_META_MODE
-        memcpy(buf->pBuffer, mStream->bufferManager->getBufferInfo(buf_handle)->vaddr,
+        memcpy(buf->pBuffer, mStream->buffer_manager->getBufferInfo(buf_handle)->vaddr,
                buf->nAllocLen);
-        mStream->bufferManager->ReturnBuffer(buf_handle);
+        mStream->buffer_manager->ReturnBuffer(buf_handle);
         readLen = buf->nAllocLen;
 #else
         meta_buffer->buffer_type =
@@ -239,7 +239,7 @@ OMX_ERRORTYPE QCamxTestVideoEncoder::EmptyDone(OMX_BUFFERHEADERTYPE *buf) {
     if (meta_buffer->meta_handle != NULL) {
         int fd = meta_buffer->meta_handle->data[0];
         if (mFrameHandleMap.find(fd) != mFrameHandleMap.end()) {
-            mStream->bufferManager->ReturnBuffer(mFrameHandleMap[fd]);
+            mStream->buffer_manager->ReturnBuffer(mFrameHandleMap[fd]);
         }
     }
 #endif

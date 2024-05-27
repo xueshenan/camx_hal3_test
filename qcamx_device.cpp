@@ -112,7 +112,7 @@ bool QCamxDevice::config_streams(std::vector<Stream *> streams, int op_mode) {
         CameraStream *new_stream = new CameraStream();
         _camera_streams[i] = new_stream;
         new_stream->stream_id = i;
-        _camera_streams[i]->bufferManager = _buffer_manager[i];
+        _camera_streams[i]->buffer_manager = _buffer_manager[i];
     }
 
     // update the operation_mode with mConfig->mRangeMode(0/1), mImageType(0/1/2/3/4)
@@ -217,8 +217,8 @@ void QCamxDevice::stop_streams() {
     for (int i = 0; i < size; i++) {
         delete _camera3_streams[i];
         _camera3_streams[i] = NULL;
-        delete _camera_streams[i]->bufferManager;
-        _camera_streams[i]->bufferManager = NULL;
+        delete _camera_streams[i]->buffer_manager;
+        _camera_streams[i]->buffer_manager = NULL;
         delete _camera_streams[i];
         _camera_streams[i] = NULL;
     }
@@ -328,7 +328,7 @@ int QCamxDevice::process_one_capture_request(int *request_number_of_each_stream,
     pthread_mutex_unlock(&_pending_lock);
 
     RequestPending *pend = new RequestPending();
-    // Try to get buffer from bufferManager
+    // Try to get buffer from buffer_manager
     std::vector<camera3_stream_buffer_t> stream_buffers;
     for (int i = 0; i < (int)_camera3_streams.size(); i++) {
         if (request_number_of_each_stream[i] == 0) {
@@ -336,7 +336,7 @@ int QCamxDevice::process_one_capture_request(int *request_number_of_each_stream,
         }
         CameraStream *stream = _camera_streams[i];
         camera3_stream_buffer_t stream_buffer;
-        stream_buffer.buffer = (const native_handle_t **)(stream->bufferManager->GetBuffer());
+        stream_buffer.buffer = (const native_handle_t **)(stream->buffer_manager->GetBuffer());
         // make a capture request and send to HAL
         stream_buffer.stream = _camera3_streams[i];
         stream_buffer.status = 0;
@@ -382,7 +382,7 @@ int QCamxDevice::process_one_capture_request(int *request_number_of_each_stream,
         for (uint32_t i = 0; i < pend->_request.num_output_buffers; i++) {
             index = find_stream_index(stream_buffers[i].stream);
             CameraStream *stream = _camera_streams[index];
-            stream->bufferManager->ReturnBuffer(stream_buffers[i].buffer);
+            stream->buffer_manager->ReturnBuffer(stream_buffers[i].buffer);
         }
         pthread_mutex_lock(&_pending_lock);
         index = _pending_vector.indexOfKey(*frame_number);
@@ -700,7 +700,7 @@ void *do_capture_post_process(void *data) {
             for (uint32_t i = 0; i < result.num_output_buffers; i++) {
                 int index = device->find_stream_index(buffers[i].stream);
                 CameraStream *stream = device->_camera_streams[index];
-                stream->bufferManager->ReturnBuffer(buffers[i].buffer);
+                stream->buffer_manager->ReturnBuffer(buffers[i].buffer);
             }
         }
         msg->streamBuffers.erase(msg->streamBuffers.begin(),

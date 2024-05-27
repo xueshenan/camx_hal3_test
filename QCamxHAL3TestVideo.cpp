@@ -54,21 +54,21 @@ void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_captur
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
         int index = _device->find_stream_index(buffers[i].stream);
         CameraStream *stream = _device->_camera_streams[index];
-        BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
+        BufferInfo *info = stream->buffer_manager->getBufferInfo(buffers[i].buffer);
 
         if (stream->stream_id == RAW_SNAPSHOT_IDX) {
             if (_callbacks && _callbacks->snapshot_cb) {
                 _callbacks->snapshot_cb(info, result->frame_number);
             }
             //QCamxHAL3TestCase::DumpFrame(info, result->frame_number, SNAPSHOT_TYPE, mConfig->mSnapshotStream.subformat);
-            stream->bufferManager->ReturnBuffer(buffers[i].buffer);
+            stream->buffer_manager->ReturnBuffer(buffers[i].buffer);
         } else if (stream->stream_id == SNAPSHOT_INDEX) {
             if (_callbacks && _callbacks->snapshot_cb) {
                 _callbacks->snapshot_cb(info, result->frame_number);
             }
             QCamxCase::dump_frame(info, result->frame_number, SNAPSHOT_TYPE,
                                   _config->_snapshot_stream.subformat);
-            stream->bufferManager->ReturnBuffer(buffers[i].buffer);
+            stream->buffer_manager->ReturnBuffer(buffers[i].buffer);
         } else if (stream->stream_id == VIDEO_INDEX) {
             if (_callbacks && _callbacks->video_cb) {
                 _callbacks->video_cb(info, result->frame_number);
@@ -83,7 +83,7 @@ void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_captur
                 }
             }
             if (mIsStoped) {
-                stream->bufferManager->ReturnBuffer(buffers[i].buffer);
+                stream->buffer_manager->ReturnBuffer(buffers[i].buffer);
             } else {
                 EnqueueFrameBuffer(stream, buffers[i].buffer);
             }
@@ -103,7 +103,7 @@ void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_captur
                     _dump_preview_num--;
                 }
             }
-            stream->bufferManager->ReturnBuffer(buffers[i].buffer);
+            stream->buffer_manager->ReturnBuffer(buffers[i].buffer);
 
             if (_config->_show_fps) {
                 show_fps(PREVIEW_TYPE);
@@ -593,7 +593,7 @@ void QCamxHAL3TestVideo::EnqueueFrameBuffer(CameraStream *stream, buffer_handle_
     QCAMX_PRINT("Ajay disabled enQ bufer\n");
 //mVideoEncoder->EnqueueFrameBuffer(stream,buf_handle);
 #else
-    stream->bufferManager->ReturnBuffer(buf_handle);
+    stream->buffer_manager->ReturnBuffer(buf_handle);
 #endif
 }
 
