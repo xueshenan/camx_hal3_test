@@ -39,10 +39,6 @@ typedef struct gbm_device GBM_DEVICE;
 #include "qcamx_define.h"
 #include "qcamx_log.h"
 
-#ifndef USE_GBM
-#define USE_GBM
-#endif
-
 #define BUFFER_QUEUE_DEPTH 256
 
 typedef const native_handle_t *buffer_handle_t;
@@ -239,42 +235,48 @@ private:
 };
 
 #ifdef USE_GBM
-class QCamxHal3TestGBM {
-private:
-    QCamxHal3TestGBM();
-    ~QCamxHal3TestGBM();
-    /// Do not support the copy constructor or assignment operator
-    QCamxHal3TestGBM(const QCamxHal3TestGBM &rQCamxHal3TestGBM) = delete;
-    QCamxHal3TestGBM &operator=(const QCamxHal3TestGBM &rQCamxHal3TestGBM) = delete;
-    static const std::unordered_map<int32_t, int32_t> GBMUsageMap;
+class QCamxGBM {
 public:
     /**
      * @brief singleton handle for QCamxGBM
      */
-    static QCamxHal3TestGBM *GetHandle();
-    /// Create GBM device
-    GBM_DEVICE CreateGbmDeviceObject();
-
-    /// Get GBM usage flag corresponsing to Gralloc flag and gbm format
-    static uint32_t GetGbmUsageFlag(uint32_t user_format, uint32_t cons_flag, uint32_t prod_flag);
-
-    /// Get GBM format from gralloc format
-    static int32_t GetGbmFormat(uint32_t user_format);
-
-    /// Get GBM Implementation defined format format from gralloc format
-    static uint32_t GetDefaultImplDefinedFormat(uint32_t usage_flags, uint32_t format);
-
-    /// Allocate GBM buffer object
-    struct gbm_bo *AllocateGbmBufferObj(uint32_t width, uint32_t height, uint32_t format,
-                                        uint64_t producerUsageFlags, uint64_t consumerUsageFlags);
-
-    /// Allocate private handle and pack GBM buffer object in that
-    buffer_handle_t AllocateNativeHandle(struct gbm_bo *bo);
-
-    /// Free GBM buffer object
-    void FreeGbmBufferObj(struct gbm_bo *m_pGbmBuffObject);
+    static QCamxGBM *get_handle();
+    /**
+     * @brief Allocate GBM buffer object
+     */
+    struct gbm_bo *allocate_gbm_buffer_object(uint32_t width, uint32_t height, uint32_t format,
+                                              uint64_t produce_flags, uint64_t consumer_flags);
+    /**
+     * @brief Free GBM buffer object
+     */
+    void free_gbm_buffer_object(struct gbm_bo *gbm_buffer_object);
+    /**
+     * @brief Allocate private handle and pack GBM buffer object in that
+     */
+    buffer_handle_t allocate_native_handle(struct gbm_bo *bo);
 private:
-    int deviceFD;                     ///< Gdm device FD
-    struct gbm_device *m_pGbmDevice;  ///< GBM device object
+    /**
+     * @brief Get GBM usage flag corresponsing to Gralloc flag and gbm format
+     */
+    static uint32_t get_gbm_usage_flag(uint32_t user_format, uint32_t corresponsing_flag,
+                                       uint32_t producer_flags);
+    /**
+     * @brief Get GBM format from gralloc format
+     */
+    static int32_t get_gbm_format(uint32_t user_format);
+    /**
+     * @brief Get GBM Implementation defined format format from gralloc format
+     */
+    static uint32_t get_default_implment_defined_format(uint32_t usage_flags, uint32_t format);
+private:
+    QCamxGBM();
+    ~QCamxGBM();
+    /// Do not support the copy constructor or assignment operator
+    QCamxGBM(const QCamxGBM &rQCamxHal3TestGBM) = delete;
+    QCamxGBM &operator=(const QCamxGBM &rQCamxHal3TestGBM) = delete;
+private:
+    int _device_fd;                  ///< Gdm device fd
+    struct gbm_device *_gbm_device;  ///< GBM device object
+    static const std::unordered_map<int32_t, int32_t> _gbm_usage_map;
 };
 #endif

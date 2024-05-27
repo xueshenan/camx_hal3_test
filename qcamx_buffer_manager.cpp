@@ -101,7 +101,7 @@ void QCamxBufferManager::free_all_buffers() {
                 bo_handle = (bo_handle << 32) | ((uint64_t)(pHandle->data[2]) & 0xFFFFFFFF);
                 uint32_t buf_fd = pHandle->data[0];
                 close(buf_fd);
-                QCamxHal3TestGBM::GetHandle()->FreeGbmBufferObj(
+                QCamxGBM::get_handle()->free_gbm_buffer_object(
                     reinterpret_cast<struct gbm_bo *>(bo_handle));
             }
             native_handle_close((native_handle_t *)_buffers[i]);
@@ -462,34 +462,32 @@ int QCamxBufferManager::allocate_one_gbm_buffer(uint32_t width, uint32_t height,
             consumer_flags = producer_flags = GRALLOC_USAGE_PRIVATE_3;
         }
     }
-    struct gbm_bo *gbm_buff_object = QCamxHal3TestGBM::GetHandle()->AllocateGbmBufferObj(
+    struct gbm_bo *gbm_buff_object = QCamxGBM::get_handle()->allocate_gbm_buffer_object(
         width, height, format, producer_flags, consumer_flags);
     if (gbm_buff_object == NULL) {
-        QCAMX_INFO("Invalid Gbm Buffer object");
+        QCAMX_ERR("Invalid Gbm Buffer object");
         rc = -ENOMEM;
         return rc;
     }
 
     uint32_t stride = gbm_bo_get_stride(gbm_buff_object);
-    if (0 == stride) {
-        QCAMX_INFO("Invalid Stride length");
+    if (stride == 0) {
+        QCAMX_ERR("Invalid Stride length");
         rc = -EINVAL;
-        ;
         return rc;
     }
 
     size_t bo_size = 0;
     rc = gbm_perform(GBM_PERFORM_GET_BO_SIZE, gbm_buff_object, &bo_size);
     if (GBM_ERROR_NONE != rc) {
-        QCAMX_INFO("Error in querying BO size");
+        QCAMX_ERR("Error in querying BO size");
         rc = -EINVAL;
-        ;
         return rc;
     }
 
-    *buffer_handle = QCamxHal3TestGBM::GetHandle()->AllocateNativeHandle(gbm_buff_object);
+    *buffer_handle = QCamxGBM::get_handle()->allocate_native_handle(gbm_buff_object);
     if (*buffer_handle == NULL) {
-        QCAMX_INFO("Error allocating native handle buffer");
+        QCAMX_ERR("Error allocating native handle buffer");
         rc = -ENOMEM;
         return rc;
     }
@@ -515,7 +513,8 @@ int QCamxBufferManager::allocate_one_gbm_buffer(uint32_t width, uint32_t height,
     return rc;
 }
 
-const std::unordered_map<int32_t, int32_t> QCamxHal3TestGBM::GBMUsageMap = {
+/****************************** class QCamxGBM *******************************************/
+const std::unordered_map<int32_t, int32_t> QCamxGBM::_gbm_usage_map = {
     {GRALLOC_USAGE_HW_CAMERA_ZSL, 0},
     {GRALLOC_USAGE_SW_READ_OFTEN, GBM_BO_USAGE_CPU_READ_QTI},
     {GRALLOC_USAGE_SW_WRITE_OFTEN, GBM_BO_USAGE_CPU_WRITE_QTI},
@@ -529,20 +528,75 @@ const std::unordered_map<int32_t, int32_t> QCamxHal3TestGBM::GBMUsageMap = {
     {GRALLOC_USAGE_PRIVATE_3, GBM_BO_USAGE_10BIT_QTI},
 };
 
-uint32_t QCamxHal3TestGBM::GetGbmUsageFlag(uint32_t gbm_format, uint32_t cons_usage,
-                                           uint32_t prod_usage) {
+QCamxGBM *QCamxGBM::get_handle() {
+    static QCamxGBM GbmInstance;
+    return &GbmInstance;
+}
+
+struct gbm_bo *QCamxGBM::allocate_gbm_buffer_object(uint32_t width, uint32_t height,
+                                                    uint32_t format, uint64_t producerUsageFlags,
+                                                    uint64_t consumerUsageFlags) {
+    int32_t gbm_format = QCamxGBM::get_gbm_format(format);
+    if (gbm_format == -1) {
+        QCAMX_ERR("Invalid Argument");
+        return NULL;
+    }
+
+    uint32_t gbm_usage =
+        QCamxGBM::get_gbm_usage_flag(gbm_format, consumerUsageFlags, producerUsageFlags);
+
+    if (gbm_format == GBM_FORMAT_IMPLEMENTATION_DEFINED) {
+        gbm_format = get_default_implment_defined_format(gbm_usage, gbm_format);
+    }
+
+    QCAMX_INFO("gbm format = %x, gbm usage = %x", gbm_format, gbm_usage);
+
+    struct gbm_bo *gbm_buff_object =
+        gbm_bo_create(_gbm_device, width, height, gbm_format, gbm_usage);
+    if (gbm_buff_object == NULL) {
+        QCAMX_ERR("failed to create GBM object !!");
+        return NULL;
+    }
+    QCAMX_INFO("Format: %x => width: %d height:%d stride:%d ", gbm_bo_get_format(gbm_buff_object),
+               gbm_bo_get_width(gbm_buff_object), gbm_bo_get_height(gbm_buff_object),
+               gbm_bo_get_stride(gbm_buff_object));
+    return gbm_buff_object;
+}
+
+void QCamxGBM::free_gbm_buffer_object(struct gbm_bo *gbm_buffer_object) {
+    if (gbm_buffer_object != NULL) {
+        gbm_bo_destroy(gbm_buffer_object);
+    }
+}
+
+buffer_handle_t QCamxGBM::allocate_native_handle(struct gbm_bo *bo) {
+    native_handle_t *p_handle = NULL;
+    if (bo != NULL) {
+        uint64_t bo_handle = reinterpret_cast<uint64_t>(bo);
+        p_handle = native_handle_create(1, 2);
+        p_handle->data[0] = gbm_bo_get_fd(bo);
+        p_handle->data[1] = (int)((bo_handle >> 32) & 0xFFFFFFFF);
+        p_handle->data[2] = (int)(bo_handle & 0xFFFFFFFF);
+        if (p_handle == NULL) {
+            QCAMX_ERR("Invalid native handle");
+        }
+    }
+    return static_cast<buffer_handle_t>(p_handle);
+}
+
+uint32_t QCamxGBM::get_gbm_usage_flag(uint32_t gbm_format, uint32_t corresponsing_flag,
+                                      uint32_t producer_flags) {
     uint32_t gbm_usage = 0;
-    for (auto &it : GBMUsageMap) {
-        if (it.first & cons_usage || it.first & prod_usage) {
+    for (auto &it : _gbm_usage_map) {
+        if (it.first & corresponsing_flag || it.first & producer_flags) {
             gbm_usage |= it.second;
         }
     }
     return gbm_usage;
 }
 
-int32_t QCamxHal3TestGBM::GetGbmFormat(uint32_t user_format) {
+int32_t QCamxGBM::get_gbm_format(uint32_t user_format) {
     int32_t format = -1;
-
     switch (user_format) {
         case HAL_PIXEL_FORMAT_BLOB:
             format = GBM_FORMAT_BLOB;
@@ -580,21 +634,7 @@ int32_t QCamxHal3TestGBM::GetGbmFormat(uint32_t user_format) {
     return format;
 }
 
-QCamxHal3TestGBM::QCamxHal3TestGBM() {
-    deviceFD = open(DRM_DEVICE_NAME, O_RDWR);
-    if (0 > deviceFD) {
-        QCAMX_INFO("unsupported device!!");
-    } else {
-        m_pGbmDevice = gbm_create_device(deviceFD);
-        if (m_pGbmDevice != NULL && gbm_device_get_fd(m_pGbmDevice) != deviceFD) {
-            QCAMX_INFO("unable to create GBM device!! \n");
-            gbm_device_destroy(m_pGbmDevice);
-            m_pGbmDevice = NULL;
-        }
-    }
-}
-
-uint32_t QCamxHal3TestGBM::GetDefaultImplDefinedFormat(uint32_t usage_flags, uint32_t format) {
+uint32_t QCamxGBM::get_default_implment_defined_format(uint32_t usage_flags, uint32_t format) {
     uint32_t pixel_format = format;
 
     if (usage_flags & GBM_BO_USAGE_UBWC_ALIGNED_QTI) {
@@ -616,71 +656,28 @@ uint32_t QCamxHal3TestGBM::GetDefaultImplDefinedFormat(uint32_t usage_flags, uin
     return pixel_format;
 }
 
-QCamxHal3TestGBM::~QCamxHal3TestGBM() {
-    if (NULL != m_pGbmDevice) {
-        gbm_device_destroy(m_pGbmDevice);
-    }
-
-    if (deviceFD >= 0) {
-        close(deviceFD);
-        deviceFD = -1;
-    }
-}
-
-QCamxHal3TestGBM *QCamxHal3TestGBM::GetHandle() {
-    static QCamxHal3TestGBM GbmInstance;
-    return &GbmInstance;
-}
-
-struct gbm_bo *QCamxHal3TestGBM::AllocateGbmBufferObj(uint32_t width, uint32_t height,
-                                                      uint32_t format, uint64_t producerUsageFlags,
-                                                      uint64_t consumerUsageFlags) {
-    int32_t gbm_format = QCamxHal3TestGBM::GetGbmFormat(format);
-    if (-1 == gbm_format) {
-        QCAMX_INFO("Invalid Argument");
-        return NULL;
-    }
-
-    uint32_t gbm_usage =
-        QCamxHal3TestGBM::GetGbmUsageFlag(gbm_format, consumerUsageFlags, producerUsageFlags);
-
-    if (gbm_format == GBM_FORMAT_IMPLEMENTATION_DEFINED) {
-        gbm_format = GetDefaultImplDefinedFormat(gbm_usage, gbm_format);
-    }
-    struct gbm_bo *pGbmBuffObject = NULL;
-
-    QCAMX_INFO("gbm format = %x, gbm usage = %x", gbm_format, gbm_usage);
-
-    pGbmBuffObject = gbm_bo_create(m_pGbmDevice, width, height, gbm_format, gbm_usage);
-    if (NULL == pGbmBuffObject) {
-        QCAMX_INFO("failed to create GBM object !!");
-        return NULL;
-    }
-    QCAMX_INFO("Format: %x => width: %d height:%d stride:%d ", gbm_bo_get_format(pGbmBuffObject),
-               gbm_bo_get_width(pGbmBuffObject), gbm_bo_get_height(pGbmBuffObject),
-               gbm_bo_get_stride(pGbmBuffObject));
-    return pGbmBuffObject;
-}
-
-buffer_handle_t QCamxHal3TestGBM::AllocateNativeHandle(struct gbm_bo *bo) {
-    native_handle_t *p_handle = NULL;
-    uint64_t bo_handle = 0;
-    if (bo != NULL) {
-        bo_handle = reinterpret_cast<uint64_t>(bo);
-        p_handle = native_handle_create(1, 2);
-        p_handle->data[0] = gbm_bo_get_fd(bo);
-        p_handle->data[1] = (int)((bo_handle >> 32) & 0xFFFFFFFF);
-        p_handle->data[2] = (int)(bo_handle & 0xFFFFFFFF);
-        if (NULL == p_handle) {
-            QCAMX_INFO("Invalid native handle");
+QCamxGBM::QCamxGBM() {
+    _device_fd = open(DRM_DEVICE_NAME, O_RDWR);
+    if (_device_fd < 0) {
+        QCAMX_ERR("unsupported GBM device!");
+    } else {
+        _gbm_device = gbm_create_device(_device_fd);
+        if (_gbm_device != NULL && gbm_device_get_fd(_gbm_device) != _device_fd) {
+            QCAMX_ERR("unable to create GBM device!! \n");
+            gbm_device_destroy(_gbm_device);
+            _gbm_device = NULL;
         }
     }
-    return static_cast<buffer_handle_t>(p_handle);
 }
 
-void QCamxHal3TestGBM::FreeGbmBufferObj(struct gbm_bo *pGbmBuffObject) {
-    if (pGbmBuffObject != NULL) {
-        gbm_bo_destroy(pGbmBuffObject);
+QCamxGBM::~QCamxGBM() {
+    if (_gbm_device != NULL) {
+        gbm_device_destroy(_gbm_device);
+    }
+
+    if (_device_fd >= 0) {
+        close(_device_fd);
+        _device_fd = -1;
     }
 }
 
