@@ -62,7 +62,7 @@ public:
     }
 public:
     camera3_capture_request_t _request;
-    int _num_output_buffer;
+    uint32_t _num_output_buffer;
     int _num_metadata;
 };
 
@@ -135,7 +135,7 @@ typedef struct _Stream {
     //Metadata
     camera_metadata *metadata;
     //stream
-    int streamId;
+    int stream_id;
     int stream_type;  //camera3_request_template_t
     //RunTime
     camera3_stream_buffer_t streamBuffer;

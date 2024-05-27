@@ -56,20 +56,20 @@ void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_captur
         CameraStream *stream = _device->_camera_streams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
 
-        if (stream->streamId == RAW_SNAPSHOT_IDX) {
+        if (stream->stream_id == RAW_SNAPSHOT_IDX) {
             if (_callbacks && _callbacks->snapshot_cb) {
                 _callbacks->snapshot_cb(info, result->frame_number);
             }
             //QCamxHAL3TestCase::DumpFrame(info, result->frame_number, SNAPSHOT_TYPE, mConfig->mSnapshotStream.subformat);
             stream->bufferManager->ReturnBuffer(buffers[i].buffer);
-        } else if (stream->streamId == SNAPSHOT_INDEX) {
+        } else if (stream->stream_id == SNAPSHOT_INDEX) {
             if (_callbacks && _callbacks->snapshot_cb) {
                 _callbacks->snapshot_cb(info, result->frame_number);
             }
             QCamxCase::dump_frame(info, result->frame_number, SNAPSHOT_TYPE,
                                   _config->_snapshot_stream.subformat);
             stream->bufferManager->ReturnBuffer(buffers[i].buffer);
-        } else if (stream->streamId == VIDEO_INDEX) {
+        } else if (stream->stream_id == VIDEO_INDEX) {
             if (_callbacks && _callbacks->video_cb) {
                 _callbacks->video_cb(info, result->frame_number);
             }
@@ -90,7 +90,7 @@ void QCamxHAL3TestVideo::capture_post_process(DeviceCallback *cb, camera3_captur
             if (_config->_show_fps) {
                 show_fps(VIDEO_TYPE);
             }
-        } else if (stream->streamId == PREVIEW_INDEX) {
+        } else if (stream->stream_id == PREVIEW_INDEX) {
             if (_callbacks != NULL && _callbacks->preview_cb != NULL) {
                 _callbacks->preview_cb(info, result->frame_number);
             }

@@ -21,7 +21,7 @@ void QCamxPreviewVideoCase::capture_post_process(DeviceCallback *callback,
         int index = _device->find_stream_index(buffers[i].stream);
         CameraStream *stream = _device->_camera_streams[index];
         BufferInfo *info = stream->bufferManager->getBufferInfo(buffers[i].buffer);
-        if (stream->streamId == VIDEO_INDEX) {
+        if (stream->stream_id == VIDEO_INDEX) {
             if (_callbacks != NULL && _callbacks->video_cb != NULL) {
                 _callbacks->video_cb(info, result->frame_number);
             }
@@ -42,7 +42,7 @@ void QCamxPreviewVideoCase::capture_post_process(DeviceCallback *callback,
             if (_config->_show_fps) {
                 show_fps(VIDEO_TYPE);
             }
-        } else if (stream->streamId == PREVIEW_INDEX) {
+        } else if (stream->stream_id == PREVIEW_INDEX) {
             if (_callbacks != NULL && _callbacks->preview_cb != NULL) {
                 _callbacks->preview_cb(info, result->frame_number);
             }

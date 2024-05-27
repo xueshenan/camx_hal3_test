@@ -27,6 +27,9 @@ QCamxDevice::QCamxDevice(camera_module_t *camera_module, int camera_id, QCamxCon
     struct camera_info info;
     _camera_module->get_camera_info(_camera_id, &info);
     _camera_characteristics = (camera_metadata_t *)info.static_camera_characteristics;
+
+    // NODE(anxs) : must init default value, otherwise will cause callback function not working
+    _living_request_ext_append = 0;
 }
 
 QCamxDevice::~QCamxDevice() {
@@ -108,7 +111,7 @@ bool QCamxDevice::config_streams(std::vector<Stream *> streams, int op_mode) {
 
         CameraStream *new_stream = new CameraStream();
         _camera_streams[i] = new_stream;
-        new_stream->streamId = i;
+        new_stream->stream_id = i;
         _camera_streams[i]->bufferManager = _buffer_manager[i];
     }
 
@@ -309,7 +312,10 @@ int QCamxDevice::process_capture_request_on(CameraThreadData *request_thread,
 int QCamxDevice::process_one_capture_request(int *request_number_of_each_stream,
                                              int *frame_number) {
     pthread_mutex_lock(&_pending_lock);
-    if (_pending_vector.size() >= (CAMX_LIVING_REQUEST_MAX + _living_request_ext_append)) {
+    int pending_vector_size = _pending_vector.size();
+    int max_pending_size = (CAMX_LIVING_REQUEST_MAX + _living_request_ext_append);
+    if (pending_vector_size >= max_pending_size) {
+        // QCAMX_DBG("reach max pending request : %d, max : %d\n", pending_vector_size, max_pending_size);
         struct timespec tv;
         clock_gettime(CLOCK_MONOTONIC, &tv);
         tv.tv_sec += 5;
@@ -373,7 +379,7 @@ int QCamxDevice::process_one_capture_request(int *request_number_of_each_stream,
     if (res != 0) {
         int index = 0;
         QCAMX_ERR("process_capture_quest failed, frame:%d", *frame_number);
-        for (int i = 0; i < pend->_request.num_output_buffers; i++) {
+        for (uint32_t i = 0; i < pend->_request.num_output_buffers; i++) {
             index = find_stream_index(stream_buffers[i].stream);
             CameraStream *stream = _camera_streams[index];
             stream->bufferManager->ReturnBuffer(stream_buffers[i].buffer);
@@ -408,7 +414,7 @@ int QCamxDevice::get_valid_output_streams(std::vector<AvailableStream> &output_s
         return -1;
     }
 
-    for (int i = 0; i < entry.count; i += 4) {
+    for (uint32_t i = 0; i < entry.count; i += 4) {
         if (entry.data.i32[i + 3] == ANDROID_SCALER_AVAILABLE_STREAM_CONFIGURATIONS_OUTPUT) {
             if (valid_stream == nullptr) {
                 AvailableStream stream = {entry.data.i32[i + 1], entry.data.i32[i + 2],
@@ -474,8 +480,8 @@ void QCamxDevice::flush() {
 int QCamxDevice::get_jpeg_buffer_size(uint32_t width, uint32_t height) {
     // get max jpeg buffer size
     camera_metadata_ro_entry jpeg_bufer_max_size;
-    int res = find_camera_metadata_ro_entry(_camera_characteristics, ANDROID_JPEG_MAX_SIZE,
-                                            &jpeg_bufer_max_size);
+    [[maybe_unused]] int res = find_camera_metadata_ro_entry(
+        _camera_characteristics, ANDROID_JPEG_MAX_SIZE, &jpeg_bufer_max_size);
     if (jpeg_bufer_max_size.count == 0) {
         QCAMX_ERR("Camera %d: Can't find maximum JPEG size in static metadata!", _camera_id);
         return 0;
@@ -522,7 +528,7 @@ void QCamxDevice::CallbackOps::ProcessCaptureResult(const camera3_callback_ops *
         if (!cbOps->mParent->_result_thread->stopped) {
             CameraPostProcessMsg *msg = new CameraPostProcessMsg();
             msg->result = *(result);
-            for (int i = 0; i < result->num_output_buffers; i++) {
+            for (uint32_t i = 0; i < result->num_output_buffers; i++) {
                 msg->streamBuffers.push_back(result->output_buffers[i]);
             }
             cbOps->mParent->_result_thread->message_queue.push_back(msg);
@@ -606,7 +612,7 @@ void *do_process_capture_request(void *data) {
                 }
                 case REQUEST_CHANGE: {
                     QCAMX_INFO("Get message for change request\n");
-                    for (int i = 0; i < device->_camera3_streams.size(); i++) {
+                    for (uint32_t i = 0; i < device->_camera3_streams.size(); i++) {
                         if (msg->mask & (1 << i)) {
                             (thread_data->request_number[i] == REQUEST_NUMBER_UMLIMIT)
                                 ? thread_data->request_number[i] = msg->request_number[i]
@@ -691,7 +697,7 @@ void *do_capture_post_process(void *data) {
         device->_callback->capture_post_process(device->_callback, &result);
         // return the buffer back
         if (device->get_sync_buffer_mode() != SYNC_BUFFER_EXTERNAL) {
-            for (int i = 0; i < result.num_output_buffers; i++) {
+            for (uint32_t i = 0; i < result.num_output_buffers; i++) {
                 int index = device->find_stream_index(buffers[i].stream);
                 CameraStream *stream = device->_camera_streams[index];
                 stream->bufferManager->ReturnBuffer(buffers[i].buffer);
