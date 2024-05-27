@@ -184,6 +184,12 @@ public:
                                    CameraThreadData *result_thread);
 
     /**
+     * @brief process one capture request.
+     * @param request_number_of_each_stream each stream request capture number
+    */
+    int process_one_capture_request(int *request_number_of_each_stream, int *frame_number);
+public:
+    /**
      * @brief Get all valid output streams
      * @param output_streams output streams
      * @param valid_stream input match stream if is null,will output all streams
@@ -191,13 +197,6 @@ public:
     */
     int get_valid_output_streams(std::vector<AvailableStream> &output_streams,
                                  const AvailableStream *valid_stream);
-
-    /**
-     * @brief process one capture request.
-     * @param request_number_of_each_stream each stream request capture number
-    */
-    int process_one_capture_request(int *request_number_of_each_stream, int *frame_number);
-public:
     /**
      * @brief set a external metadata as current metadata
     */
@@ -259,6 +258,9 @@ private:
     public:
         CallbackOps(QCamxDevice *parent)
             : camera3_callback_ops({&ProcessCaptureResult, &Notify}), mParent(parent) {}
+        /**
+         * @brief callback for process capture result
+        */
         static void ProcessCaptureResult(const camera3_callback_ops *cb,
                                          const camera3_capture_result *hal_result);
         static void Notify(const struct camera3_callback_ops *cb, const camera3_notify_msg_t *msg);

@@ -36,6 +36,7 @@ QCamxDevice::~QCamxDevice() {
 }
 
 /*************************public method*****************************/
+
 bool QCamxDevice::open_camera() {
     struct camera_info info;
     char camera_name[20] = {0};
@@ -63,7 +64,6 @@ void QCamxDevice::close_camera() {
 }
 
 void QCamxDevice::pre_allocate_streams(std::vector<Stream *> streams) {
-    QCAMX_PRINT("allocate buffer start\n");
     for (uint32_t i = 0; i < streams.size(); i++) {
         QCamxHAL3TestBufferManager *buffer_manager = new QCamxHAL3TestBufferManager();
         int stream_buffer_max = streams[i]->pstream->max_buffers;
@@ -86,7 +86,6 @@ void QCamxDevice::pre_allocate_streams(std::vector<Stream *> streams) {
         }
         _buffer_manager[i] = buffer_manager;
     }
-    QCAMX_PRINT("allocate buffer end\n");
 }
 
 bool QCamxDevice::config_streams(std::vector<Stream *> streams, int op_mode) {
@@ -157,6 +156,72 @@ bool QCamxDevice::config_streams(std::vector<Stream *> streams, int op_mode) {
     }
     _init_metadata.unlock(_camera3_stream_config.session_parameters);
     return result;
+}
+
+void QCamxDevice::stop_streams() {
+    // stop the request thread
+    pthread_mutex_lock(&_request_thread->mutex);
+    CameraRequestMsg *rqMsg = new CameraRequestMsg();
+    rqMsg->message_type = START_STOP;
+    rqMsg->stop = 1;
+    _request_thread->message_queue.push_back(rqMsg);
+    QCAMX_INFO("Msg for stop request queue size:%zu\n", _request_thread->message_queue.size());
+    pthread_cond_signal(&_request_thread->cond);
+    pthread_mutex_unlock(&_request_thread->mutex);
+    pthread_join(_request_thread->thread, NULL);
+    pthread_mutex_destroy(&_request_thread->mutex);
+    pthread_cond_destroy(&_request_thread->cond);
+    delete _request_thread;
+    _request_thread = NULL;
+    // then flush all the request
+    //flush();
+    // then stop the result process thread
+    pthread_mutex_lock(&_result_thread->mutex);
+    CameraPostProcessMsg *msg = new CameraPostProcessMsg();
+    msg->stop = 1;
+    _result_thread->stopped = 1;
+    _result_thread->message_queue.push_back(msg);
+    QCAMX_INFO("Msg for stop result queue size:%zu\n", _result_thread->message_queue.size());
+    pthread_cond_signal(&_result_thread->cond);
+    pthread_mutex_unlock(&_result_thread->mutex);
+    pthread_join(_result_thread->thread, NULL);
+    // wait for all request back
+    pthread_mutex_lock(&_pending_lock);
+    int tryCount = 5;
+    while (!_pending_vector.isEmpty() && tryCount > 0) {
+        QCAMX_INFO("wait for pending vector empty:%zu\n", _pending_vector.size());
+        struct timespec tv;
+        clock_gettime(CLOCK_MONOTONIC, &tv);
+        tv.tv_sec += 1;
+        if (pthread_cond_timedwait(&_pending_cond, &_pending_lock, &tv) != 0) {
+            tryCount--;
+        }
+        continue;
+    }
+    if (!_pending_vector.isEmpty()) {
+        QCAMX_ERR("ERROR: request pending vector not empty after stop frame:%d !!\n",
+                  _pending_vector.keyAt(0));
+        _pending_vector.clear();
+    }
+    pthread_mutex_unlock(&_pending_lock);
+
+    pthread_mutex_destroy(&_result_thread->mutex);
+    pthread_cond_destroy(&_result_thread->cond);
+    delete _result_thread;
+    _result_thread = NULL;
+    int size = (int)_camera3_streams.size();
+    _current_metadata.clear();
+    for (int i = 0; i < size; i++) {
+        delete _camera3_streams[i];
+        _camera3_streams[i] = NULL;
+        delete _camera_streams[i]->bufferManager;
+        _camera_streams[i]->bufferManager = NULL;
+        delete _camera_streams[i];
+        _camera_streams[i] = NULL;
+    }
+    _camera3_streams.erase(_camera3_streams.begin(),
+                           _camera3_streams.begin() + _camera3_streams.size());
+    memset(&_camera3_stream_config, 0, sizeof(camera3_stream_configuration_t));
 }
 
 void QCamxDevice::construct_default_request_settings(int index, camera3_request_template_t type,
@@ -239,21 +304,6 @@ int QCamxDevice::process_capture_request_on(CameraThreadData *request_thread,
     _request_thread = request_thread;
     pthread_attr_destroy(&result_attr);
     return 0;
-}
-
-/************************************************************************
-* name : setCallBack
-* function: set callback for upper layer.
-************************************************************************/
-void QCamxDevice::set_callback(DeviceCallback *callback) {
-    _callback = callback;
-}
-
-void QCamxDevice::set_current_meta(android::CameraMetadata *metadata) {
-    pthread_mutex_lock(&_setting_metadata_lock);
-    _current_metadata = *metadata;
-    _setting_metadata_list.push_back(_current_metadata);
-    pthread_mutex_unlock(&_setting_metadata_lock);
 }
 
 int QCamxDevice::process_one_capture_request(int *request_number_of_each_stream,
@@ -344,6 +394,67 @@ int QCamxDevice::process_one_capture_request(int *request_number_of_each_stream,
     return res;
 }
 
+int QCamxDevice::get_valid_output_streams(std::vector<AvailableStream> &output_streams,
+                                          const AvailableStream *valid_stream) {
+    if (_camera_characteristics == nullptr) {
+        return -1;
+    }
+
+    camera_metadata_ro_entry entry;
+    //find camera metadata for ANDROID_SCALER_AVAILABLE_STREAM_CONFIGURATIONS
+    int ret = find_camera_metadata_ro_entry(_camera_characteristics,
+                                            ANDROID_SCALER_AVAILABLE_STREAM_CONFIGURATIONS, &entry);
+    if ((ret != 0) || ((entry.count % 4) != 0)) {
+        return -1;
+    }
+
+    for (int i = 0; i < entry.count; i += 4) {
+        if (entry.data.i32[i + 3] == ANDROID_SCALER_AVAILABLE_STREAM_CONFIGURATIONS_OUTPUT) {
+            if (valid_stream == nullptr) {
+                AvailableStream stream = {entry.data.i32[i + 1], entry.data.i32[i + 2],
+                                          entry.data.i32[i]};
+                output_streams.push_back(stream);
+
+                QCAMX_PRINT("device valid format:%d %dx%d\n", entry.data.i32[i],
+                            entry.data.i32[i + 1], entry.data.i32[i + 2]);
+            } else if ((valid_stream->format == entry.data.i32[i]) &&
+                       (valid_stream->width == entry.data.i32[i + 1]) &&
+                       (valid_stream->height == entry.data.i32[i + 2])) {
+                AvailableStream stream = {entry.data.i32[i + 1], entry.data.i32[i + 2],
+                                          valid_stream->format};
+                output_streams.push_back(stream);
+
+                QCAMX_PRINT("device valid format:%d %dx%d\n", entry.data.i32[i],
+                            entry.data.i32[i + 1], entry.data.i32[i + 2]);
+            }
+        }
+    }
+
+    if (output_streams.size() == 0) {
+        return -1;
+    }
+    return 0;
+}
+
+void QCamxDevice::set_current_meta(android::CameraMetadata *metadata) {
+    pthread_mutex_lock(&_setting_metadata_lock);
+    _current_metadata = *metadata;
+    _setting_metadata_list.push_back(_current_metadata);
+    pthread_mutex_unlock(&_setting_metadata_lock);
+}
+
+int QCamxDevice::update_metadata_for_next_request(android::CameraMetadata *meta) {
+    pthread_mutex_lock(&_setting_metadata_lock);
+    android::CameraMetadata _meta(*meta);
+    _setting_metadata_list.push_back(_meta);
+    pthread_mutex_unlock(&_setting_metadata_lock);
+    return 0;
+}
+
+void QCamxDevice::set_callback(DeviceCallback *callback) {
+    _callback = callback;
+}
+
 int QCamxDevice::find_stream_index(camera3_stream_t *camera3_stream) {
     int n = _camera3_streams.size();
     for (int i = 0; i < n; i++) {
@@ -354,10 +465,35 @@ int QCamxDevice::find_stream_index(camera3_stream_t *camera3_stream) {
     return -1;
 }
 
-/************************************************************************
-* name : ProcessCaptureResult
-* function: callback for process capture result.
-************************************************************************/
+/******************************************private function*************************************************/
+
+void QCamxDevice::flush() {
+    _camera3_device->ops->flush(_camera3_device);
+}
+
+int QCamxDevice::get_jpeg_buffer_size(uint32_t width, uint32_t height) {
+    // get max jpeg buffer size
+    camera_metadata_ro_entry jpeg_bufer_max_size;
+    int res = find_camera_metadata_ro_entry(_camera_characteristics, ANDROID_JPEG_MAX_SIZE,
+                                            &jpeg_bufer_max_size);
+    if (jpeg_bufer_max_size.count == 0) {
+        QCAMX_ERR("Camera %d: Can't find maximum JPEG size in static metadata!", _camera_id);
+        return 0;
+    }
+    int max_jpeg_buffer_size = jpeg_bufer_max_size.data.i32[0];
+
+    // calculate final jpeg buffer size for the given resolution.
+    const int kMinJpegBufferSize = 256 * 1024 + sizeof(camera3_jpeg_blob);
+    float scale_factor =
+        (1.0f * width * height) / ((max_jpeg_buffer_size - sizeof(camera3_jpeg_blob)) / 1.5f);
+    int jpeg_buffer_size =
+        scale_factor * (max_jpeg_buffer_size - kMinJpegBufferSize) + kMinJpegBufferSize;
+
+    return jpeg_buffer_size;
+}
+
+/***************************** QCamxDevice::CallbackOps ****************************/
+
 void QCamxDevice::CallbackOps::ProcessCaptureResult(const camera3_callback_ops *cb,
                                                     const camera3_capture_result *result) {
     CallbackOps *cbOps = (CallbackOps *)cb;
@@ -413,163 +549,8 @@ void QCamxDevice::CallbackOps::ProcessCaptureResult(const camera3_callback_ops *
     pthread_mutex_unlock(&cbOps->mParent->_pending_lock);
 }
 
-/************************************************************************
-* name : Notify
-* function: TODO.
-************************************************************************/
 void QCamxDevice::CallbackOps::Notify(const struct camera3_callback_ops *cb,
                                       const camera3_notify_msg_t *msg) {}
-
-/************************************************************************
-* name : stopStreams
-* function: stop streams.
-************************************************************************/
-void QCamxDevice::stop_streams() {
-    // stop the request thread
-    pthread_mutex_lock(&_request_thread->mutex);
-    CameraRequestMsg *rqMsg = new CameraRequestMsg();
-    rqMsg->message_type = START_STOP;
-    rqMsg->stop = 1;
-    _request_thread->message_queue.push_back(rqMsg);
-    QCAMX_INFO("Msg for stop request queue size:%zu\n", _request_thread->message_queue.size());
-    pthread_cond_signal(&_request_thread->cond);
-    pthread_mutex_unlock(&_request_thread->mutex);
-    pthread_join(_request_thread->thread, NULL);
-    pthread_mutex_destroy(&_request_thread->mutex);
-    pthread_cond_destroy(&_request_thread->cond);
-    delete _request_thread;
-    _request_thread = NULL;
-    // then flush all the request
-    //flush();
-    // then stop the result process thread
-    pthread_mutex_lock(&_result_thread->mutex);
-    CameraPostProcessMsg *msg = new CameraPostProcessMsg();
-    msg->stop = 1;
-    _result_thread->stopped = 1;
-    _result_thread->message_queue.push_back(msg);
-    QCAMX_INFO("Msg for stop result queue size:%zu\n", _result_thread->message_queue.size());
-    pthread_cond_signal(&_result_thread->cond);
-    pthread_mutex_unlock(&_result_thread->mutex);
-    pthread_join(_result_thread->thread, NULL);
-    // wait for all request back
-    pthread_mutex_lock(&_pending_lock);
-    int tryCount = 5;
-    while (!_pending_vector.isEmpty() && tryCount > 0) {
-        QCAMX_INFO("wait for pending vector empty:%zu\n", _pending_vector.size());
-        struct timespec tv;
-        clock_gettime(CLOCK_MONOTONIC, &tv);
-        tv.tv_sec += 1;
-        if (pthread_cond_timedwait(&_pending_cond, &_pending_lock, &tv) != 0) {
-            tryCount--;
-        }
-        continue;
-    }
-    if (!_pending_vector.isEmpty()) {
-        QCAMX_ERR("ERROR: request pending vector not empty after stop frame:%d !!\n",
-                  _pending_vector.keyAt(0));
-        _pending_vector.clear();
-    }
-    pthread_mutex_unlock(&_pending_lock);
-
-    pthread_mutex_destroy(&_result_thread->mutex);
-    pthread_cond_destroy(&_result_thread->cond);
-    delete _result_thread;
-    _result_thread = NULL;
-    int size = (int)_camera3_streams.size();
-    _current_metadata.clear();
-    for (int i = 0; i < size; i++) {
-        delete _camera3_streams[i];
-        _camera3_streams[i] = NULL;
-        delete _camera_streams[i]->bufferManager;
-        _camera_streams[i]->bufferManager = NULL;
-        delete _camera_streams[i];
-        _camera_streams[i] = NULL;
-    }
-    _camera3_streams.erase(_camera3_streams.begin(),
-                           _camera3_streams.begin() + _camera3_streams.size());
-    memset(&_camera3_stream_config, 0, sizeof(camera3_stream_configuration_t));
-}
-
-/******************************************private function*************************************************/
-
-void QCamxDevice::flush() {
-    _camera3_device->ops->flush(_camera3_device);
-}
-
-int QCamxDevice::get_jpeg_buffer_size(uint32_t width, uint32_t height) {
-    // get max jpeg buffer size
-    camera_metadata_ro_entry jpeg_bufer_max_size;
-    int res = find_camera_metadata_ro_entry(_camera_characteristics, ANDROID_JPEG_MAX_SIZE,
-                                            &jpeg_bufer_max_size);
-    if (jpeg_bufer_max_size.count == 0) {
-        QCAMX_ERR("Camera %d: Can't find maximum JPEG size in static metadata!", _camera_id);
-        return 0;
-    }
-    int max_jpeg_buffer_size = jpeg_bufer_max_size.data.i32[0];
-
-    // calculate final jpeg buffer size for the given resolution.
-    const int kMinJpegBufferSize = 256 * 1024 + sizeof(camera3_jpeg_blob);
-    float scale_factor =
-        (1.0f * width * height) / ((max_jpeg_buffer_size - sizeof(camera3_jpeg_blob)) / 1.5f);
-    int jpeg_buffer_size =
-        scale_factor * (max_jpeg_buffer_size - kMinJpegBufferSize) + kMinJpegBufferSize;
-
-    return jpeg_buffer_size;
-}
-
-/************************************************************************
-* name : updateMetadataForNextRequest
-* function: used for new metadata change request from user
-************************************************************************/
-int QCamxDevice::update_metadata_for_next_request(android::CameraMetadata *meta) {
-    pthread_mutex_lock(&_setting_metadata_lock);
-    android::CameraMetadata _meta(*meta);
-    _setting_metadata_list.push_back(_meta);
-    pthread_mutex_unlock(&_setting_metadata_lock);
-    return 0;
-}
-
-int QCamxDevice::get_valid_output_streams(std::vector<AvailableStream> &output_streams,
-                                          const AvailableStream *valid_stream) {
-    if (_camera_characteristics == nullptr) {
-        return -1;
-    }
-
-    camera_metadata_ro_entry entry;
-    //find camera metadata for ANDROID_SCALER_AVAILABLE_STREAM_CONFIGURATIONS
-    int ret = find_camera_metadata_ro_entry(_camera_characteristics,
-                                            ANDROID_SCALER_AVAILABLE_STREAM_CONFIGURATIONS, &entry);
-    if ((ret != 0) || ((entry.count % 4) != 0)) {
-        return -1;
-    }
-
-    for (int i = 0; i < entry.count; i += 4) {
-        if (entry.data.i32[i + 3] == ANDROID_SCALER_AVAILABLE_STREAM_CONFIGURATIONS_OUTPUT) {
-            if (valid_stream == nullptr) {
-                AvailableStream stream = {entry.data.i32[i + 1], entry.data.i32[i + 2],
-                                          entry.data.i32[i]};
-                output_streams.push_back(stream);
-
-                QCAMX_PRINT("device valid format:%d %dx%d\n", entry.data.i32[i],
-                            entry.data.i32[i + 1], entry.data.i32[i + 2]);
-            } else if ((valid_stream->format == entry.data.i32[i]) &&
-                       (valid_stream->width == entry.data.i32[i + 1]) &&
-                       (valid_stream->height == entry.data.i32[i + 2])) {
-                AvailableStream stream = {entry.data.i32[i + 1], entry.data.i32[i + 2],
-                                          valid_stream->format};
-                output_streams.push_back(stream);
-
-                QCAMX_PRINT("device valid format:%d %dx%d\n", entry.data.i32[i],
-                            entry.data.i32[i + 1], entry.data.i32[i + 2]);
-            }
-        }
-    }
-
-    if (output_streams.size() == 0) {
-        return -1;
-    }
-    return 0;
-}
 
 /****************************global function********************************/
 
@@ -681,7 +662,7 @@ void *do_process_capture_request(void *data) {
 void *do_capture_post_process(void *data) {
     CameraThreadData *thread_data = (CameraThreadData *)data;
     QCamxDevice *device = (QCamxDevice *)thread_data->device;
-    QCAMX_PRINT("%s capture result handle thread start\n", __func__);
+    // QCAMX_PRINT("%s capture result handle thread start\n", __func__);
     while (true) {
         pthread_mutex_lock(&thread_data->mutex);
         if (thread_data->message_queue.empty()) {
@@ -706,6 +687,7 @@ void *do_capture_post_process(void *data) {
         pthread_mutex_unlock(&thread_data->mutex);
         camera3_capture_result result = msg->result;
         const camera3_stream_buffer_t *buffers = result.output_buffers = msg->streamBuffers.data();
+        // QCAMX_PRINT("%s callback capture_post_process\n", __func__);
         device->_callback->capture_post_process(device->_callback, &result);
         // return the buffer back
         if (device->get_sync_buffer_mode() != SYNC_BUFFER_EXTERNAL) {
