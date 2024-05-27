@@ -12,6 +12,8 @@
 #include <signal.h>
 #include <sys/time.h>
 
+#include <fstream>
+
 #include "QCamxHAL3TestDepth.h"
 #include "QCamxHAL3TestVideo.h"
 #include "g_version.h"

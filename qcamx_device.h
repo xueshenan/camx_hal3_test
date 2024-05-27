@@ -7,27 +7,14 @@
 #pragma once
 
 #include <camera/CameraMetadata.h>
-#include <dlfcn.h>
-#include <errno.h>
 #include <hardware/camera3.h>
 #include <hardware/camera_common.h>
-#include <hardware/gralloc.h>
 #include <inttypes.h>
-#include <log/log.h>
 #include <pthread.h>
-#include <signal.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 #include <utils/KeyedVector.h>
 #include <utils/Timers.h>
 
-#include <fstream>
-#include <iostream>
 #include <list>
-#include <map>
-#include <mutex>
 #include <string>
 #include <vector>
 
