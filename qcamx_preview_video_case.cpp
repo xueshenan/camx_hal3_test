@@ -20,7 +20,7 @@ void QCamxPreviewVideoCase::capture_post_process(DeviceCallback *callback,
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
         int index = _device->find_stream_index(buffers[i].stream);
         CameraStream *stream = _device->_camera_streams[index];
-        BufferInfo *info = stream->buffer_manager->getBufferInfo(buffers[i].buffer);
+        BufferInfo *info = stream->buffer_manager->get_buffer_info(buffers[i].buffer);
         if (stream->stream_id == VIDEO_INDEX) {
             if (_callbacks != NULL && _callbacks->video_cb != NULL) {
                 _callbacks->video_cb(info, result->frame_number);
@@ -35,7 +35,7 @@ void QCamxPreviewVideoCase::capture_post_process(DeviceCallback *callback,
                 }
             }
             if (_stop) {
-                stream->buffer_manager->ReturnBuffer(buffers[i].buffer);
+                stream->buffer_manager->return_buffer(buffers[i].buffer);
             } else {
                 enqueue_frame_buffer(stream, buffers[i].buffer);
             }
@@ -55,7 +55,7 @@ void QCamxPreviewVideoCase::capture_post_process(DeviceCallback *callback,
                     _dump_preview_num--;
                 }
             }
-            stream->buffer_manager->ReturnBuffer(buffers[i].buffer);
+            stream->buffer_manager->return_buffer(buffers[i].buffer);
 
             if (_config->_show_fps) {
                 show_fps(PREVIEW_TYPE);
@@ -448,6 +448,6 @@ void QCamxPreviewVideoCase::enqueue_frame_buffer(CameraStream *stream,
 #ifdef ENABLE_VIDEO_ENCODER
     _video_encoder->EnqueueFrameBuffer(stream, buf_handle);
 #else
-    stream->buffer_manager->ReturnBuffer(buf_handle);
+    stream->buffer_manager->return_buffer(buf_handle);
 #endif
 }

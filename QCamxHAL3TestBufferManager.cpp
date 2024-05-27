@@ -139,11 +139,11 @@ int QCamxHAL3TestBufferManager::allocate_one_buffer(uint32_t width, uint32_t hei
                                                     StreamType type, Implsubformat subformat) {
     int32_t result = 0;
 #if defined USE_GRALLOC1
-    result = AllocateOneGralloc1Buffer(width, height, format, producer_flags, consumer_flags,
-                                       allocated_buffer, pStride, index, type, subformat);
+    result = allocate_one_galloc1_buffer(width, height, format, producer_flags, consumer_flags,
+                                         allocated_buffer, pStride, index, type, subformat);
 #elif defined USE_ION
-    result = AllocateOneIonBuffer(width, height, format, producer_flags, consumer_flags,
-                                  allocated_buffer, index, type, subformat);
+    result = allocate_one_ion_buffer(width, height, format, producer_flags, consumer_flags,
+                                     allocated_buffer, index, type, subformat);
 #elif defined USE_GBM
     result = allocate_one_gbm_buffer(width, height, format, producer_flags, consumer_flags,
                                      allocated_buffer, index, type, subformat);
@@ -194,11 +194,7 @@ int QCamxHAL3TestBufferManager::setup_gralloc1_interface() {
     return result;
 }
 
-/************************************************************************
-* name : AllocateOneGralloc1Buffer
-* function: Allocate One Buffer from Gralloc1 interface
-************************************************************************/
-int QCamxHAL3TestBufferManager::AllocateOneGralloc1Buffer(
+int QCamxHAL3TestBufferManager::allocate_one_galloc1_buffer(
     uint32_t width, uint32_t height, uint32_t format, uint64_t producerUsageFlags,
     uint64_t consumerUsageFlags, buffer_handle_t *pAllocatedBuffer, uint32_t *pStride,
     uint32_t index, StreamType type, Implsubformat subformat) {
@@ -282,16 +278,11 @@ int QCamxHAL3TestBufferManager::AllocateOneGralloc1Buffer(
     return result;
 }
 #elif defined USE_ION
-/************************************************************************
-* name : AllocateOneIonBuffer
-* function: Allocate One Buffer from Ion interface
-************************************************************************/
-int QCamxHAL3TestBufferManager::AllocateOneIonBuffer(uint32_t width, uint32_t height,
-                                                     uint32_t format, uint64_t producerUsageFlags,
-                                                     uint64_t consumerUsageFlags,
-                                                     buffer_handle_t *pAllocatedBuffer,
-                                                     uint32_t index, StreamType type,
-                                                     Implsubformat subformat) {
+
+int QCamxHAL3TestBufferManager::allocate_one_ion_buffer(
+    uint32_t width, uint32_t height, uint32_t format, uint64_t producerUsageFlags,
+    uint64_t consumerUsageFlags, buffer_handle_t *pAllocatedBuffer, uint32_t index, StreamType type,
+    Implsubformat subformat) {
     int rc = 0;
     struct ion_allocation_data alloc;
 #ifndef TARGET_ION_ABI_VERSION
@@ -461,7 +452,7 @@ int QCamxHAL3TestBufferManager::AllocateOneIonBuffer(uint32_t width, uint32_t he
 int QCamxHAL3TestBufferManager::allocate_one_gbm_buffer(uint32_t width, uint32_t height,
                                                         uint32_t format, uint64_t producer_flags,
                                                         uint64_t consumer_flags,
-                                                        buffer_handle_t *pAllocatedBuffer,
+                                                        buffer_handle_t *buffer_handle,
                                                         uint32_t index, StreamType type,
                                                         Implsubformat subformat) {
     int rc = 0;
@@ -496,17 +487,18 @@ int QCamxHAL3TestBufferManager::allocate_one_gbm_buffer(uint32_t width, uint32_t
         return rc;
     }
 
-    *pAllocatedBuffer = QCamxHal3TestGBM::GetHandle()->AllocateNativeHandle(gbm_buff_object);
-    if (NULL == *pAllocatedBuffer) {
+    *buffer_handle = QCamxHal3TestGBM::GetHandle()->AllocateNativeHandle(gbm_buff_object);
+    if (*buffer_handle == NULL) {
         QCAMX_INFO("Error allocating native handle buffer");
         rc = -ENOMEM;
         return rc;
     }
 
-    private_handle_t *hnl = ((private_handle_t *)(*pAllocatedBuffer));
+    private_handle_t *private_handle = ((private_handle_t *)(*buffer_handle));
 
-    _buffer_info[index].vaddr = mmap(NULL, bo_size, PROT_READ | PROT_WRITE, MAP_SHARED, hnl->fd, 0);
-    _buffer_info[index].fd = hnl->fd;
+    _buffer_info[index].vaddr =
+        mmap(NULL, bo_size, PROT_READ | PROT_WRITE, MAP_SHARED, private_handle->fd, 0);
+    _buffer_info[index].fd = private_handle->fd;
     _buffer_info[index].size = bo_size;
     _buffer_info[index].width = width;
     _buffer_info[index].height = height;

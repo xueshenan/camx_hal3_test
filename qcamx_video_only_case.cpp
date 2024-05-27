@@ -17,7 +17,7 @@ void QCamxVideoOnlyCase::capture_post_process(DeviceCallback *cb, camera3_captur
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
         int index = device->find_stream_index(buffers[i].stream);
         CameraStream *stream = device->_camera_streams[index];
-        BufferInfo *info = stream->buffer_manager->getBufferInfo(buffers[i].buffer);
+        BufferInfo *info = stream->buffer_manager->get_buffer_info(buffers[i].buffer);
         if (stream->stream_type == CAMERA3_TEMPLATE_VIDEO_RECORD) {
             if (_callbacks && _callbacks->video_cb) {
                 _callbacks->video_cb(info, result->frame_number);
@@ -32,7 +32,7 @@ void QCamxVideoOnlyCase::capture_post_process(DeviceCallback *cb, camera3_captur
                 }
             }
             if (_stop) {
-                stream->buffer_manager->ReturnBuffer(buffers[i].buffer);
+                stream->buffer_manager->return_buffer(buffers[i].buffer);
             } else {
                 EnqueueFrameBuffer(stream, buffers[i].buffer);
             }
@@ -298,6 +298,6 @@ void QCamxVideoOnlyCase::EnqueueFrameBuffer(CameraStream *stream, buffer_handle_
 #ifdef ENABLE_VIDEO_ENCODER
     mVideoEncoder->EnqueueFrameBuffer(stream, buf_handle);
 #else
-    stream->buffer_manager->ReturnBuffer(buf_handle);
+    stream->buffer_manager->return_buffer(buf_handle);
 #endif
 }

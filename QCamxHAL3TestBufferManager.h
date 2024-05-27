@@ -123,31 +123,38 @@ public:
      * @brief Free all buffers
      */
     void free_all_buffers();
+public:
     /**
-     * @brief Get a buffer
+     * @brief Get one buffer
      */
-    buffer_handle_t *GetBuffer() {
-        std::unique_lock<std::mutex> lock(mBufMutex);
+    buffer_handle_t *get_buffer() {
+        std::unique_lock<std::mutex> lock(_buffer_mutex);
         if (_buffers_free.size() == 0) {
             //wait for usable buf
-            mBufCv.wait(lock);
+            _buffer_conditiaon_variable.wait(lock);
         }
         buffer_handle_t *buffer = _buffers_free.front();
         _buffers_free.pop_front();
         return buffer;
     }
-    void ReturnBuffer(buffer_handle_t *buffer) {
-        std::unique_lock<std::mutex> lock(mBufMutex);
+    /**
+     * @brief recycle buffer to buffer pool
+    */
+    void return_buffer(buffer_handle_t *buffer) {
+        std::unique_lock<std::mutex> lock(_buffer_mutex);
         _buffers_free.push_back(buffer);
-        mBufCv.notify_all();
+        _buffer_conditiaon_variable.notify_all();
     }
-    size_t QueueSize() {
-        std::unique_lock<std::mutex> lock(mBufMutex);
+    /**
+     * @brief get free buffer size
+    */
+    size_t get_free_buffer_size() {
+        std::unique_lock<std::mutex> lock(_buffer_mutex);
         return _buffers_free.size();
     }
 
-    BufferInfo *getBufferInfo(buffer_handle_t *buffer) {
-        std::unique_lock<std::mutex> lock(mBufMutex);
+    BufferInfo *get_buffer_info(buffer_handle_t *buffer) {
+        std::unique_lock<std::mutex> lock(_buffer_mutex);
         for (uint32_t i = 0; i < _num_of_buffers; i++) {
             if (*buffer == _buffers[i]) {
                 return &(_buffer_info[i]);
@@ -180,22 +187,28 @@ private:
      * @detail dlsym all symboles which used to alloc buffers
      */
     int setup_gralloc1_interface();
-    int AllocateOneGralloc1Buffer(uint32_t width, uint32_t height, uint32_t format,
-                                  uint64_t producer_flags, uint64_t consumer_flags,
-                                  buffer_handle_t *pAllocatedBuffer, uint32_t *pStride,
-                                  uint32_t index, StreamType type, Implsubformat subformat);
+    /**
+     * @brief Allocate one buffer from Gralloc1 interface
+    */
+    int allocate_one_galloc1_buffer(uint32_t width, uint32_t height, uint32_t format,
+                                    uint64_t producer_flags, uint64_t consumer_flags,
+                                    buffer_handle_t *pAllocatedBuffer, uint32_t *pStride,
+                                    uint32_t index, StreamType type, Implsubformat subformat);
 #elif defined USE_ION
-    int AllocateOneIonBuffer(uint32_t width, uint32_t height, uint32_t format,
-                             uint64_t producer_flags, uint64_t consumer_flags,
-                             buffer_handle_t *pAllocatedBuffer, uint32_t index, StreamType type,
-                             Implsubformat subformat);
+    /**
+     * @brief Allocate one buffer from Ion interface
+    */
+    int allocate_one_ion_buffer(uint32_t width, uint32_t height, uint32_t format,
+                                uint64_t producer_flags, uint64_t consumer_flags,
+                                buffer_handle_t *pAllocatedBuffer, uint32_t index, StreamType type,
+                                Implsubformat subformat);
 #elif defined USE_GBM
     /**
      * @brief allocate one buffer from Gbm interface
     */
     int allocate_one_gbm_buffer(uint32_t width, uint32_t height, uint32_t format,
                                 uint64_t producer_flags, uint64_t consumer_flags,
-                                buffer_handle_t *pAllocatedBuffer, uint32_t index, StreamType type,
+                                buffer_handle_t *buffer_handle, uint32_t index, StreamType type,
                                 Implsubformat subformat);
 #endif
     // Do not support the copy constructor or assignment operator
@@ -210,8 +223,8 @@ private:
     BufferInfo _buffer_info[BUFFER_QUEUE_DEPTH];
     std::deque<buffer_handle_t *> _buffers_free;
 
-    std::mutex mBufMutex;
-    std::condition_variable mBufCv;
+    std::mutex _buffer_mutex;
+    std::condition_variable _buffer_conditiaon_variable;
 
     uint32_t _is_meta_buf;
     uint32_t _is_UWBC;  // not support for now

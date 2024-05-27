@@ -21,7 +21,7 @@ void QCamxPreviewSnapshotCase::capture_post_process(DeviceCallback *cb,
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
         int index = device->find_stream_index(buffers[i].stream);
         CameraStream *stream = device->_camera_streams[index];
-        BufferInfo *info = stream->buffer_manager->getBufferInfo(buffers[i].buffer);
+        BufferInfo *info = stream->buffer_manager->get_buffer_info(buffers[i].buffer);
         if (stream->stream_type == CAMERA3_TEMPLATE_STILL_CAPTURE) {
             if (_callbacks != NULL && _callbacks->snapshot_cb != NULL) {
                 _callbacks->snapshot_cb(info, result->frame_number);

@@ -336,7 +336,7 @@ int QCamxDevice::process_one_capture_request(int *request_number_of_each_stream,
         }
         CameraStream *stream = _camera_streams[i];
         camera3_stream_buffer_t stream_buffer;
-        stream_buffer.buffer = (const native_handle_t **)(stream->buffer_manager->GetBuffer());
+        stream_buffer.buffer = (const native_handle_t **)(stream->buffer_manager->get_buffer());
         // make a capture request and send to HAL
         stream_buffer.stream = _camera3_streams[i];
         stream_buffer.status = 0;
@@ -382,7 +382,7 @@ int QCamxDevice::process_one_capture_request(int *request_number_of_each_stream,
         for (uint32_t i = 0; i < pend->_request.num_output_buffers; i++) {
             index = find_stream_index(stream_buffers[i].stream);
             CameraStream *stream = _camera_streams[index];
-            stream->buffer_manager->ReturnBuffer(stream_buffers[i].buffer);
+            stream->buffer_manager->return_buffer(stream_buffers[i].buffer);
         }
         pthread_mutex_lock(&_pending_lock);
         index = _pending_vector.indexOfKey(*frame_number);
@@ -700,7 +700,7 @@ void *do_capture_post_process(void *data) {
             for (uint32_t i = 0; i < result.num_output_buffers; i++) {
                 int index = device->find_stream_index(buffers[i].stream);
                 CameraStream *stream = device->_camera_streams[index];
-                stream->buffer_manager->ReturnBuffer(buffers[i].buffer);
+                stream->buffer_manager->return_buffer(buffers[i].buffer);
             }
         }
         msg->streamBuffers.erase(msg->streamBuffers.begin(),

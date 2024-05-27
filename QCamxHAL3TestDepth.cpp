@@ -49,7 +49,7 @@ void QCamxHAL3TestDepth::capture_post_process(DeviceCallback *cb, camera3_captur
     for (uint32_t i = 0; i < result->num_output_buffers; i++) {
         int index = _device->find_stream_index(buffers[i].stream);
         CameraStream *stream = _device->_camera_streams[index];
-        BufferInfo *info = stream->buffer_manager->getBufferInfo(buffers[i].buffer);
+        BufferInfo *info = stream->buffer_manager->get_buffer_info(buffers[i].buffer);
         if (stream->stream_id == DEPTH_IDX) {
             if (_callbacks && _callbacks->video_cb) {
                 _callbacks->video_cb(info, result->frame_number);
@@ -64,7 +64,7 @@ void QCamxHAL3TestDepth::capture_post_process(DeviceCallback *cb, camera3_captur
                 }
             }
 
-            stream->buffer_manager->ReturnBuffer(buffers[i].buffer);
+            stream->buffer_manager->return_buffer(buffers[i].buffer);
 
             if (_config->_show_fps) {
                 show_fps(DEPTH_TYPE);
@@ -82,7 +82,7 @@ void QCamxHAL3TestDepth::capture_post_process(DeviceCallback *cb, camera3_captur
                     _dump_preview_num--;
                 }
             }
-            stream->buffer_manager->ReturnBuffer(buffers[i].buffer);
+            stream->buffer_manager->return_buffer(buffers[i].buffer);
 
             if (_config->_show_fps) {
                 show_fps(IRBG_TYPE);
