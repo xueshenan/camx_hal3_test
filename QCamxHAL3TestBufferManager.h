@@ -1,15 +1,8 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright (c) 2018-2020 Qualcomm Technologies, Inc.
-// All Rights Reserved.
-// Confidential and Proprietary - Qualcomm Technologies, Inc.
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file  BuffeerManager.h
-/// @brief buffer manager
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef __QCAMX_HAL3_TEST_BUFFER_MANAGER__
-#define __QCAMX_HAL3_TEST_BUFFER_MANAGER__
+/**
+ * @file  BuffeerManager.h
+ * @brief buffer manager
+*/
 
 #if defined USE_GRALLOC1
 #include <gralloc_priv.h>
@@ -46,7 +39,12 @@ typedef struct gbm_device GBM_DEVICE;
 #include "qcamx_define.h"
 #include "qcamx_log.h"
 
+#ifndef USE_GBM
+#define USE_GBM
+#endif
+
 #define BUFFER_QUEUE_DEPTH 256
+
 typedef const native_handle_t *buffer_handle_t;
 
 typedef struct _BufferInfo {
@@ -95,125 +93,135 @@ class QCamxHAL3TestBufferManager {
 public:
     QCamxHAL3TestBufferManager();
     ~QCamxHAL3TestBufferManager();
+public:
+    /**
+     * @brief initializes the instance
+     */
+    int initialize();
+    /**
+    * @brief Destroys an instance of the class
+    */
+    void destroy();
+    /**
+     * @brief Pre allocate the max number of buffers the buffer manager needs to manage
+     * @param num_of_buffers alloc buffer count
+     * @param width width for the buffer
+     * @param height height for the buffer
+     * @param format format for the buffer e.g. HAL_PIXEL_FORMAT_BLOB
+     * @param producer_flags
+     * @param consumer_lags
+     * @param type stream type
+     * @param subformat
+     * @param is_meta_buf
+     * @param is_UWBC weather use UWBC compression, default is no
+     */
+    int allocate_buffers(uint32_t num_of_buffers, uint32_t width, uint32_t height, uint32_t format,
+                         uint64_t producer_flags, uint64_t consumer_lags, StreamType type,
+                         Implsubformat subformat, uint32_t is_meta_buf = 0, uint32_t is_UBWC = 0);
 
-    // Initializes the instance
-    int Initialize();
-    // Destroys an instance of the class
-    void Destroy();
-    // Pre allocate the max number of buffers the buffer manager needs to manage
-    int AllocateBuffers(uint32_t numBuffers, uint32_t width, uint32_t height, uint32_t format,
-                        uint64_t producerFlags, uint64_t consumerFlags, StreamType type,
-                        Implsubformat subformat, uint32_t isVideoMeta = 0, uint32_t isUBWC = 0);
-
-    // Free all buffers
-    void FreeAllBuffers();
-    /// Get a buffer
+    /**
+     * @brief Free all buffers
+     */
+    void free_all_buffers();
+    /**
+     * @brief Get a buffer
+     */
     buffer_handle_t *GetBuffer() {
         std::unique_lock<std::mutex> lock(mBufMutex);
-        if (mBuffersFree.size() == 0) {
+        if (_buffers_free.size() == 0) {
             //wait for usable buf
             mBufCv.wait(lock);
         }
-        buffer_handle_t *buffer = mBuffersFree.front();
-        mBuffersFree.pop_front();
+        buffer_handle_t *buffer = _buffers_free.front();
+        _buffers_free.pop_front();
         return buffer;
     }
     void ReturnBuffer(buffer_handle_t *buffer) {
         std::unique_lock<std::mutex> lock(mBufMutex);
-        mBuffersFree.push_back(buffer);
+        _buffers_free.push_back(buffer);
         mBufCv.notify_all();
     }
     size_t QueueSize() {
         std::unique_lock<std::mutex> lock(mBufMutex);
-        return mBuffersFree.size();
+        return _buffers_free.size();
     }
 
     BufferInfo *getBufferInfo(buffer_handle_t *buffer) {
         std::unique_lock<std::mutex> lock(mBufMutex);
-        for (uint32_t i = 0; i < mNumBuffers; i++) {
-            if (*buffer == mBuffers[i]) {
-                return &(mBufferinfo[i]);
+        for (uint32_t i = 0; i < _num_of_buffers; i++) {
+            if (*buffer == _buffers[i]) {
+                return &(_buffer_info[i]);
             }
         }
         return NULL;
     }
-
+private:
+    /**
+     * @brief get the soc identify
+    */
+    uint32_t get_soc_id();
     static inline uint32_t ALIGN(uint32_t operand, uint32_t alignment) {
         uint32_t remainder = (operand % alignment);
 
-        return (0 == remainder) ? operand : operand - remainder + alignment;
+        return (remainder == 0) ? operand : operand - remainder + alignment;
     }
-
-    static uint32_t GetChipsetVersion() {
-        int32_t socFd;
-        char buf[32] = {0};
-        uint32_t chipsetVersion = -1;
-        int32_t ret = 0;
-
-        socFd = open("/sys/devices/soc0/soc_id", O_RDONLY);
-
-        if (0 < socFd) {
-            ret = read(socFd, buf, sizeof(buf) - 1);
-
-            if (-1 == ret) {
-                ALOGE("[CAMX_EXT_FORMAT_LIB] Unable to read soc_id");
-            } else {
-                chipsetVersion = atoi(buf);
-            }
-
-            close(socFd);
-        }
-
-        return chipsetVersion;
-    }
-private:
-    // Do not support the copy constructor or assignment operator
-    QCamxHAL3TestBufferManager(const QCamxHAL3TestBufferManager &) = delete;
-    QCamxHAL3TestBufferManager &operator=(const QCamxHAL3TestBufferManager &) = delete;
-
-    // Initialize Gralloc1 interface functions
-    int SetupGralloc1Interface();
-    // Allocate one buffer
-    int AllocateOneBuffer(uint32_t width, uint32_t height, uint32_t format,
-                          uint64_t producerUsageFlags, uint64_t consumerUsageFlags,
-                          buffer_handle_t *pAllocatedBuffer, uint32_t *pStride, uint32_t index,
-                          StreamType type, Implsubformat subformat);
+    /**
+     * @brief allocate one buffer
+     * @detail subcase to alloc buf
+     */
+    int allocate_one_buffer(uint32_t width, uint32_t height, uint32_t format,
+                            uint64_t producer_flags, uint64_t consumer_flags,
+                            buffer_handle_t *allocated_buffer, uint32_t *pStride, uint32_t index,
+                            StreamType type, Implsubformat subformat);
 
 #if defined USE_GRALLOC1
+    /**
+     * @brief initialize Gralloc1 interface functions
+     * @detail dlsym all symboles which used to alloc buffers
+     */
+    int setup_gralloc1_interface();
     int AllocateOneGralloc1Buffer(uint32_t width, uint32_t height, uint32_t format,
-                                  uint64_t producerUsageFlags, uint64_t consumerUsageFlags,
+                                  uint64_t producer_flags, uint64_t consumer_flags,
                                   buffer_handle_t *pAllocatedBuffer, uint32_t *pStride,
                                   uint32_t index, StreamType type, Implsubformat subformat);
 #elif defined USE_ION
     int AllocateOneIonBuffer(uint32_t width, uint32_t height, uint32_t format,
-                             uint64_t producerUsageFlags, uint64_t consumerUsageFlags,
+                             uint64_t producer_flags, uint64_t consumer_flags,
                              buffer_handle_t *pAllocatedBuffer, uint32_t index, StreamType type,
                              Implsubformat subformat);
 #elif defined USE_GBM
-    int AllocateOneGbmBuffer(uint32_t width, uint32_t height, uint32_t format,
-                             uint64_t producerUsageFlags, uint64_t consumerUsageFlags,
-                             buffer_handle_t *pAllocatedBuffer, uint32_t index, StreamType type,
-                             Implsubformat subformat);
+    /**
+     * @brief allocate one buffer from Gbm interface
+    */
+    int allocate_one_gbm_buffer(uint32_t width, uint32_t height, uint32_t format,
+                                uint64_t producer_flags, uint64_t consumer_flags,
+                                buffer_handle_t *pAllocatedBuffer, uint32_t index, StreamType type,
+                                Implsubformat subformat);
 #endif
-    buffer_handle_t mBuffers[BUFFER_QUEUE_DEPTH];  ///< Max Buffer pool
-    BufferInfo mBufferinfo[BUFFER_QUEUE_DEPTH];
-    uint32_t mNumBuffers;    ///< Num of Buffers
-    uint32_t mBufferStride;  ///< Buffer stride
-    std::deque<buffer_handle_t *> mBuffersFree;
-    uint32_t mIsMetaBuf;
-    uint32_t mIsUBWC;
-    uint32_t m_socId;  ///< Camera SOC Id
+    // Do not support the copy constructor or assignment operator
+    QCamxHAL3TestBufferManager(const QCamxHAL3TestBufferManager &) = delete;
+    QCamxHAL3TestBufferManager &operator=(const QCamxHAL3TestBufferManager &) = delete;
+private:
+    uint32_t _soc_id;          ///< soc id
+    uint32_t _num_of_buffers;  ///< num of Buffers
+    uint32_t _buffer_stride;   ///< buffer stride default is 0
+private:
+    buffer_handle_t _buffers[BUFFER_QUEUE_DEPTH];  ///< buffer pool handle
+    BufferInfo _buffer_info[BUFFER_QUEUE_DEPTH];
+    std::deque<buffer_handle_t *> _buffers_free;
+
     std::mutex mBufMutex;
     std::condition_variable mBufCv;
 
+    uint32_t _is_meta_buf;
+    uint32_t _is_UWBC;  // not support for now
 #if defined USE_GRALLOC1
-    hw_module_t *mHwModule;               ///< Gralloc1 module
-    gralloc1_device_t *mGralloc1Device;   ///< Gralloc1 device
-    Gralloc1Interface mGrallocInterface;  ///< Gralloc1 interface
+    hw_module_t *_hw_module;               ///< Gralloc1 module
+    gralloc1_device_t *_gralloc1_device;   ///< Gralloc1 device
+    Gralloc1Interface _gralloc_interface;  ///< Gralloc1 interface
 #elif defined USE_ION
-    int mIonFd;
+    int _ion_fd;
 #elif defined USE_GBM
-
 #endif
 };
 
@@ -258,4 +266,3 @@ public:
     void FreeGbmBufferObj(struct gbm_bo *m_pGbmBuffObject);
 };
 #endif
-#endif  //__BUFFER_MANAGER__

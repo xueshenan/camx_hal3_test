@@ -77,12 +77,12 @@ void QCamxDevice::pre_allocate_streams(std::vector<Stream *> streams) {
             int size =
                 get_jpeg_buffer_size(streams[i]->pstream->width, streams[i]->pstream->height);
 
-            buffer_manager->AllocateBuffers(stream_buffer_max, size, 1,
+            buffer_manager->allocate_buffers(stream_buffer_max, size, 1,
                                             (int32_t)(streams[i]->pstream->format),
                                             streams[i]->pstream->usage, streams[i]->pstream->usage,
                                             streams[i]->type, subformat);
         } else {
-            buffer_manager->AllocateBuffers(
+            buffer_manager->allocate_buffers(
                 stream_buffer_max, streams[i]->pstream->width, streams[i]->pstream->height,
                 (int32_t)(streams[i]->pstream->format), streams[i]->pstream->usage,
                 streams[i]->pstream->usage, streams[i]->type, subformat);

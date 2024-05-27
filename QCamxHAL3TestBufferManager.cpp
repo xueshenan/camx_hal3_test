@@ -27,176 +27,165 @@ static const uint32_t CameraTitanSocQCS7230 = 548;   ///< QCS7230 SOC Id
 static const uint32_t CameraTitanSocQRB3165 = 598;   ///< QRB3165 SOC Id
 static const uint32_t CameraTitanSocQRB3165N = 599;  ///< QRB3165N SOC Id
 
-QCamxHAL3TestBufferManager::QCamxHAL3TestBufferManager() : mNumBuffers(0), mBufferStride(0) {
-    Initialize();
+QCamxHAL3TestBufferManager::QCamxHAL3TestBufferManager() {
+    _num_of_buffers = 0;
+    _buffer_stride = 0;
+    initialize();
 #ifdef USE_ION
-    mIonFd = -1;
+    _ion_fd = -1;
 #endif
 }
 
-/************************************************************************
-* name : ~QCamxHAL3TestBufferManager
-* function: destruct object
-************************************************************************/
 QCamxHAL3TestBufferManager::~QCamxHAL3TestBufferManager() {
-    Destroy();
+    destroy();
 }
 
-/************************************************************************
-* name : Destory
-* function: release all resource
-************************************************************************/
-void QCamxHAL3TestBufferManager::Destroy() {
-    FreeAllBuffers();
-#if defined USE_GRALLOC1
-    gralloc1_close(mGralloc1Device);
-#elif defined USE_ION
-    close(mIonFd);
-    mIonFd = -1;
-#endif
-}
+/***************************** public method ***************************************/
 
-/************************************************************************
-* name : Initialize
-* function: Inint Gralloc interface
-************************************************************************/
-int QCamxHAL3TestBufferManager::Initialize() {
+int QCamxHAL3TestBufferManager::initialize() {
     int result = 0;
 #ifdef USE_GRALLOC1
-    result = SetupGralloc1Interface();
+    result = setup_gralloc1_interface();
 #endif
-    m_socId = GetChipsetVersion();
+    _soc_id = get_soc_id();
     return result;
 }
 
-/************************************************************************
-* name : FreeAllBuffers
-* function: free buffers
-************************************************************************/
-void QCamxHAL3TestBufferManager::FreeAllBuffers() {
-    for (uint32_t i = 0; i < mNumBuffers; i++) {
-        if (NULL != mBuffers[i]) {
-            munmap(mBufferinfo[i].vaddr, mBufferinfo[i].size);
+void QCamxHAL3TestBufferManager::destroy() {
+    free_all_buffers();
 #if defined USE_GRALLOC1
-            mGrallocInterface.Release(mGralloc1Device, mBuffers[i]);
+    gralloc1_close(_gralloc1_device);
+#elif defined USE_ION
+    close(_ion_fd);
+    _ion_fd = -1;
+#endif
+}
+
+int QCamxHAL3TestBufferManager::allocate_buffers(uint32_t num_of_buffers, uint32_t width,
+                                                 uint32_t height, uint32_t format,
+                                                 uint64_t producer_flags, uint64_t consumer_flags,
+                                                 StreamType type, Implsubformat subformat,
+                                                 uint32_t is_meta_buf, uint32_t is_UBWC) {
+    QCAMX_DBG("allocate_buffers, Enter subformat=%d, type=%d\n", subformat, type);
+
+    for (uint32_t i = 0; i < num_of_buffers; i++) {
+        allocate_one_buffer(width, height, format, producer_flags, consumer_flags, &_buffers[i],
+                            &_buffer_stride, i, type, subformat);
+        _num_of_buffers++;
+        _buffers_free.push_back(&_buffers[i]);
+    }
+
+    _is_meta_buf = is_meta_buf;
+    _is_UWBC = is_UBWC;
+    QCAMX_DBG("allocate_buffers end\n");
+    return 0;
+}
+
+void QCamxHAL3TestBufferManager::free_all_buffers() {
+    for (uint32_t i = 0; i < _num_of_buffers; i++) {
+        if (_buffers[i] != NULL) {
+            munmap(_buffer_info[i].vaddr, _buffer_info[i].size);
+#if defined USE_GRALLOC1
+            _gralloc_interface.Release(_gralloc1_device, _buffers[i]);
 #elif defined USE_ION
 #ifndef TARGET_ION_ABI_VERSION
-            ioctl(mIonFd, ION_IOC_FREE, mBufferinfo[i].allocData.handle);
+            ioctl(_ion_fd, ION_IOC_FREE, _buffer_info[i].allocData.handle);
 #endif
-            native_handle_close((native_handle_t *)mBuffers[i]);
-            native_handle_delete((native_handle_t *)mBuffers[i]);
+            native_handle_close((native_handle_t *)_buffers[i]);
+            native_handle_delete((native_handle_t *)_buffers[i]);
 #elif defined USE_GBM
-            uint64_t bo_handle = 0;
-            uint32_t buf_fd = 0;
-
             native_handle_t *pHandle =
-                const_cast<native_handle_t *>(static_cast<const native_handle_t *>(mBuffers[i]));
+                const_cast<native_handle_t *>(static_cast<const native_handle_t *>(_buffers[i]));
             if (pHandle->data[1] != 0 || pHandle->data[2] != 0) {
-                bo_handle = ((uint64_t)(pHandle->data[1]) & 0xFFFFFFFF);
+                uint64_t bo_handle = ((uint64_t)(pHandle->data[1]) & 0xFFFFFFFF);
                 bo_handle = (bo_handle << 32) | ((uint64_t)(pHandle->data[2]) & 0xFFFFFFFF);
-                buf_fd = pHandle->data[0];
+                uint32_t buf_fd = pHandle->data[0];
                 close(buf_fd);
                 QCamxHal3TestGBM::GetHandle()->FreeGbmBufferObj(
                     reinterpret_cast<struct gbm_bo *>(bo_handle));
             }
-            native_handle_close((native_handle_t *)mBuffers[i]);  //
-            native_handle_delete((native_handle_t *)mBuffers[i]);
-
+            native_handle_close((native_handle_t *)_buffers[i]);
+            native_handle_delete((native_handle_t *)_buffers[i]);
 #endif
-            mBuffers[i] = NULL;
+            _buffers[i] = NULL;
         }
     }
 }
 
-/************************************************************************
-* name : AllocateBuffers
-* function: Alloc buffrer based on input paramaters
-************************************************************************/
-int QCamxHAL3TestBufferManager::AllocateBuffers(uint32_t numBuffers, uint32_t width,
-                                                uint32_t height, uint32_t format,
-                                                uint64_t producerFlags, uint64_t consumerFlags,
-                                                StreamType type, Implsubformat subformat,
-                                                uint32_t isVideoMeta, uint32_t isUBWC) {
-    int result = 0;
-    QCAMX_INFO("AllocateBuffers, Enter subformat=%d, type=%d", subformat, type);
-    mIsMetaBuf = isVideoMeta;
-    mIsUBWC = isUBWC;
+uint32_t QCamxHAL3TestBufferManager::get_soc_id() {
+    uint32_t soc_id = 0;
+    int soc_fd = open("/sys/devices/soc0/soc_id", O_RDONLY);
+    if (soc_fd > 0) {
+        char buf[32] = {0};
+        int32_t ret = read(soc_fd, buf, sizeof(buf) - 1);
 
-    for (uint32_t i = 0; i < numBuffers; i++) {
-        AllocateOneBuffer(width, height, format, producerFlags, consumerFlags, &mBuffers[i],
-                          &mBufferStride, i, type, subformat);
-        mNumBuffers++;
-        mBuffersFree.push_back(&mBuffers[i]);
+        if (ret == -1) {
+            ALOGE("[CAMX_EXT_FORMAT_LIB] Unable to read soc_id");
+        } else {
+            soc_id = atoi(buf);
+        }
+
+        close(soc_fd);
     }
 
-    QCAMX_INFO("AllocateBuffers, EXIT");
-    return result;
+    return soc_id;
 }
 
-/************************************************************************
-* name : AllocateOneBuffer
-* function: subcase to alloc buf
-************************************************************************/
-int QCamxHAL3TestBufferManager::AllocateOneBuffer(uint32_t width, uint32_t height, uint32_t format,
-                                                  uint64_t producerUsageFlags,
-                                                  uint64_t consumerUsageFlags,
-                                                  buffer_handle_t *pAllocatedBuffer,
-                                                  uint32_t *pStride, uint32_t index,
-                                                  StreamType type, Implsubformat subformat) {
+int QCamxHAL3TestBufferManager::allocate_one_buffer(uint32_t width, uint32_t height,
+                                                    uint32_t format, uint64_t producer_flags,
+                                                    uint64_t consumer_flags,
+                                                    buffer_handle_t *allocated_buffer,
+                                                    uint32_t *pStride, uint32_t index,
+                                                    StreamType type, Implsubformat subformat) {
     int32_t result = 0;
-    QCAMX_INFO("Type =%d, subformat %d\n", type, subformat);
 #if defined USE_GRALLOC1
-    result =
-        AllocateOneGralloc1Buffer(width, height, format, producerUsageFlags, consumerUsageFlags,
-                                  pAllocatedBuffer, pStride, index, type, subformat);
+    result = AllocateOneGralloc1Buffer(width, height, format, producer_flags, consumer_flags,
+                                       allocated_buffer, pStride, index, type, subformat);
 #elif defined USE_ION
-    result = AllocateOneIonBuffer(width, height, format, producerUsageFlags, consumerUsageFlags,
-                                  pAllocatedBuffer, index, type, subformat);
+    result = AllocateOneIonBuffer(width, height, format, producer_flags, consumer_flags,
+                                  allocated_buffer, index, type, subformat);
 #elif defined USE_GBM
-    result = AllocateOneGbmBuffer(width, height, format, producerUsageFlags, consumerUsageFlags,
-                                  pAllocatedBuffer, index, type, subformat);
+    result = allocate_one_gbm_buffer(width, height, format, producer_flags, consumer_flags,
+                                     allocated_buffer, index, type, subformat);
 #endif
     return result;
 }
 
 #ifdef USE_GRALLOC1
-/************************************************************************
-* name : SetupGralloc1Interface
-* function: dlsym all symboles which used to alloc buffers
-************************************************************************/
-int QCamxHAL3TestBufferManager::SetupGralloc1Interface() {
+
+int QCamxHAL3TestBufferManager::setup_gralloc1_interface() {
     int result = 0;
 
-    hw_get_module(GRALLOC_HARDWARE_MODULE_ID, const_cast<const hw_module_t **>(&mHwModule));
+    hw_get_module(GRALLOC_HARDWARE_MODULE_ID, const_cast<const hw_module_t **>(&_hw_module));
 
-    if (NULL != mHwModule) {
-        gralloc1_open(mHwModule, &mGralloc1Device);
+    if (_hw_module != NULL) {
+        gralloc1_open(_hw_module, &_gralloc1_device);
     } else {
         QCAMX_ERR("Can not get Gralloc hardware module\n");
         result = -1;
     }
 
-    if (NULL != mGralloc1Device) {
-        mGrallocInterface.CreateDescriptor = reinterpret_cast<GRALLOC1_PFN_CREATE_DESCRIPTOR>(
-            mGralloc1Device->getFunction(mGralloc1Device, GRALLOC1_FUNCTION_CREATE_DESCRIPTOR));
-        mGrallocInterface.DestroyDescriptor = reinterpret_cast<GRALLOC1_PFN_DESTROY_DESCRIPTOR>(
-            mGralloc1Device->getFunction(mGralloc1Device, GRALLOC1_FUNCTION_DESTROY_DESCRIPTOR));
-        mGrallocInterface.SetDimensions = reinterpret_cast<GRALLOC1_PFN_SET_DIMENSIONS>(
-            mGralloc1Device->getFunction(mGralloc1Device, GRALLOC1_FUNCTION_SET_DIMENSIONS));
-        mGrallocInterface.SetFormat = reinterpret_cast<GRALLOC1_PFN_SET_FORMAT>(
-            mGralloc1Device->getFunction(mGralloc1Device, GRALLOC1_FUNCTION_SET_FORMAT));
-        mGrallocInterface.SetProducerUsage = reinterpret_cast<GRALLOC1_PFN_SET_PRODUCER_USAGE>(
-            mGralloc1Device->getFunction(mGralloc1Device, GRALLOC1_FUNCTION_SET_PRODUCER_USAGE));
-        mGrallocInterface.SetConsumerUsage = reinterpret_cast<GRALLOC1_PFN_SET_CONSUMER_USAGE>(
-            mGralloc1Device->getFunction(mGralloc1Device, GRALLOC1_FUNCTION_SET_CONSUMER_USAGE));
-        mGrallocInterface.Allocate = reinterpret_cast<GRALLOC1_PFN_ALLOCATE>(
-            mGralloc1Device->getFunction(mGralloc1Device, GRALLOC1_FUNCTION_ALLOCATE));
-        mGrallocInterface.GetStride = reinterpret_cast<GRALLOC1_PFN_GET_STRIDE>(
-            mGralloc1Device->getFunction(mGralloc1Device, GRALLOC1_FUNCTION_GET_STRIDE));
-        mGrallocInterface.Release = reinterpret_cast<GRALLOC1_PFN_RELEASE>(
-            mGralloc1Device->getFunction(mGralloc1Device, GRALLOC1_FUNCTION_RELEASE));
-        mGrallocInterface.Lock = reinterpret_cast<GRALLOC1_PFN_LOCK>(
-            mGralloc1Device->getFunction(mGralloc1Device, GRALLOC1_FUNCTION_LOCK));
+    if (_gralloc1_device != NULL) {
+        _gralloc_interface.CreateDescriptor = reinterpret_cast<GRALLOC1_PFN_CREATE_DESCRIPTOR>(
+            _gralloc1_device->getFunction(_gralloc1_device, GRALLOC1_FUNCTION_CREATE_DESCRIPTOR));
+        _gralloc_interface.DestroyDescriptor = reinterpret_cast<GRALLOC1_PFN_DESTROY_DESCRIPTOR>(
+            _gralloc1_device->getFunction(_gralloc1_device, GRALLOC1_FUNCTION_DESTROY_DESCRIPTOR));
+        _gralloc_interface.SetDimensions = reinterpret_cast<GRALLOC1_PFN_SET_DIMENSIONS>(
+            _gralloc1_device->getFunction(_gralloc1_device, GRALLOC1_FUNCTION_SET_DIMENSIONS));
+        _gralloc_interface.SetFormat = reinterpret_cast<GRALLOC1_PFN_SET_FORMAT>(
+            _gralloc1_device->getFunction(_gralloc1_device, GRALLOC1_FUNCTION_SET_FORMAT));
+        _gralloc_interface.SetProducerUsage = reinterpret_cast<GRALLOC1_PFN_SET_PRODUCER_USAGE>(
+            _gralloc1_device->getFunction(_gralloc1_device, GRALLOC1_FUNCTION_SET_PRODUCER_USAGE));
+        _gralloc_interface.SetConsumerUsage = reinterpret_cast<GRALLOC1_PFN_SET_CONSUMER_USAGE>(
+            _gralloc1_device->getFunction(_gralloc1_device, GRALLOC1_FUNCTION_SET_CONSUMER_USAGE));
+        _gralloc_interface.Allocate = reinterpret_cast<GRALLOC1_PFN_ALLOCATE>(
+            _gralloc1_device->getFunction(_gralloc1_device, GRALLOC1_FUNCTION_ALLOCATE));
+        _gralloc_interface.GetStride = reinterpret_cast<GRALLOC1_PFN_GET_STRIDE>(
+            _gralloc1_device->getFunction(_gralloc1_device, GRALLOC1_FUNCTION_GET_STRIDE));
+        _gralloc_interface.Release = reinterpret_cast<GRALLOC1_PFN_RELEASE>(
+            _gralloc1_device->getFunction(_gralloc1_device, GRALLOC1_FUNCTION_RELEASE));
+        _gralloc_interface.Lock = reinterpret_cast<GRALLOC1_PFN_LOCK>(
+            _gralloc1_device->getFunction(_gralloc1_device, GRALLOC1_FUNCTION_LOCK));
     } else {
         QCAMX_ERR("gralloc1_open failed\n");
         result = -1;
@@ -216,12 +205,12 @@ int QCamxHAL3TestBufferManager::AllocateOneGralloc1Buffer(
     int32_t result = GRALLOC1_ERROR_NONE;
     gralloc1_buffer_descriptor_t gralloc1BufferDescriptor;
 
-    result = mGrallocInterface.CreateDescriptor(mGralloc1Device, &gralloc1BufferDescriptor);
+    result = _gralloc_interface.CreateDescriptor(_gralloc1_device, &gralloc1BufferDescriptor);
 
     if (GRALLOC1_ERROR_NONE == result) {
         QCAMX_DBG("createdesc passed\n");
-        result = mGrallocInterface.SetDimensions(mGralloc1Device, gralloc1BufferDescriptor, width,
-                                                 height);
+        result = _gralloc_interface.SetDimensions(_gralloc1_device, gralloc1BufferDescriptor, width,
+                                                  height);
     }
 
     if (GRALLOC1_ERROR_NONE == result) {
@@ -231,7 +220,7 @@ int QCamxHAL3TestBufferManager::AllocateOneGralloc1Buffer(
         } else if (type == VIDEO_TYPE && subformat == P010) {
             format = HAL_PIXEL_FORMAT_YCbCr_420_P010_UBWC;
         }
-        result = mGrallocInterface.SetFormat(mGralloc1Device, gralloc1BufferDescriptor, format);
+        result = _gralloc_interface.SetFormat(_gralloc1_device, gralloc1BufferDescriptor, format);
     }
 
     if (GRALLOC1_ERROR_NONE == result) {
@@ -241,8 +230,8 @@ int QCamxHAL3TestBufferManager::AllocateOneGralloc1Buffer(
                                  GRALLOC1_PRODUCER_USAGE_VIDEO_DECODER |
                                  GRALLOC1_PRODUCER_USAGE_PRIVATE_10BIT_TP;
         }
-        result = mGrallocInterface.SetProducerUsage(mGralloc1Device, gralloc1BufferDescriptor,
-                                                    producerUsageFlags);
+        result = _gralloc_interface.SetProducerUsage(_gralloc1_device, gralloc1BufferDescriptor,
+                                                     producerUsageFlags);
     }
 
     if (GRALLOC1_ERROR_NONE == result) {
@@ -252,19 +241,19 @@ int QCamxHAL3TestBufferManager::AllocateOneGralloc1Buffer(
         } else if (type == VIDEO_TYPE && subformat == P010) {
             consumerUsageFlags = GRALLOC1_CONSUMER_USAGE_GPU_TEXTURE;
         }
-        result = mGrallocInterface.SetConsumerUsage(mGralloc1Device, gralloc1BufferDescriptor,
-                                                    consumerUsageFlags);
+        result = _gralloc_interface.SetConsumerUsage(_gralloc1_device, gralloc1BufferDescriptor,
+                                                     consumerUsageFlags);
     }
 
     if (GRALLOC1_ERROR_NONE == result) {
         QCAMX_DBG("SetConsumerUsage passed\n");
-        result = mGrallocInterface.Allocate(mGralloc1Device, 1, &gralloc1BufferDescriptor,
-                                            &pAllocatedBuffer[0]);
+        result = _gralloc_interface.Allocate(_gralloc1_device, 1, &gralloc1BufferDescriptor,
+                                             &pAllocatedBuffer[0]);
     }
 
     if (GRALLOC1_ERROR_NONE == result) {
         QCAMX_DBG("Allocate passed\n");
-        result = mGrallocInterface.GetStride(mGralloc1Device, *pAllocatedBuffer, pStride);
+        result = _gralloc_interface.GetStride(_gralloc1_device, *pAllocatedBuffer, pStride);
     }
 
     if (GRALLOC1_ERROR_NONE != result) {
@@ -273,23 +262,23 @@ int QCamxHAL3TestBufferManager::AllocateOneGralloc1Buffer(
     }
 
     private_handle_t *hnl = ((private_handle_t *)(*pAllocatedBuffer));
-    mBufferinfo[index].vaddr =
+    _buffer_info[index].vaddr =
         mmap(NULL, hnl->size, PROT_READ | PROT_WRITE, MAP_SHARED, hnl->fd, 0);
-    mBufferinfo[index].fd = hnl->fd;
-    mBufferinfo[index].size = hnl->size;
-    mBufferinfo[index].width = width;
-    mBufferinfo[index].height = height;
-    mBufferinfo[index].stride = *pStride;
-    mBufferinfo[index].slice = hnl->size / ((*pStride) * 3 / 2);
-    mBufferinfo[index].format = format;
+    _buffer_info[index].fd = hnl->fd;
+    _buffer_info[index].size = hnl->size;
+    _buffer_info[index].width = width;
+    _buffer_info[index].height = height;
+    _buffer_info[index].stride = *pStride;
+    _buffer_info[index].slice = hnl->size / ((*pStride) * 3 / 2);
+    _buffer_info[index].format = format;
 
     QCAMX_INFO(
         "Alloc buffer fd:%d vaddr:%p len:%d width:%d height:%d stride:%d slice:%d format 0x%x\n",
-        mBufferinfo[index].fd, mBufferinfo[index].vaddr, mBufferinfo[index].size,
-        mBufferinfo[index].width, mBufferinfo[index].height, mBufferinfo[index].stride,
-        mBufferinfo[index].slice, mBufferinfo[index].format);
+        _buffer_info[index].fd, _buffer_info[index].vaddr, _buffer_info[index].size,
+        _buffer_info[index].width, _buffer_info[index].height, _buffer_info[index].stride,
+        _buffer_info[index].slice, _buffer_info[index].format);
 
-    mGrallocInterface.DestroyDescriptor(mGralloc1Device, gralloc1BufferDescriptor);
+    _gralloc_interface.DestroyDescriptor(_gralloc1_device, gralloc1BufferDescriptor);
     return result;
 }
 #elif defined USE_ION
@@ -314,10 +303,10 @@ int QCamxHAL3TestBufferManager::AllocateOneIonBuffer(uint32_t width, uint32_t he
     uint32_t slice = 0;
     ;
 
-    if (mIonFd <= 0) {
-        mIonFd = open("/dev/ion", O_RDONLY);
+    if (_ion_fd <= 0) {
+        _ion_fd = open("/dev/ion", O_RDONLY);
     }
-    if (mIonFd <= 0) {
+    if (_ion_fd <= 0) {
         QCAMX_ERR("Ion dev open failed %s\n", strerror(errno));
         return -EINVAL;
     }
@@ -345,10 +334,10 @@ int QCamxHAL3TestBufferManager::AllocateOneIonBuffer(uint32_t width, uint32_t he
         }
         case HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED: {
             /// check with GetRigidYUVFormat & CamxFormatUtil_GetFlexibleYUVFormats
-            if ((CameraTitanSocSDM865 == m_socId) || (CameraTitanSocSM7250 == m_socId) ||
-                (CameraTitanSocQSM7250 == m_socId) || (CameraTitanSocQRB5165 == m_socId) ||
-                (CameraTitanSocQRB5165N == m_socId) || (CameraTitanSocQCS7230 == m_socId) ||
-                (CameraTitanSocQRB3165 == m_socId) || (CameraTitanSocQRB3165N == m_socId)) {
+            if ((CameraTitanSocSDM865 == _soc_id) || (CameraTitanSocSM7250 == _soc_id) ||
+                (CameraTitanSocQSM7250 == _soc_id) || (CameraTitanSocQRB5165 == _soc_id) ||
+                (CameraTitanSocQRB5165N == _soc_id) || (CameraTitanSocQCS7230 == _soc_id) ||
+                (CameraTitanSocQRB3165 == _soc_id) || (CameraTitanSocQRB3165N == _soc_id)) {
                 stride = ALIGN(width, 512);
                 slice = ALIGN(height, 512);
             } else {
@@ -362,10 +351,10 @@ int QCamxHAL3TestBufferManager::AllocateOneIonBuffer(uint32_t width, uint32_t he
 
         case HAL_PIXEL_FORMAT_YCBCR_420_888: {
             if (consumerUsageFlags & GRALLOC_USAGE_HW_VIDEO_ENCODER) {
-                if ((CameraTitanSocSDM865 == m_socId) || (CameraTitanSocSM7250 == m_socId) ||
-                    (CameraTitanSocQSM7250 == m_socId) || (CameraTitanSocQRB5165 == m_socId) ||
-                    (CameraTitanSocQRB5165N == m_socId) || (CameraTitanSocQCS7230 == m_socId) ||
-                    (CameraTitanSocQRB3165 == m_socId) || (CameraTitanSocQRB3165N == m_socId)) {
+                if ((CameraTitanSocSDM865 == _soc_id) || (CameraTitanSocSM7250 == _soc_id) ||
+                    (CameraTitanSocQSM7250 == _soc_id) || (CameraTitanSocQRB5165 == _soc_id) ||
+                    (CameraTitanSocQRB5165N == _soc_id) || (CameraTitanSocQCS7230 == _soc_id) ||
+                    (CameraTitanSocQRB3165 == _soc_id) || (CameraTitanSocQRB3165N == _soc_id)) {
                     stride = ALIGN(width, 512);
                     slice = ALIGN(height, 512);
                 } else {
@@ -400,9 +389,9 @@ int QCamxHAL3TestBufferManager::AllocateOneIonBuffer(uint32_t width, uint32_t he
 #endif
     alloc.flags = ION_FLAG_CACHED;
     alloc.heap_id_mask = ION_HEAP(ION_SYSTEM_HEAP_ID);
-    rc = ioctl(mIonFd, ION_IOC_ALLOC, &alloc);
+    rc = ioctl(_ion_fd, ION_IOC_ALLOC, &alloc);
     if (rc < 0) {
-        QCAMX_ERR("ION allocation failed %s with rc = %d fd:%d\n", strerror(errno), rc, mIonFd);
+        QCAMX_ERR("ION allocation failed %s with rc = %d fd:%d\n", strerror(errno), rc, _ion_fd);
         return rc;
     }
 
@@ -410,7 +399,7 @@ int QCamxHAL3TestBufferManager::AllocateOneIonBuffer(uint32_t width, uint32_t he
     memset(&ion_info_fd, 0, sizeof(ion_info_fd));
     ion_info_fd.handle = alloc.handle;
 
-    rc = ioctl(mIonFd, ION_IOC_SHARE, &ion_info_fd);
+    rc = ioctl(_ion_fd, ION_IOC_SHARE, &ion_info_fd);
     if (rc < 0) {
         QCAMX_ERR("ION map failed %s\n", strerror(errno));
         return rc;
@@ -419,25 +408,25 @@ int QCamxHAL3TestBufferManager::AllocateOneIonBuffer(uint32_t width, uint32_t he
 #endif
 
 #ifndef TARGET_ION_ABI_VERSION
-    mBufferinfo[index].vaddr =
+    _buffer_info[index].vaddr =
         mmap(NULL, alloc.len, PROT_READ | PROT_WRITE, MAP_SHARED, ion_info_fd.fd, 0);
-    mBufferinfo[index].fd = ion_info_fd.fd;
+    _buffer_info[index].fd = ion_info_fd.fd;
 #else
-    mBufferinfo[index].vaddr =
+    _buffer_info[index].vaddr =
         mmap(NULL, alloc.len, PROT_READ | PROT_WRITE, MAP_SHARED, alloc.fd, 0);
-    mBufferinfo[index].fd = alloc.fd;
+    _buffer_info[index].fd = alloc.fd;
 #endif
-    mBufferinfo[index].size = alloc.len;
-    mBufferinfo[index].allocData = alloc;
-    mBufferinfo[index].width = width;
-    mBufferinfo[index].height = height;
-    mBufferinfo[index].stride = stride;
-    mBufferinfo[index].slice = slice;
-    mBufferinfo[index].format = format;
+    _buffer_info[index].size = alloc.len;
+    _buffer_info[index].allocData = alloc;
+    _buffer_info[index].width = width;
+    _buffer_info[index].height = height;
+    _buffer_info[index].stride = stride;
+    _buffer_info[index].slice = slice;
+    _buffer_info[index].format = format;
 
-    if (!mIsMetaBuf) {
+    if (!_is_meta_buf) {
         nh = native_handle_create(1, 4);
-        (nh)->data[0] = mBufferinfo[index].fd;
+        (nh)->data[0] = _buffer_info[index].fd;
         (nh)->data[1] = 0;
         (nh)->data[2] = 0;
         (nh)->data[3] = 0;
@@ -446,9 +435,9 @@ int QCamxHAL3TestBufferManager::AllocateOneIonBuffer(uint32_t width, uint32_t he
     } else {
         /*alloc private handle_t */
         /*(buffer_handler_t **)*/
-        if (!mIsUBWC) {
+        if (!_is_UWBC) {
             nh = native_handle_create(1, 2);
-            (nh)->data[0] = mBufferinfo[index].fd;
+            (nh)->data[0] = _buffer_info[index].fd;
             (nh)->data[1] = 0;
             (nh)->data[2] = alloc.len;
         } else {
@@ -461,43 +450,36 @@ int QCamxHAL3TestBufferManager::AllocateOneIonBuffer(uint32_t width, uint32_t he
 
     QCAMX_INFO(
         "Alloc buffer fd:%d vaddr:%p len:%d width:%d height:%d stride:%d slice:%d format 0x%x\n",
-        mBufferinfo[index].fd, mBufferinfo[index].vaddr, mBufferinfo[index].size,
-        mBufferinfo[index].width, mBufferinfo[index].height, mBufferinfo[index].stride,
-        mBufferinfo[index].slice, mBufferinfo[index].format);
+        _buffer_info[index].fd, _buffer_info[index].vaddr, _buffer_info[index].size,
+        _buffer_info[index].width, _buffer_info[index].height, _buffer_info[index].stride,
+        _buffer_info[index].slice, _buffer_info[index].format);
 
     return rc;
 }
 #elif defined USE_GBM
-/************************************************************************
-* name : AllocateOneGbmBuffer
-* function: Allocate One Buffer from Ion interface
-************************************************************************/
-int QCamxHAL3TestBufferManager::AllocateOneGbmBuffer(uint32_t width, uint32_t height,
-                                                     uint32_t format, uint64_t producerUsageFlags,
-                                                     uint64_t consumerUsageFlags,
-                                                     buffer_handle_t *pAllocatedBuffer,
-                                                     uint32_t index, StreamType type,
-                                                     Implsubformat subformat) {
-    int rc = 0;
-    size_t bo_size = 0;
-    uint32_t stride = 0;
-    struct gbm_bo *pGbmBuffObject = NULL;
 
+int QCamxHAL3TestBufferManager::allocate_one_gbm_buffer(uint32_t width, uint32_t height,
+                                                        uint32_t format, uint64_t producer_flags,
+                                                        uint64_t consumer_flags,
+                                                        buffer_handle_t *pAllocatedBuffer,
+                                                        uint32_t index, StreamType type,
+                                                        Implsubformat subformat) {
+    int rc = 0;
     if (type == VIDEO_TYPE && (subformat == UBWCTP10 || subformat == P010)) {
-        consumerUsageFlags = producerUsageFlags = GRALLOC_USAGE_PRIVATE_2 | GRALLOC_USAGE_PRIVATE_0;
+        consumer_flags = producer_flags = GRALLOC_USAGE_PRIVATE_2 | GRALLOC_USAGE_PRIVATE_0;
         if (subformat == P010) {
-            consumerUsageFlags = producerUsageFlags = GRALLOC_USAGE_PRIVATE_3;
+            consumer_flags = producer_flags = GRALLOC_USAGE_PRIVATE_3;
         }
     }
-    pGbmBuffObject = QCamxHal3TestGBM::GetHandle()->AllocateGbmBufferObj(
-        width, height, format, producerUsageFlags, consumerUsageFlags);
-    if (NULL == pGbmBuffObject) {
+    struct gbm_bo *gbm_buff_object = QCamxHal3TestGBM::GetHandle()->AllocateGbmBufferObj(
+        width, height, format, producer_flags, consumer_flags);
+    if (gbm_buff_object == NULL) {
         QCAMX_INFO("Invalid Gbm Buffer object");
         rc = -ENOMEM;
         return rc;
     }
 
-    stride = gbm_bo_get_stride(pGbmBuffObject);
+    uint32_t stride = gbm_bo_get_stride(gbm_buff_object);
     if (0 == stride) {
         QCAMX_INFO("Invalid Stride length");
         rc = -EINVAL;
@@ -505,7 +487,8 @@ int QCamxHAL3TestBufferManager::AllocateOneGbmBuffer(uint32_t width, uint32_t he
         return rc;
     }
 
-    rc = gbm_perform(GBM_PERFORM_GET_BO_SIZE, pGbmBuffObject, &bo_size);
+    size_t bo_size = 0;
+    rc = gbm_perform(GBM_PERFORM_GET_BO_SIZE, gbm_buff_object, &bo_size);
     if (GBM_ERROR_NONE != rc) {
         QCAMX_INFO("Error in querying BO size");
         rc = -EINVAL;
@@ -513,7 +496,7 @@ int QCamxHAL3TestBufferManager::AllocateOneGbmBuffer(uint32_t width, uint32_t he
         return rc;
     }
 
-    *pAllocatedBuffer = QCamxHal3TestGBM::GetHandle()->AllocateNativeHandle(pGbmBuffObject);
+    *pAllocatedBuffer = QCamxHal3TestGBM::GetHandle()->AllocateNativeHandle(gbm_buff_object);
     if (NULL == *pAllocatedBuffer) {
         QCAMX_INFO("Error allocating native handle buffer");
         rc = -ENOMEM;
@@ -522,20 +505,20 @@ int QCamxHAL3TestBufferManager::AllocateOneGbmBuffer(uint32_t width, uint32_t he
 
     private_handle_t *hnl = ((private_handle_t *)(*pAllocatedBuffer));
 
-    mBufferinfo[index].vaddr = mmap(NULL, bo_size, PROT_READ | PROT_WRITE, MAP_SHARED, hnl->fd, 0);
-    mBufferinfo[index].fd = hnl->fd;
-    mBufferinfo[index].size = bo_size;
-    mBufferinfo[index].width = width;
-    mBufferinfo[index].height = height;
-    mBufferinfo[index].stride = stride;
-    mBufferinfo[index].slice = bo_size / (stride * 3 / 2);
-    mBufferinfo[index].format = format;
+    _buffer_info[index].vaddr = mmap(NULL, bo_size, PROT_READ | PROT_WRITE, MAP_SHARED, hnl->fd, 0);
+    _buffer_info[index].fd = hnl->fd;
+    _buffer_info[index].size = bo_size;
+    _buffer_info[index].width = width;
+    _buffer_info[index].height = height;
+    _buffer_info[index].stride = stride;
+    _buffer_info[index].slice = bo_size / (stride * 3 / 2);
+    _buffer_info[index].format = format;
 
     QCAMX_INFO(
         "Alloc buffer fd:%d vaddr:%p len:%d width:%d height:%d stride:%d slice:%d format 0x%x\n",
-        mBufferinfo[index].fd, mBufferinfo[index].vaddr, mBufferinfo[index].size,
-        mBufferinfo[index].width, mBufferinfo[index].height, mBufferinfo[index].stride,
-        mBufferinfo[index].slice, mBufferinfo[index].format);
+        _buffer_info[index].fd, _buffer_info[index].vaddr, _buffer_info[index].size,
+        _buffer_info[index].width, _buffer_info[index].height, _buffer_info[index].stride,
+        _buffer_info[index].slice, _buffer_info[index].format);
 
     return rc;
 }
