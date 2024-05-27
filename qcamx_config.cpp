@@ -446,7 +446,6 @@ int QCamxConfig::parse_commandline_meta_dump(int ordersize, char *order) {
         EXPOSURE_METERING,
         SELECT_PRIORITY,
         EXP_PRIORITY,
-        SHOW_FPS,
         JPEG_QUALITY,
         RESULT_FILE_PATH,
         SHOW_CROP_REGION,
@@ -470,7 +469,6 @@ int QCamxConfig::parse_commandline_meta_dump(int ordersize, char *order) {
                            [EXPOSURE_METERING] = (char *const)"expmetering",
                            [SELECT_PRIORITY] = (char *const)"selPriority",
                            [EXP_PRIORITY] = (char *const)"expPriority",
-                           [SHOW_FPS] = (char *const)"showfps",
                            [JPEG_QUALITY] = (char *const)"jpegquality",
                            [RESULT_FILE_PATH] = (char *const)"filepath",
                            [SHOW_CROP_REGION] = (char *const)"showcropregion",
@@ -597,13 +595,6 @@ int QCamxConfig::parse_commandline_meta_dump(int ordersize, char *order) {
                 _dump_log->set_path(file_path);
                 break;
             }
-            case SHOW_FPS: {
-                int show_fps = 0;
-                sscanf(value, "%d", &show_fps);
-                QCAMX_PRINT("show fps:%d\n", show_fps);
-                _show_fps = show_fps;
-                break;
-            }
             case JPEG_QUALITY: {
                 int jpeg_quality = atoi(value);
                 _meta_dump.jpegquality = jpeg_quality;
@@ -640,66 +631,68 @@ int QCamxConfig::parse_commandline_add(int ordersize, char *order) {
     enum {
         ID_OPT = 0,
         PREVIEW_SIZE_OPT,
-        SNAPSHOT_SIZE_OPT,
-        VIDEO_SIZE_OPT,
         PREVIEW_FORMAT_OPT,
+        SNAPSHOT_SIZE_OPT,
         SNAPSHOT_FORMAT_OPT,
+        ZSL_MODE,
+        VIDEO_SIZE_OPT,
         VIDEO_FORMAT_OPT,
-        SHOT_NUMBER,
-        RESULT_FILE,
-        LOG_FILE,
         FPS_RANGE,
         CODEC_TYPE,
-        ZSL_MODE,
         BITRATE,
-        TARGET_BITRATE,
         IS_BITRATE_CONST,
+        TARGET_BITRATE,
+        ENABLE_RAW_STREAM,
+        RAW_SIZE_OPT,
         TOF_RANGE_MODE,
         TOF_IMAGE_TYPE,
-        ENABLE_RAW_STREAM,
-        FORCE_OPMODE,
-        RAW_SIZE_OPT,
         TOF_DEPTH_SIZE_OPT,
         TOF_IR_SIZE_OPT,
         TOF_DEPTH_FORMAT_OPT,
+        RESULT_FILE,
+        LOG_FILE,
+        FORCE_OPMODE,
+        SHOW_FPS,
     };
     char *const token[] = {[ID_OPT] = (char *const)"id",
                            [PREVIEW_SIZE_OPT] = (char *const)"psize",
-                           [SNAPSHOT_SIZE_OPT] = (char *const)"ssize",
-                           [VIDEO_SIZE_OPT] = (char *const)"vsize",
                            [PREVIEW_FORMAT_OPT] = (char *const)"pformat",
+                           [SNAPSHOT_SIZE_OPT] = (char *const)"ssize",
                            [SNAPSHOT_FORMAT_OPT] = (char *const)"sformat",
+                           [ZSL_MODE] = (char *const)"zsl",
+                           [VIDEO_SIZE_OPT] = (char *const)"vsize",
                            [VIDEO_FORMAT_OPT] = (char *const)"vformat",
-                           [SHOT_NUMBER] = (char *const)"snapnum",
-                           [RESULT_FILE] = (char *const)"resultfile",
-                           [LOG_FILE] = (char *const)"logfile",
                            [FPS_RANGE] = (char *const)"fpsrange",
                            [CODEC_TYPE] = (char *const)"codectype",
-                           [ZSL_MODE] = (char *const)"zsl",
                            [BITRATE] = (char *const)"bitrate",
-                           [TARGET_BITRATE] = (char *const)"targetbitrate",
                            [IS_BITRATE_CONST] = (char *const)"isbitrateconst",
-                           [TOF_RANGE_MODE] = (char *const)"mode",
-                           [TOF_IMAGE_TYPE] = (char *const)"itype",
+                           [TARGET_BITRATE] = (char *const)"targetbitrate",
                            [ENABLE_RAW_STREAM] = (char *const)"enableRawFormat",
-                           [FORCE_OPMODE] = (char *const)"forceopmode",
                            [RAW_SIZE_OPT] = (char *const)"rawsize",
-                           [TOF_DEPTH_SIZE_OPT] = (char *const)"tofDepthSize",
-                           [TOF_IR_SIZE_OPT] = (char *const)"tofIrSize",
-                           [TOF_DEPTH_FORMAT_OPT] = (char *const)"tofDepthFormat",
+                           [TOF_RANGE_MODE] = (char *const)"tofmode",
+                           [TOF_IMAGE_TYPE] = (char *const)"tofimageype",
+                           [TOF_DEPTH_SIZE_OPT] = (char *const)"tofdepthsize",
+                           [TOF_IR_SIZE_OPT] = (char *const)"tofirsize",
+                           [TOF_DEPTH_FORMAT_OPT] = (char *const)"tofdepthformat",
+                           [RESULT_FILE] = (char *const)"resultfile",
+                           [LOG_FILE] = (char *const)"logfile",
+                           [FORCE_OPMODE] = (char *const)"forceopmode",
+                           [SHOW_FPS] = (char *const)"showfps",
                            NULL};
     enum {
         CONTROL_RATE_CONSTANT = 1,
     };
 
+    int err_found = 0;
+    int res = 0;
+
     char *value;
-    int errfnd = 0;
     int width;
     int height;
-    int res = 0;
-    int modeConfig = 0;
+    int mode_config = 0;
+
     QCAMX_INFO("Command add:%s\n", order);
-    while (*order != '\0' && !errfnd) {
+    while (*order != '\0' && !err_found) {
         switch (getsubopt(&order, token, &value)) {
             case ID_OPT: {
                 QCAMX_PRINT("camera id:%s\n", value);
@@ -711,59 +704,22 @@ int QCamxConfig::parse_commandline_add(int ordersize, char *order) {
                 sscanf(value, "%dx%d", &width, &height);
                 _preview_stream.width = width;
                 _preview_stream.height = height;
-                modeConfig |= (1 << TESTMODE_PREVIEW);
-            } break;
-            case TOF_DEPTH_SIZE_OPT: {
-                QCAMX_PRINT("depth size:%s\n", value);
-                sscanf(value, "%dx%d", &width, &height);
-                _depth_stream.width = width;
-                _depth_stream.height = height;
-                modeConfig |= (1 << TESTMODE_DEPTH);
-            } break;
-            case TOF_IR_SIZE_OPT: {
-                QCAMX_PRINT("IR bg size:%s\n", value);
-                sscanf(value, "%dx%d", &width, &height);
-                _depth_IRBG_stream.width = width;
-                _depth_IRBG_stream.height = height;
-                _depth_IRBG_enabled = true;
-                modeConfig |= (1 << TESTMODE_DEPTH);
-            } break;
-            case SNAPSHOT_SIZE_OPT: {
-                QCAMX_PRINT("snapshot size:%s\n", value);
-                sscanf(value, "%dx%d", &width, &height);
-                _snapshot_stream.width = width;
-                _snapshot_stream.height = height;
-                modeConfig |= (1 << TESTMODE_SNAPSHOT);
-            } break;
-            case VIDEO_SIZE_OPT: {
-                QCAMX_PRINT("video size:%s\n video format:%s\n", value, "yuv420");
-                sscanf(value, "%dx%d", &width, &height);
-                _video_stream.width = width;
-                _video_stream.height = height;
-                _video_stream.format = HAL_PIXEL_FORMAT_YCBCR_420_888;
-                modeConfig |= (1 << TESTMODE_VIDEO);
-            } break;
-            case RAW_SIZE_OPT: {
-                QCAMX_PRINT("raw size:%s\n", value);
-                sscanf(value, "%dx%d", &width, &height);
-                _raw_stream.width = width;
-                _raw_stream.height = height;
-                _raw_stream.format = HAL_PIXEL_FORMAT_RAW10;
+                mode_config |= (1 << TESTMODE_PREVIEW);
             } break;
             case PREVIEW_FORMAT_OPT: {
                 QCAMX_PRINT("preview format:%s\n", value);
-                /****
-              support:
-              raw16         HAL_PIXEL_FORMAT_RAW16                  32
-              jpeg          HAL_PIXEL_FORMAT_BLOB                   33
-              yuv_ubwc      HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED 34
-              ubwctp10 ........HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED 34
-              yuv_ubwc_enc  HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED 34
-              yuv420        HAL_PIXEL_FORMAT_YCBCR_420_888          35
-              raw_opaque    HAL_PIXEL_FORMAT_RAW_OPAQUE             36
-              raw10         HAL_PIXEL_FORMAT_RAW10                  37
-              raw12         HAL_PIXEL_FORMAT_RAW12                  38
-             *****/
+                /*
+                 support:
+                    raw16         HAL_PIXEL_FORMAT_RAW16                  32
+                    jpeg          HAL_PIXEL_FORMAT_BLOB                   33
+                    yuv_ubwc      HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED 34
+                    ubwctp10 ........HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED 34
+                    yuv_ubwc_enc  HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED 34
+                    yuv420        HAL_PIXEL_FORMAT_YCBCR_420_888          35
+                    raw_opaque    HAL_PIXEL_FORMAT_RAW_OPAQUE             36
+                    raw10         HAL_PIXEL_FORMAT_RAW10                  37
+                    raw12         HAL_PIXEL_FORMAT_RAW12                  38
+               */
                 _preview_stream.type = CAMERA3_TEMPLATE_PREVIEW;
                 if (!strcmp("yuv420", value)) {
                     _preview_stream.format = HAL_PIXEL_FORMAT_YCBCR_420_888;
@@ -784,6 +740,13 @@ int QCamxConfig::parse_commandline_add(int ordersize, char *order) {
                     _preview_stream.format = HAL_PIXEL_FORMAT_Y16;
                 }
             } break;
+            case SNAPSHOT_SIZE_OPT: {
+                QCAMX_PRINT("snapshot size:%s\n", value);
+                sscanf(value, "%dx%d", &width, &height);
+                _snapshot_stream.width = width;
+                _snapshot_stream.height = height;
+                mode_config |= (1 << TESTMODE_SNAPSHOT);
+            } break;
             case SNAPSHOT_FORMAT_OPT: {
                 QCAMX_PRINT("snapshot format:%s\n", value);
                 if (!strcmp("yuv420", value)) {
@@ -801,6 +764,24 @@ int QCamxConfig::parse_commandline_add(int ordersize, char *order) {
                 } else if (!strcmp("raw16", value)) {
                     _snapshot_stream.format = HAL_PIXEL_FORMAT_RAW16;
                 }
+            } break;
+            case ZSL_MODE: {
+                int is_ZSL = atoi(value);
+                QCAMX_PRINT("in %sZSL mode\n", is_ZSL ? "" : "Non-");
+                if (is_ZSL == 0) {
+                    _zsl_enabled = false;
+                } else {
+                    _zsl_enabled = true;
+                }
+                break;
+            }
+            case VIDEO_SIZE_OPT: {
+                QCAMX_PRINT("video size:%s\n video format:%s\n", value, "yuv420");
+                sscanf(value, "%dx%d", &width, &height);
+                _video_stream.width = width;
+                _video_stream.height = height;
+                _video_stream.format = HAL_PIXEL_FORMAT_YCBCR_420_888;
+                mode_config |= (1 << TESTMODE_VIDEO);
             } break;
             case VIDEO_FORMAT_OPT: {
                 QCAMX_PRINT("video format:%s\n", value);
@@ -830,31 +811,6 @@ int QCamxConfig::parse_commandline_add(int ordersize, char *order) {
                     _video_stream.format = HAL_PIXEL_FORMAT_Y16;
                 }
             } break;
-            case TOF_DEPTH_FORMAT_OPT: {
-                QCAMX_PRINT("depth format:%s\n", value);
-                if (!strcmp("raw10", value)) {
-                    _depth_stream.format = HAL_PIXEL_FORMAT_RAW10;
-                    _depth_IRBG_stream.format = HAL_PIXEL_FORMAT_RAW10;
-                } else if (!strcmp("raw12", value)) {
-                    _depth_stream.format = HAL_PIXEL_FORMAT_RAW12;
-                    _depth_IRBG_stream.format = HAL_PIXEL_FORMAT_RAW12;
-                } else if (!strcmp("raw16", value)) {
-                    _depth_stream.format = HAL_PIXEL_FORMAT_RAW16;
-                    _depth_IRBG_stream.format = HAL_PIXEL_FORMAT_RAW16;
-                }
-            } break;
-            case SHOT_NUMBER: {
-                QCAMX_PRINT("shot number:%s\n", value);
-                int num;
-                sscanf(value, "%d", &num);
-                _snapshot_stream.request_number = num;
-            } break;
-            case RESULT_FILE:
-                QCAMX_PRINT("result file:%s\n", value);
-                break;
-            case LOG_FILE:
-                QCAMX_PRINT("log file:%s\n", value);
-                break;
             case FPS_RANGE: {
                 int fps_range[2];
                 sscanf(value, "%d-%d", &fps_range[0], &fps_range[1]);
@@ -870,33 +826,15 @@ int QCamxConfig::parse_commandline_add(int ordersize, char *order) {
                 }
                 break;
             }
-
             case CODEC_TYPE:
                 QCAMX_PRINT("codec type: %s\n", value);
                 _is_H265 = atoi(value);
                 break;
-            case ZSL_MODE: {
-                int is_ZSL = atoi(value);
-                QCAMX_PRINT("in %sZSL mode\n", is_ZSL ? "" : "Non-");
-                if (is_ZSL == 0) {
-                    _zsl_enabled = false;
-                } else {
-                    _zsl_enabled = true;
-                }
-                break;
-            }
             case BITRATE: {
                 uint32_t bitrate = 0;
                 sscanf(value, "%u", &bitrate);
                 QCAMX_PRINT("bitrate: %u\n", bitrate);
                 _video_rate_config.bitrate = bitrate * 1024 * 1024;
-                break;
-            }
-            case TARGET_BITRATE: {
-                uint32_t targetBitrate = 0;
-                sscanf(value, "%u", &targetBitrate);
-                QCAMX_PRINT("targetBitrate: %u\n", targetBitrate);
-                _video_rate_config.target_bitrate = targetBitrate * 1024 * 1024;
                 break;
             }
             case IS_BITRATE_CONST: {
@@ -907,60 +845,113 @@ int QCamxConfig::parse_commandline_add(int ordersize, char *order) {
                 }
                 break;
             }
-
-            /****************************************************
-        "0: short range mode"
-        "1: long  range mode"
-        ****************************************************/
-            case TOF_RANGE_MODE: {
-                int rangeMode = atoi(value);
-                QCAMX_PRINT("rangeMode:%d\n", rangeMode);
-                if (rangeMode >= 0 && rangeMode <= 1) {
-                    _range_mode = rangeMode;
-                } else {
-                    QCAMX_PRINT("Invalid range mode:%d, valid value:0/1\n", rangeMode);
-                    errfnd = 1;
-                }
+            case TARGET_BITRATE: {
+                uint32_t targetBitrate = 0;
+                sscanf(value, "%u", &targetBitrate);
+                QCAMX_PRINT("targetBitrate: %u\n", targetBitrate);
+                _video_rate_config.target_bitrate = targetBitrate * 1024 * 1024;
                 break;
             }
-            /****************************************************
-           "0: TL_E_IMAGE_TYPE_VGA_DEPTH_QVGA_IR_BG"
-           "1: TL_E_IMAGE_TYPE_QVGA_DEPTH_IR_BG"
-           "2: TL_E_IMAGE_TYPE_VGA_DEPTH_IR"
-           "3: TL_E_IMAGE_TYPE_VGA_IR_QVGA_DEPTH"
-           "4: TL_E_IMAGE_TYPE_VGA_IR_BG");
-        ****************************************************/
-            case TOF_IMAGE_TYPE: {
-                int imageType = atoi(value);
-                QCAMX_PRINT("imageType:%d\n", imageType);
-                if (imageType >= 0 && imageType <= 4) {
-                    _image_type = imageType;
-                } else {
-                    QCAMX_PRINT("Invalid range mode:%d, valid value:0/1/2/3/4\n", imageType);
-                    errfnd = 1;
-                }
-                break;
-            }
-
             case ENABLE_RAW_STREAM: {
-                uint32_t enableRawFormat = 0;
-                sscanf(value, "%u", &enableRawFormat);
-                QCAMX_PRINT("enableRawFormat: %u\n", enableRawFormat);
-                if (enableRawFormat == HAL_PIXEL_FORMAT_RAW16 ||
-                    enableRawFormat == HAL_PIXEL_FORMAT_RAW12 ||
-                    enableRawFormat == HAL_PIXEL_FORMAT_RAW10) {
+                uint32_t enable_raw_format = 0;
+                sscanf(value, "%u", &enable_raw_format);
+                QCAMX_PRINT("enableRawFormat: %u\n", enable_raw_format);
+                if (enable_raw_format == HAL_PIXEL_FORMAT_RAW16 ||
+                    enable_raw_format == HAL_PIXEL_FORMAT_RAW12 ||
+                    enable_raw_format == HAL_PIXEL_FORMAT_RAW10) {
                     _raw_stream_enable = 1;
-                    _rawformat = enableRawFormat;
+                    _rawformat = enable_raw_format;
                 } else {
                     QCAMX_PRINT("Invalid Rawformat mode:%d, valid value:32/37/38\n",
-                                enableRawFormat);
-                    errfnd = 1;
+                                enable_raw_format);
+                    err_found = 1;
                 }
                 break;
             }
+            case RAW_SIZE_OPT: {
+                QCAMX_PRINT("raw size:%s\n", value);
+                sscanf(value, "%dx%d", &width, &height);
+                _raw_stream.width = width;
+                _raw_stream.height = height;
+                _raw_stream.format = HAL_PIXEL_FORMAT_RAW10;
+            } break;
+            case TOF_RANGE_MODE: {
+                /**
+                 * 0: short range mode"
+                 * 1: long  range mode"
+                */
+                int range_mode = atoi(value);
+                QCAMX_PRINT("tof range mode:%d\n", range_mode);
+                if (range_mode == 0 || range_mode == 1) {
+                    _range_mode = range_mode;
+                } else {
+                    QCAMX_PRINT("Invalid tof range mode:%d, valid value:0/1\n", range_mode);
+                    err_found = 1;
+                }
+                break;
+            }
+            case TOF_IMAGE_TYPE: {
+                /**
+                 * 0: TL_E_IMAGE_TYPE_VGA_DEPTH_QVGA_IR_BG"
+                 * 1: TL_E_IMAGE_TYPE_QVGA_DEPTH_IR_BG"
+                 * 2: TL_E_IMAGE_TYPE_VGA_DEPTH_IR"
+                 * 3: TL_E_IMAGE_TYPE_VGA_IR_QVGA_DEPTH"
+                 * 4: TL_E_IMAGE_TYPE_VGA_IR_BG"
+                */
+                int image_type = atoi(value);
+                QCAMX_PRINT("tof image type:%d\n", image_type);
+                if (image_type >= 0 && image_type <= 4) {
+                    _image_type = image_type;
+                } else {
+                    QCAMX_PRINT("Invalid range mode:%d, valid value:0/1/2/3/4\n", image_type);
+                    err_found = 1;
+                }
+                break;
+            }
+            case TOF_DEPTH_SIZE_OPT: {
+                QCAMX_PRINT("depth size:%s\n", value);
+                sscanf(value, "%dx%d", &width, &height);
+                _depth_stream.width = width;
+                _depth_stream.height = height;
+                mode_config |= (1 << TESTMODE_DEPTH);
+            } break;
+            case TOF_IR_SIZE_OPT: {
+                QCAMX_PRINT("ir bg size:%s\n", value);
+                sscanf(value, "%dx%d", &width, &height);
+                _depth_IRBG_stream.width = width;
+                _depth_IRBG_stream.height = height;
+                _depth_IRBG_enabled = true;
+                mode_config |= (1 << TESTMODE_DEPTH);
+            } break;
+            case TOF_DEPTH_FORMAT_OPT: {
+                QCAMX_PRINT("tof depth format:%s\n", value);
+                if (!strcmp("raw10", value)) {
+                    _depth_stream.format = HAL_PIXEL_FORMAT_RAW10;
+                    _depth_IRBG_stream.format = HAL_PIXEL_FORMAT_RAW10;
+                } else if (!strcmp("raw12", value)) {
+                    _depth_stream.format = HAL_PIXEL_FORMAT_RAW12;
+                    _depth_IRBG_stream.format = HAL_PIXEL_FORMAT_RAW12;
+                } else if (!strcmp("raw16", value)) {
+                    _depth_stream.format = HAL_PIXEL_FORMAT_RAW16;
+                    _depth_IRBG_stream.format = HAL_PIXEL_FORMAT_RAW16;
+                }
+            } break;
+            case RESULT_FILE:
+                QCAMX_PRINT("result file:%s\n", value);
+                break;
+            case LOG_FILE:
+                QCAMX_PRINT("log file:%s\n", value);
+                break;
             case FORCE_OPMODE: {
                 sscanf(value, "%u", &_force_opmode);
                 QCAMX_PRINT("mForceOpmode: %xn", _force_opmode);
+                break;
+            }
+            case SHOW_FPS: {
+                int show_fps = 0;
+                sscanf(value, "%d", &show_fps);
+                QCAMX_PRINT("show fps:%d\n", show_fps);
+                _show_fps = show_fps;
                 break;
             }
             default:
@@ -968,7 +959,7 @@ int QCamxConfig::parse_commandline_add(int ordersize, char *order) {
                 break;
         }
     }
-    switch (modeConfig) {
+    switch (mode_config) {
         case (1 << TESTMODE_PREVIEW):
             _test_mode = TESTMODE_PREVIEW;
             break;
@@ -991,6 +982,8 @@ int QCamxConfig::parse_commandline_add(int ordersize, char *order) {
             res = -1;
             break;
     }
-    if (errfnd) res = -1;
+    if (err_found) {
+        res = -1;
+    }
     return res;
 }
