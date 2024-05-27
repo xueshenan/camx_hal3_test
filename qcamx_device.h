@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-#include "QCamxHAL3TestBufferManager.h"
+#include "qcamx_buffer_manager.h"
 #include "qcamx_config.h"
 #include "qcamx_log.h"
 
@@ -123,7 +123,7 @@ typedef struct _Stream {
     int stream_id;
     int stream_type;  //camera3_request_template_t
     //buffer
-    QCamxHAL3TestBufferManager *buffer_manager;
+    QCamxBufferManager *buffer_manager;
     //runTime
     camera3_stream_buffer_t stream_buffer;
 } CameraStream;
@@ -256,7 +256,7 @@ private:
     };
     CallbackOps *_callback_ops;
 private:
-    QCamxHAL3TestBufferManager *_buffer_manager[MAXSTREAM];
+    QCamxBufferManager *_buffer_manager[MAXSTREAM];
 private:
     SyncBufferMode _sync_buffer_mode;
     pthread_mutex_t _setting_metadata_lock;

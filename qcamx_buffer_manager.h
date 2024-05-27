@@ -89,10 +89,10 @@ struct Gralloc1Interface {
 };
 #endif
 
-class QCamxHAL3TestBufferManager {
+class QCamxBufferManager {
 public:
-    QCamxHAL3TestBufferManager();
-    ~QCamxHAL3TestBufferManager();
+    QCamxBufferManager();
+    ~QCamxBufferManager();
 public:
     /**
      * @brief initializes the instance
@@ -212,8 +212,8 @@ private:
                                 Implsubformat subformat);
 #endif
     // Do not support the copy constructor or assignment operator
-    QCamxHAL3TestBufferManager(const QCamxHAL3TestBufferManager &) = delete;
-    QCamxHAL3TestBufferManager &operator=(const QCamxHAL3TestBufferManager &) = delete;
+    QCamxBufferManager(const QCamxBufferManager &) = delete;
+    QCamxBufferManager &operator=(const QCamxBufferManager &) = delete;
 private:
     uint32_t _soc_id;          ///< soc id
     uint32_t _num_of_buffers;  ///< num of Buffers
@@ -243,21 +243,17 @@ class QCamxHal3TestGBM {
 private:
     QCamxHal3TestGBM();
     ~QCamxHal3TestGBM();
-
-    int deviceFD;  /// Gdm device FD
-
-    struct gbm_device *m_pGbmDevice;  ///< GBM device object
-
     /// Do not support the copy constructor or assignment operator
     QCamxHal3TestGBM(const QCamxHal3TestGBM &rQCamxHal3TestGBM) = delete;
     QCamxHal3TestGBM &operator=(const QCamxHal3TestGBM &rQCamxHal3TestGBM) = delete;
     static const std::unordered_map<int32_t, int32_t> GBMUsageMap;
 public:
+    /**
+     * @brief singleton handle for QCamxGBM
+     */
+    static QCamxHal3TestGBM *GetHandle();
     /// Create GBM device
     GBM_DEVICE CreateGbmDeviceObject();
-
-    /// Get handle of QCamxHal3TestGBM object
-    static QCamxHal3TestGBM *GetHandle();
 
     /// Get GBM usage flag corresponsing to Gralloc flag and gbm format
     static uint32_t GetGbmUsageFlag(uint32_t user_format, uint32_t cons_flag, uint32_t prod_flag);
@@ -277,5 +273,8 @@ public:
 
     /// Free GBM buffer object
     void FreeGbmBufferObj(struct gbm_bo *m_pGbmBuffObject);
+private:
+    int deviceFD;                     ///< Gdm device FD
+    struct gbm_device *m_pGbmDevice;  ///< GBM device object
 };
 #endif

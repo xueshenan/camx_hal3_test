@@ -5,18 +5,18 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file  QCamxHAL3TestBufferManager.cpp
+/// @file  QCamxBufferManager.cpp
 /// @brief Buffer Manager
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "QCamxHAL3TestBufferManager.h"
+#include "qcamx_buffer_manager.h"
 
 #include "qcamx_define.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
-#define LOG_TAG "QCamxHAL3TestBufferManager"
+#define LOG_TAG "QCamxBufferManager"
 
 static const uint32_t CameraTitanSocSDM865 = 356;    ///< SDM865 SOC Id
 static const uint32_t CameraTitanSocSM7250 = 400;    ///< SDM7250 SOC Id
@@ -27,7 +27,7 @@ static const uint32_t CameraTitanSocQCS7230 = 548;   ///< QCS7230 SOC Id
 static const uint32_t CameraTitanSocQRB3165 = 598;   ///< QRB3165 SOC Id
 static const uint32_t CameraTitanSocQRB3165N = 599;  ///< QRB3165N SOC Id
 
-QCamxHAL3TestBufferManager::QCamxHAL3TestBufferManager() {
+QCamxBufferManager::QCamxBufferManager() {
     _num_of_buffers = 0;
     _buffer_stride = 0;
     initialize();
@@ -36,13 +36,13 @@ QCamxHAL3TestBufferManager::QCamxHAL3TestBufferManager() {
 #endif
 }
 
-QCamxHAL3TestBufferManager::~QCamxHAL3TestBufferManager() {
+QCamxBufferManager::~QCamxBufferManager() {
     destroy();
 }
 
 /***************************** public method ***************************************/
 
-int QCamxHAL3TestBufferManager::initialize() {
+int QCamxBufferManager::initialize() {
     int result = 0;
 #ifdef USE_GRALLOC1
     result = setup_gralloc1_interface();
@@ -51,7 +51,7 @@ int QCamxHAL3TestBufferManager::initialize() {
     return result;
 }
 
-void QCamxHAL3TestBufferManager::destroy() {
+void QCamxBufferManager::destroy() {
     free_all_buffers();
 #if defined USE_GRALLOC1
     gralloc1_close(_gralloc1_device);
@@ -61,11 +61,11 @@ void QCamxHAL3TestBufferManager::destroy() {
 #endif
 }
 
-int QCamxHAL3TestBufferManager::allocate_buffers(uint32_t num_of_buffers, uint32_t width,
-                                                 uint32_t height, uint32_t format,
-                                                 uint64_t producer_flags, uint64_t consumer_flags,
-                                                 StreamType type, Implsubformat subformat,
-                                                 uint32_t is_meta_buf, uint32_t is_UBWC) {
+int QCamxBufferManager::allocate_buffers(uint32_t num_of_buffers, uint32_t width, uint32_t height,
+                                         uint32_t format, uint64_t producer_flags,
+                                         uint64_t consumer_flags, StreamType type,
+                                         Implsubformat subformat, uint32_t is_meta_buf,
+                                         uint32_t is_UBWC) {
     QCAMX_DBG("allocate_buffers, Enter subformat=%d, type=%d\n", subformat, type);
 
     for (uint32_t i = 0; i < num_of_buffers; i++) {
@@ -81,7 +81,7 @@ int QCamxHAL3TestBufferManager::allocate_buffers(uint32_t num_of_buffers, uint32
     return 0;
 }
 
-void QCamxHAL3TestBufferManager::free_all_buffers() {
+void QCamxBufferManager::free_all_buffers() {
     for (uint32_t i = 0; i < _num_of_buffers; i++) {
         if (_buffers[i] != NULL) {
             munmap(_buffer_info[i].vaddr, _buffer_info[i].size);
@@ -112,7 +112,7 @@ void QCamxHAL3TestBufferManager::free_all_buffers() {
     }
 }
 
-uint32_t QCamxHAL3TestBufferManager::get_soc_id() {
+uint32_t QCamxBufferManager::get_soc_id() {
     uint32_t soc_id = 0;
     int soc_fd = open("/sys/devices/soc0/soc_id", O_RDONLY);
     if (soc_fd > 0) {
@@ -131,12 +131,11 @@ uint32_t QCamxHAL3TestBufferManager::get_soc_id() {
     return soc_id;
 }
 
-int QCamxHAL3TestBufferManager::allocate_one_buffer(uint32_t width, uint32_t height,
-                                                    uint32_t format, uint64_t producer_flags,
-                                                    uint64_t consumer_flags,
-                                                    buffer_handle_t *allocated_buffer,
-                                                    uint32_t *pStride, uint32_t index,
-                                                    StreamType type, Implsubformat subformat) {
+int QCamxBufferManager::allocate_one_buffer(uint32_t width, uint32_t height, uint32_t format,
+                                            uint64_t producer_flags, uint64_t consumer_flags,
+                                            buffer_handle_t *allocated_buffer, uint32_t *pStride,
+                                            uint32_t index, StreamType type,
+                                            Implsubformat subformat) {
     int32_t result = 0;
 #if defined USE_GRALLOC1
     result = allocate_one_galloc1_buffer(width, height, format, producer_flags, consumer_flags,
@@ -153,7 +152,7 @@ int QCamxHAL3TestBufferManager::allocate_one_buffer(uint32_t width, uint32_t hei
 
 #ifdef USE_GRALLOC1
 
-int QCamxHAL3TestBufferManager::setup_gralloc1_interface() {
+int QCamxBufferManager::setup_gralloc1_interface() {
     int result = 0;
 
     hw_get_module(GRALLOC_HARDWARE_MODULE_ID, const_cast<const hw_module_t **>(&_hw_module));
@@ -194,10 +193,12 @@ int QCamxHAL3TestBufferManager::setup_gralloc1_interface() {
     return result;
 }
 
-int QCamxHAL3TestBufferManager::allocate_one_galloc1_buffer(
-    uint32_t width, uint32_t height, uint32_t format, uint64_t producerUsageFlags,
-    uint64_t consumerUsageFlags, buffer_handle_t *pAllocatedBuffer, uint32_t *pStride,
-    uint32_t index, StreamType type, Implsubformat subformat) {
+int QCamxBufferManager::allocate_one_galloc1_buffer(uint32_t width, uint32_t height,
+                                                    uint32_t format, uint64_t producerUsageFlags,
+                                                    uint64_t consumerUsageFlags,
+                                                    buffer_handle_t *pAllocatedBuffer,
+                                                    uint32_t *pStride, uint32_t index,
+                                                    StreamType type, Implsubformat subformat) {
     int32_t result = GRALLOC1_ERROR_NONE;
     gralloc1_buffer_descriptor_t gralloc1BufferDescriptor;
 
@@ -279,10 +280,11 @@ int QCamxHAL3TestBufferManager::allocate_one_galloc1_buffer(
 }
 #elif defined USE_ION
 
-int QCamxHAL3TestBufferManager::allocate_one_ion_buffer(
-    uint32_t width, uint32_t height, uint32_t format, uint64_t producerUsageFlags,
-    uint64_t consumerUsageFlags, buffer_handle_t *pAllocatedBuffer, uint32_t index, StreamType type,
-    Implsubformat subformat) {
+int QCamxBufferManager::allocate_one_ion_buffer(uint32_t width, uint32_t height, uint32_t format,
+                                                uint64_t producerUsageFlags,
+                                                uint64_t consumerUsageFlags,
+                                                buffer_handle_t *pAllocatedBuffer, uint32_t index,
+                                                StreamType type, Implsubformat subformat) {
     int rc = 0;
     struct ion_allocation_data alloc;
 #ifndef TARGET_ION_ABI_VERSION
@@ -449,12 +451,10 @@ int QCamxHAL3TestBufferManager::allocate_one_ion_buffer(
 }
 #elif defined USE_GBM
 
-int QCamxHAL3TestBufferManager::allocate_one_gbm_buffer(uint32_t width, uint32_t height,
-                                                        uint32_t format, uint64_t producer_flags,
-                                                        uint64_t consumer_flags,
-                                                        buffer_handle_t *buffer_handle,
-                                                        uint32_t index, StreamType type,
-                                                        Implsubformat subformat) {
+int QCamxBufferManager::allocate_one_gbm_buffer(uint32_t width, uint32_t height, uint32_t format,
+                                                uint64_t producer_flags, uint64_t consumer_flags,
+                                                buffer_handle_t *buffer_handle, uint32_t index,
+                                                StreamType type, Implsubformat subformat) {
     int rc = 0;
     if (type == VIDEO_TYPE && (subformat == UBWCTP10 || subformat == P010)) {
         consumer_flags = producer_flags = GRALLOC_USAGE_PRIVATE_2 | GRALLOC_USAGE_PRIVATE_0;

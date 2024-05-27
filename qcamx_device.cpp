@@ -68,7 +68,7 @@ void QCamxDevice::close_camera() {
 
 void QCamxDevice::pre_allocate_streams(std::vector<Stream *> streams) {
     for (uint32_t i = 0; i < streams.size(); i++) {
-        QCamxHAL3TestBufferManager *buffer_manager = new QCamxHAL3TestBufferManager();
+        QCamxBufferManager *buffer_manager = new QCamxBufferManager();
         int stream_buffer_max = streams[i]->pstream->max_buffers;
         Implsubformat subformat = streams[i]->subformat;
         QCAMX_PRINT("Subformat for stream %d: %d\n", i, subformat);
@@ -78,9 +78,9 @@ void QCamxDevice::pre_allocate_streams(std::vector<Stream *> streams) {
                 get_jpeg_buffer_size(streams[i]->pstream->width, streams[i]->pstream->height);
 
             buffer_manager->allocate_buffers(stream_buffer_max, size, 1,
-                                            (int32_t)(streams[i]->pstream->format),
-                                            streams[i]->pstream->usage, streams[i]->pstream->usage,
-                                            streams[i]->type, subformat);
+                                             (int32_t)(streams[i]->pstream->format),
+                                             streams[i]->pstream->usage, streams[i]->pstream->usage,
+                                             streams[i]->type, subformat);
         } else {
             buffer_manager->allocate_buffers(
                 stream_buffer_max, streams[i]->pstream->width, streams[i]->pstream->height,
